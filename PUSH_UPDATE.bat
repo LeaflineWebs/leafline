@@ -62,7 +62,14 @@ set /p MSG=What changed? (short note, or just press Enter):
 if "!MSG!"=="" set "MSG=Update"
 git commit -q -m "!MSG!" >nul 2>&1
 echo [4/5] Publishing the website...
-git push -u origin main || (
+git push -u origin main >nul 2>&1 || (
+  echo Merging with what is already on GitHub, then trying again...
+  git pull origin main --no-rebase --allow-unrelated-histories -X ours --no-edit >nul 2>&1
+  git push -u origin main
+) || (
+  echo Replacing the older copy on GitHub with this one...
+  git push --force -u origin main
+) || (
   echo.
   echo The upload did not work. Common reasons:
   echo  - The repository %REPO% does not exist yet, or was created with a README. Create a NEW empty one.
