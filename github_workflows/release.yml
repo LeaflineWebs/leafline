@@ -1,0 +1,46 @@
+name: Publish desktop update
+# Runs when PUSH_UPDATE.bat pushes a new version tag (v10.2.0 ...). It builds the Windows installer online and
+# attaches it to a GitHub Release. Installed desktop apps notice the new release on their next launch and update themselves.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Tag must match package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "refs/tags/v$v" = "$GITHUB_REF" ] || { echo "Tag $GITHUB_REF does not match package.json version $v"; exit 1; }
+      - run: python -m pip install -r requirements.txt
+      - name: Bundle the Python engine
+        run: python -m PyInstaller --noconfirm --name leafline_backend --distpath backend-dist --workpath build/pyi --specpath build/pyi --collect-all playwright --collect-data tzdata backend/leafline_backend.py
+      - run: node tools/set_repo.js
+      - run: npm install
+      - name: Build and publish installer
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm run release:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Build installer (test run, not published)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npm run dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        with:
+          name: windows-exe
+          path: dist/*.exe
+          if-no-files-found: error
