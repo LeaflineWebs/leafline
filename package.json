@@ -1,0 +1,85 @@
+{
+  "name": "leafline-lead-finder",
+  "productName": "Leafline Lead Finder",
+  "version": "11.2.2",
+  "description": "Leafline Web Services - Lead Finder",
+  "author": "Leafline Web Services",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis --publish never",
+    "dist:mac": "electron-builder --mac dmg --publish never",
+    "release:win": "electron-builder --win nsis --publish always"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.leafline.leadfinder",
+    "productName": "Leafline Lead Finder",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "updater.js",
+      "package.json",
+      "build/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "backend-dist",
+        "to": "backend"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Leafline Lead Finder",
+      "artifactName": "Leafline-Lead-Finder-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg"
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.business",
+      "identity": null,
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "title": "Leafline Lead Finder",
+      "artifactName": "Leafline-Lead-Finder-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "LeaflineWebs",
+        "repo": "leafline",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  }
+}
