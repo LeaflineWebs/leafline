@@ -82,7 +82,7 @@ MSG_CSS = r'''
 .mm.me .mm-col{align-items:flex-end}
 .mb{max-width:min(620px,86%);padding:9px 13px;border-radius:18px 18px 18px 6px;background:var(--card2);font-size:14.5px;line-height:1.48;overflow-wrap:anywhere;position:relative;box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
 .mm.cont .mb{border-radius:6px 18px 18px 6px}
-.mm.me .mb{background:linear-gradient(160deg,rgba(74,222,139,.24),rgba(47,191,113,.18));border-radius:18px 18px 6px 18px;color:#F2FFF7}
+.mm.me .mb{background:linear-gradient(160deg,rgba(var(--accent-rgb),.24),rgba(var(--accent-rgb),.12));border-radius:18px 18px 6px 18px;color:#F2FFF7}
 .mm.me.cont .mb{border-radius:18px 6px 6px 18px}
 .mm.atme .mb{box-shadow:inset 3px 0 0 #F2D88C;background:rgba(242,216,140,.10)}
 .mm.del .mb{background:none;border:1px dashed var(--line2);color:var(--faint);font-style:italic}

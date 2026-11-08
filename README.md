@@ -94,3 +94,11 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
   (reached ones lit, the next one dashed, the rest grey), today's progress out of 25 and their best streak.
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
+
+## What is new in 11.6: more themes
+- Eight new themes next to Forest, Emerald and Midnight (which look exactly as before): Ruby (red), Amber (orange),
+  Gold (yellow), Lime (green), Ocean (blue), Indigo, Violet, and Obsidian, a darker near-black theme with the Leafline green.
+- Settings > Appearance shows a little preview of every theme. The sidebar, top bar and the phone's More menu have a theme
+  button that opens the full list. Your choice still follows you to every device.
+- Buttons, highlights, glows, charts, progress bars, your chat bubbles, the logo and the dashboard picture follow the theme.
+  Colours that mean something (meeting set up, open now, payment received, online) stay the same in every theme.
