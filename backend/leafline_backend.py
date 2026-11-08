@@ -1794,6 +1794,12 @@ svg text{font-family:var(--font)}
 .ls .hr{color:var(--text2);font-weight:500}
 .li .pill{flex:none}
 .dpane{padding:22px 24px 30px;overflow:auto}
+/* tap-to-call */
+a.tel{color:inherit;text-decoration:none;border-bottom:1px dashed var(--accent-line);-webkit-tap-highlight-color:rgba(var(--accent-rgb),.25)}
+a.tel:hover{color:var(--accent-hi);border-bottom-color:var(--accent)}
+.callb,.dclose{display:none}
+.pacts{margin-left:auto;display:inline-flex;gap:8px;flex:none}.pacts .btn{white-space:nowrap}
+@media (hover:none),(pointer:coarse){.callb{display:inline-flex}}
 .dh{display:flex;align-items:center;gap:14px}
 .dh .av{width:54px;height:54px;font-size:18px}
 .dh h2{font-size:21px;font-weight:800;letter-spacing:-.3px}
@@ -2210,7 +2216,18 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.45;resize:vertical;font
   .banner{grid-template-columns:1fr;padding:18px}.banner>div:first-child,.ill{display:none}
   .stats,.cstats{grid-template-columns:1fr 1fr;gap:10px}
   .frow{grid-template-columns:1fr 1fr}.frow>div:nth-child(4){grid-column:1/3}
-  .split{min-height:0}.split .dpane{display:none}
+  .split{min-height:0}
+  /* phones: business details slide up full-screen when a business is tapped */
+  .split .dpane{display:block;position:fixed;inset:0;z-index:var(--z-modal);margin:0;border-radius:0;border:0;max-height:none;
+    padding:calc(12px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+    background:var(--bg);transform:translateY(100%);visibility:hidden;transition:transform var(--d-card) var(--e-out),visibility 0s linear var(--d-card)}
+  body.dopen .split .dpane{transform:none;visibility:visible;transition:transform var(--d-card) var(--e-out),visibility 0s}
+  body.dopen{overflow:hidden}
+  .dpane .dclose{display:inline-flex;margin:0 0 14px}
+  .fact .v{flex-wrap:wrap;row-gap:8px}.fact .pacts{margin-left:0;width:100%}
+  .fact:has(.pacts){grid-column:1/-1}.pacts .btn{flex:1 1 0;white-space:nowrap;height:42px;justify-content:center}
+  .dpane .dh{flex-wrap:wrap}.dpane .acts{width:100%;display:flex;gap:8px;flex-wrap:wrap}.dpane .acts .btn{flex:1 1 auto;justify-content:center;height:44px}
+  .dpane .mark .sb{display:grid;grid-template-columns:1fr 1fr;gap:8px}.dpane .mark .st{height:48px}
   .board{grid-template-columns:repeat(4,minmax(240px,82vw));overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}.board>*{scroll-snap-align:start}
   .page{overflow-x:hidden}
   .two,.pg-head{grid-template-columns:minmax(0,1fr)!important}.two>*,.pg-head>*,.ad>*,.cl>*,.tm>*,.acc>*,.accr>*{min-width:0;max-width:100%}
@@ -3064,6 +3081,7 @@ const ICONS={
  bell:'<path d="M6 16V11a6 6 0 1112 0v5l2 2H4z"/><path d="M10 21h4"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
  minus:'<path d="M5 12h14"/>',
+ back:'<path d="M15 18l-6-6 6-6"/>',
  moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>',
  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
  copy:'<rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5 15V6a2 2 0 012-2h9"/>',
@@ -3187,6 +3205,24 @@ function openModal(html,mount){
   mount&&mount(ov,close);const f=$("input,textarea,button.btn",ov);f&&setTimeout(()=>f.focus(),120);return close;
 }
 function alertBox(title,msg){openModal(`<h2>${esc(title)}</h2><p class="muted" style="margin:10px 0 20px;line-height:1.55;white-space:pre-wrap">${esc(msg)}</p><div style="text-align:right"><button class="btn pri" data-x>OK</button></div>`,(ov,close)=>$("[data-x]",ov).onclick=close)}
+/* Phone numbers as tap-to-call links. On a phone (iPhone included) tapping one offers to call the number.
+   On a computer, and in the desktop app (which can't place calls), the same tap copies the number instead. */
+function telHref(ph){const d=String(ph||"").replace(/[^\d+]/g,"");if(!d)return "";const n=d.replace(/\D/g,"");
+  return "tel:"+(d.startsWith("+")?"+"+n:n.length===10?"+1"+n:n.length===11&&n[0]==="1"?"+"+n:n)}
+const canCall=()=>!window.LF_API&&matchMedia("(hover:none),(pointer:coarse)").matches;
+function telLink(ph,cls=""){const h=telHref(ph);return h?`<a class="tel ${cls}" href="${esc(h)}" data-ph="${esc(ph)}" aria-label="Call ${esc(ph)}">${esc(ph)}</a>`:esc(ph||"")}
+function callBtn(ph){const h=telHref(ph);return h?`<a class="btn sm pri tel callb" href="${esc(h)}" data-ph="${esc(ph)}" aria-label="Call ${esc(ph)}">${ic("phone")}Call</a>`:""}
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a.tel");if(!a)return;
+  if(!canCall()){e.preventDefault();copyText(a.dataset.ph||a.textContent)}});
+/* phones: the business details open as a full-screen pop-up over the list (the side panel doesn't fit) */
+const isPhone=()=>matchMedia("(max-width:860px)").matches;
+function openDetailSheet(){if(!isPhone()||document.body.classList.contains("dopen"))return;document.body.classList.add("dopen");
+  try{history.pushState({dsheet:1},"")}catch(e){}setTimeout(()=>{const b=$("#dClose");b&&b.focus({preventScroll:true})},60)}
+function closeDetailSheet(fromHistory){if(!document.body.classList.contains("dopen"))return;saveDetail(true);document.body.classList.remove("dopen");
+  if(!fromHistory&&history.state&&history.state.dsheet){try{history.back()}catch(e){}}
+  const li=S.active&&$(`.li[data-id="${CSS.escape(S.active)}"]`);li&&li.focus({preventScroll:true})}
+window.addEventListener("popstate",()=>closeDetailSheet(true));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("dopen")&&!$(".ov.on"))closeDetailSheet()});
 function copyText(t){
   const done=()=>toast("Phone number copied");
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>fb())}else fb();
@@ -3267,7 +3303,7 @@ async function go(p,force){
   if(p===S.page&&!force)return;
   if(S.page==="notes"&&p!=="notes"){await flushNote();document.body.classList.remove("focus")}
   const my=++navToken,old=$(".page.on"),next=$("#pg-"+p);MOTION.navAt=performance.now();
-  S.page=p;closeSheet();hideHover(true);
+  S.page=p;closeSheet();hideHover(true);if(document.body.classList.contains("dopen"))closeDetailSheet();
   document.body.className=document.body.className.replace(/\bp-\w+/g,"").trim()+" p-"+p;
   $$("[data-go]").forEach(b=>b.classList.toggle("on",b.dataset.go===p));movePills();
   const t=$("#title");t.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:140,easing:EASE.in,fill:"forwards"}).finished.then(()=>{if(my!==navToken)return;t.textContent=TITLES[p];t.getAnimations().forEach(a=>a.cancel());t.animate([{opacity:0,transform:"translateY(10px)",filter:"blur(4px)"},{opacity:1,transform:"none",filter:"blur(0)"}],{duration:460,easing:EASE.out})}).catch(()=>{});
@@ -3321,15 +3357,14 @@ function callbackQueue(){
     ${q.length?q.map(l=>`<div class="hz-qi" data-lid="${esc(String(l.id))}" role="button" tabindex="0" aria-label="Open ${esc(l.name)}">
       <i class="hz-dot ${l.status}" title="${l.status==="yellow"?"Interested":"No answer"}"></i>
       <div class="hz-qt"><b>${esc(l.name)}</b><small>${l.status==="yellow"?"Interested":"No answer"} · called ${esc(ago(l.called_at))}</small></div>
-      <button type="button" class="btn sm hz-call" data-ph="${esc(l.phone||"")}" title="${window.LF_API?"Copy number":"Call"} ${esc(l.phone||"")}">${ic("phone")}<span>${esc(l.phone||"No number")}</span></button></div>`).join("")
+      ${telHref(l.phone)?`<a class="btn sm hz-call tel" href="${esc(telHref(l.phone))}" data-ph="${esc(l.phone)}" aria-label="Call ${esc(l.phone)}" title="Call ${esc(l.phone)}">${ic("phone")}<span>${esc(l.phone)}</span></a>`:""}</div>`).join("")
     :`<div class="hz-qe">${ic("check")}<span>No callbacks waiting. Interested and no-answer leads show up here.</span></div>`}
     ${mine.length>3?`<button type="button" class="hz-more" data-go="called">See all ${num(mine.length)} in Called Leads</button>`:""}</div>`;
 }
 function wireQueue(pg){
   $$(".hz-qi",pg).forEach(el=>{const l=(S.called||[]).find(x=>String(x.id)===el.dataset.lid);if(!l)return;
     el.onclick=e=>{if(e.target.closest(".hz-call"))return;leadModal(l)};el.onkeydown=e=>{if(e.key==="Enter"&&e.target===el)leadModal(l)}});
-  $$(".hz-call",pg).forEach(b=>b.onclick=e=>{e.stopPropagation();const ph=b.dataset.ph;if(!ph)return;
-    if(matchMedia("(hover:none)").matches&&!window.LF_API)location.href="tel:"+ph.replace(/[^\d+]/g,"");else copyText(ph)});
+  $$(".hz-call",pg).forEach(b=>b.addEventListener("click",e=>e.stopPropagation()));
   $$(".hz-more",pg).forEach(b=>b.onclick=()=>go("called"));
 }
 function renderDash(q){
@@ -3403,10 +3438,10 @@ function renderDetail(){
   if(!changed){const o=$("#dOwner"),nt=$("#dNotes");if(o&&(document.activeElement===o||document.activeElement===nt)){lastDetail={id:l.id,sig};patchDetail(l);return}}
   lastDetail={id:l.id,sig};d.dataset.id=l.id;
   const n=S.sel.size;
-  d.innerHTML=`<div class="${changed?"dsw":""}"><div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div>
-   <div class="acts"><button class="btn sm" id="dCopy">${ic("copy")}Copy phone</button><button class="btn sm" id="dSite"${l.website===NA?" disabled":""}>${ic("globe")}Website</button></div></div>
+  d.innerHTML=`<div class="${changed?"dsw":""}"><button class="btn sm dclose" id="dClose" aria-label="Back to the list">${ic("back")}Back</button><div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div>
+   <div class="acts">${callBtn(l.phone)}<button class="btn sm" id="dCopy">${ic("copy")}Copy phone</button><button class="btn sm" id="dSite"${l.website===NA?" disabled":""}>${ic("globe")}Website</button></div></div>
   <div class="facts">
-   <div class="fact"><div class="k">Phone</div><div class="v">${esc(l.phone)}<span style="font-size:13.5px;font-weight:700;color:#FFD60A">${esc(reviewTxt(l))}</span></div></div>
+   <div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span style="font-size:13.5px;font-weight:700;color:#FFD60A">${esc(reviewTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="dOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
    <div class="fact"><div class="k">Google rating</div><div class="v">${l.rating===NA?NA:esc(l.rating)+" ★"}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${l.reviews===NA?"":esc(num(l.reviews))+" reviews"}</span></div></div>
@@ -3429,6 +3464,7 @@ async function markLeads(status,fromBoard){
   try{await api("mark",ids,status)}catch(e){return toast("Couldn't update: "+e.message,{bad:1})}
   const nodes=ids.map(id=>$(`.li[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
   if(!fromBoard&&!REDUCE)await Promise.all(nodes.map(n=>n.animate([{opacity:1,transform:"none",maxHeight:"120px"},{opacity:0,transform:"translateX(40px) scale(.92)",maxHeight:"0px"}],{duration:300,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).finished.catch(()=>{})));
+  if(!fromBoard)closeDetailSheet();
   S.sel.clear();const first=S.find.findIndex(l=>ids.includes(l.id));S.find=S.find.filter(l=>!ids.includes(l.id));
   const arr=visibleFind();S.active=arr[Math.min(Math.max(first,0),arr.length-1)]?.id||null;lastDetail=null;
   await reload();
@@ -3440,7 +3476,7 @@ const prevStatus=()=>"none";
 /* ---------------- CALLED board ---------------- */
 function leadModal(l){
   const close=openModal(`<div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div></div>
-   <div class="facts"><div class="fact"><div class="k">Phone</div><div class="v">${esc(l.phone)}<button class="btn sm" data-copy style="margin-left:auto">${ic("copy")}Copy</button></div></div>
+   <div class="facts"><div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span class="pacts">${callBtn(l.phone)}<button class="btn sm" data-copy>${ic("copy")}Copy</button></span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="mOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
    <div class="fact"><div class="k">Last called</div><div class="v">${esc(fmtDate(l.called_at)||NA)}</div></div>
@@ -4466,6 +4502,7 @@ $("#list").addEventListener("click",e=>{
   const li=e.target.closest(".li");if(!li)return;const id=li.dataset.id;
   if(e.target.closest(".chk")){S.sel.has(id)?S.sel.delete(id):S.sel.add(id);renderFind();return}
   if(S.active!==id){saveDetail(true);S.active=id;lastDetail=null;renderFind()}
+  openDetailSheet();
 });
 $("#list").addEventListener("keydown",e=>{
   const li=e.target.closest(".li");if(!li)return;
@@ -4474,7 +4511,8 @@ $("#list").addEventListener("keydown",e=>{
 });
 $("#detail").addEventListener("click",e=>{
   const l=S.find.find(x=>x.id===S.active);if(!l)return;
-  if(e.target.closest("#dCopy"))copyText(l.phone);
+  if(e.target.closest("#dClose"))closeDetailSheet();
+  else if(e.target.closest("#dCopy"))copyText(l.phone);
   else if(e.target.closest("#dSite"))api("open_site",l.id).catch(()=>{});
   else if(e.target.closest("#dSave"))saveDetail(false);
   else{const m=e.target.closest("[data-mark]");if(m)markLeads(m.dataset.mark)}

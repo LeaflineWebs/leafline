@@ -11,11 +11,11 @@ F = Fake(); os.environ["SUPABASE_URL"] = F.url
 ids = {n: F.add_user(n, n.title() + "123", "admin" if n == "james" else "employee") for n in ("gio", "james", "tim", "omar")}
 for p in F.t["profiles"]: p["must_change_password"] = False
 from datetime import datetime, timedelta, timezone
-for i, st in enumerate(("yellow", "orange", "green", "yellow")):
+for i, st in enumerate(("yellow", "orange", "green", "yellow", "none", "none")):
     when = (datetime.now(timezone.utc) - timedelta(days=i)).isoformat()
     F.t["leads"].append(dict(id=f"lead{i}", name=f"Roofing Pro {i}", phone=f"(416) 555-20{i:02d}", owner_name="N/A", rating="4.5", reviews="10", website="",
                              address="1 Queen St W, Toronto, ON", search="Roofing | Toronto", btype="Roofing", hours="", status=st, notes="", enriched=False,
-                             added_at=when, called_at=when, meeting_at=None, called_by=ids["gio"], version=1, updated_at=F.now(), created_at=F.now()))
+                             added_at=when, called_at=when if st != "none" else None, meeting_at=None, called_by=ids["gio"] if st != "none" else None, version=1, updated_at=F.now(), created_at=F.now()))
 import leafline_backend as B
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from playwright.sync_api import sync_playwright
@@ -116,6 +116,28 @@ with sync_playwright() as p:
     # lighter pictures and cached chats
     r = pg.evaluate("()=>{const d=S.me.avatar,a=imgTag(d,d);return {short:a.length<400,blob:a.includes('blob:'),same:a===imgTag(d,d)}}")
     check("pictures stored as text become one short shared link", r["short"] and r["blob"] and r["same"])
+    # phones (iPhone): tap a business -> details pop up with Call; numbers dial; back closes it
+    ip = br.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
+                        user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1")
+    m = ip.new_page(); m.on("pageerror", lambda e: errs.append(str(e)))
+    m.goto(f"http://127.0.0.1:{pA}/?t=tok&nointro#find"); m.wait_for_function("typeof S!=='undefined'&&S.ready&&S.me", timeout=60000); m.wait_for_timeout(800)
+    check("phone: details are hidden until a business is tapped", m.evaluate("()=>getComputedStyle(document.getElementById('detail')).visibility")=="hidden")
+    m.locator("#list .li").first.tap(); m.wait_for_timeout(600)
+    r = m.evaluate("""()=>{const d=document.getElementById('detail').getBoundingClientRect(),c=document.querySelector('#detail .callb');
+      return {open:document.body.classList.contains('dopen'),full:d.width>=innerWidth-1&&d.height>=innerHeight-1,href:c&&c.getAttribute('href'),shown:!!c&&c.getBoundingClientRect().width>0,marks:document.querySelectorAll('#detail [data-mark]').length}}""")
+    check("phone: tapping a business opens its details full-screen", r["open"] and r["full"] and r["marks"] == 4)
+    check(f"phone: a Call button dials the number ({r['href']})", r["shown"] and r["href"] == "tel:+14165552004")
+    dp = m.evaluate("""()=>{const a=document.querySelector('#detail a.tel');let dp=null;const h=e=>{dp=e.defaultPrevented;e.preventDefault()};window.addEventListener('click',h);
+      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));window.removeEventListener('click',h);return dp}""")
+    check("phone: tapping the number itself is left to the phone to call", dp is False)
+    m.tap("#dClose"); m.wait_for_timeout(500)
+    check("phone: Back returns to the list", not m.evaluate("()=>document.body.classList.contains('dopen')"))
+    m.locator("#list .li").first.tap(); m.wait_for_timeout(500); m.go_back(); m.wait_for_timeout(500)
+    check("phone: swipe-back / browser back closes it too", not m.evaluate("()=>document.body.classList.contains('dopen')"))
+    ip.close()
+    dp = pg.evaluate("""async()=>{await go('find');await new Promise(r=>setTimeout(r,400));const a=document.querySelector('#detail a.tel');let dp=null;const h=e=>{dp=e.defaultPrevented;e.preventDefault()};window.addEventListener('click',h);
+      a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));window.removeEventListener('click',h);return [dp,getComputedStyle(document.querySelector('#detail .callb')).display]}""")
+    check("computer: the number copies instead of dialling, and there's no Call button", dp == [True, "none"])
     check("no page errors", not errs or print(errs))
     br.close()
 print(f"\n{ok} passed, {fail} failed"); sys.stdout.flush()

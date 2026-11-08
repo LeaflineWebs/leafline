@@ -95,6 +95,14 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.8.1: calling from your phone
+- **Find Leads works on phones.** Tap a business and its details slide up full-screen: phone, hours, owner, notes,
+  Website and the result buttons (Meeting set up, Interested, No answer, Not interested). Back (or swiping back on
+  iPhone) returns to the list; marking a result does too.
+- **Tap to call.** Phone numbers are call links, and there is a big **Call** button in the business details and in
+  the Called Leads window. On an iPhone or Android phone, tapping it offers to call the number. On a computer (and
+  in the desktop app) the same tap copies the number instead.
+
 ## What is new in 11.8: dashboard, profiles and speed
 - **Dashboard banner:** the small pictures are gone. It keeps your greeting and the Find new leads / Start calling
   button, and adds your call streak and an **Up next** list: your businesses waiting for a call back (interested first,
