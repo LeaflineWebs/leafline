@@ -84,3 +84,13 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
   Details in SETUP_SUPABASE.md.
 - **Tests:** `cd tests/pg && npm install` once, then `node test_messaging_sql.mjs` (security rules on a real
   Postgres) and `python tests/test_messages.py` (three people chatting at once in the app and on the website).
+
+## What is new in 11.5: call streaks
+- A streak grows by one for every workday someone makes at least **25 calls**. Weekends never break it, and 25 calls on a
+  weekend counts as a bonus day. Today never breaks it either: until midnight the streak still counts from yesterday.
+  Missing a workday, even by one call, starts it over. (The 25 is `STREAK_GOAL` in backend/leafline_backend.py.)
+- Colours: 3 days yellow (Spark), 5 orange, 10 dark orange, 15 red, 20 dark red, 30 purple, 45 dark purple, 60 blue.
+- Every card on the Team page shows that person's streak under their latest activity: a gradient bar with the milestones
+  (reached ones lit, the next one dashed, the rest grey), today's progress out of 25 and their best streak.
+- The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
+  and the Messages details panel. No database update needed.

@@ -950,7 +950,8 @@
         const prof = await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active"), order: "display_name.asc" } });
         const stats = await call("POST", "/rest/v1/rpc/daily_stats", { body: { p_from: "2020-01-01", p_to: todayStr() } });
         const deals = await allPages("deals", { select: "owner_id,upfront,monthly,months,closed_at,first_bill" + (st.caps.paid ? ",confirmed" : ""), order: "closed_at.asc" });
-        const out = { ok: true, stale: false, today: todayStr(), people: prof.filter((p) => p.active).map(pub), stats, deals, fetched: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+        let tg = {}; try { const r = await rest("GET", "settings", { params: { key: "eq.daily_targets", select: "value" } }); tg = (r[0] && r[0].value) || {}; } catch (e) { if (!(e instanceof Http)) throw e; }
+        const out = { ok: true, stale: false, today: todayStr(), people: prof.filter((p) => p.active).map(pub), stats, deals, targets: { calls: 100, connections: 20, meetings: 3, sales: 1, ...tg }, fetched: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
         LS.set("lf_board", out); return out;
       } catch (e) {
         if (e instanceof Offline) { const c = LS.get("lf_board", null); return c ? { ...c, stale: true } : fail("You're offline. The leaderboard needs a connection the first time."); }

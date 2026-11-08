@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.4.0"></script>
-<script src="engine.js?v=11.4.0"></script>
+<script src="config.js?v=11.5.0"></script>
+<script src="engine.js?v=11.5.0"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -401,6 +401,47 @@ button.grp[aria-expanded="false"]{color:var(--muted)}button.grp[aria-expanded="f
 .tav{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(150deg,var(--accent-soft),var(--av-bg));box-shadow:0 0 0 2px rgba(255,255,255,.12)}
 .avbtns{display:flex;gap:8px;justify-content:center;margin-top:12px}
 .tm-p .role{font-size:11px;font-weight:700;padding:3px 8px;border-radius:9px;background:rgba(255,255,255,.08);color:var(--muted)}
+/* call streaks */
+.stk{display:inline-flex;align-items:center;gap:3px;height:22px;padding:0 8px 0 5px;border-radius:11px;font-size:12px;font-weight:800;line-height:1;vertical-align:middle;
+  background:var(--sc);color:var(--st);box-shadow:0 0 12px color-mix(in srgb,var(--sc) 45%,transparent);white-space:nowrap;margin-left:6px;letter-spacing:0}
+.stk .ic{width:13px;height:13px}.stk .ic svg{stroke-width:2.4}
+.stk.low{background:rgba(255,255,255,.08);color:var(--text2);box-shadow:none}
+.stk.none{background:rgba(255,255,255,.05);color:var(--faint);box-shadow:none}
+.stk.big{height:28px;padding:0 11px 0 8px;font-size:14px;border-radius:14px}.stk.big .ic{width:16px;height:16px}
+.tm-stkc{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.stk-cap{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px;min-width:0}
+.stk-cap .stk{margin-left:0;flex:none}.stk-cap>span:first-child{flex:none;display:inline-flex}.stk-cap>span:first-child .ic{width:15px;height:15px}.stk-cap span:not(.stk){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stk-cap span.ok{color:var(--accent-hi)}
+.stk-cap small{margin-left:auto;font-size:11px;color:var(--faint);flex:none}
+.tm-stkc .stk-bar{height:26px;margin:0 12px 0 2px}
+.tm-stkc .stk-m{width:23px;height:23px;margin:-11.5px 0 0 -11.5px;font-size:9.5px}
+.tm-stkc .stk-track{height:8px;margin-top:-4px}
+.stk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.stk-h .muted{font-size:12.5px;margin-top:3px;max-width:620px;line-height:1.45}
+.stk-r{display:grid;grid-template-columns:minmax(170px,240px) minmax(0,1fr);gap:8px 18px;align-items:center;padding:14px 2px;border-top:1px solid var(--line)}
+.stk-r:first-of-type{border-top:0}
+.stk-who{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 10px;align-items:center;cursor:pointer}
+.stk-who .tav{grid-row:1/3;width:36px;height:36px;font-size:13px}
+.stk-who b{font-size:14px;display:flex;align-items:center;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.stk-who small{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-who small.ok{color:var(--accent-hi)}
+.stk-bar{position:relative;height:30px;margin-right:15px;margin-left:2px}
+.stk-track{position:absolute;left:0;right:0;top:50%;height:10px;margin-top:-5px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}
+.stk-track i{position:absolute;inset:0;border-radius:5px;clip-path:inset(0 var(--w) 0 0 round 5px);transition:clip-path 1.1s var(--e-out)}
+.stk-track i.go{clip-path:inset(0 100% 0 0 round 5px)}
+.stk-m{position:absolute;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;
+  background:#1d2a23;color:var(--faint);border:2px solid rgba(255,255,255,.08);transition:transform var(--d-card) var(--e-spring),background-color .4s,color .4s}
+.stk-m.on{background:var(--sc);color:var(--st);border-color:color-mix(in srgb,var(--sc) 60%,#fff);box-shadow:0 0 14px color-mix(in srgb,var(--sc) 55%,transparent)}
+.stk-m.next{border-color:var(--sc);color:var(--text2);border-style:dashed}
+.stk-r:hover .stk-m.on{transform:scale(1.08)}
+.stk-legend{display:flex;flex-wrap:wrap;gap:6px}
+.stk-legend span{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--muted);padding:3px 8px 3px 4px;border-radius:10px;background:rgba(0,0,0,.18)}
+.stk-legend i{width:12px;height:12px;border-radius:50%;background:var(--sc)}
+.hcard h4 .stk,.pcard h2 .stk{margin-left:8px}
+@media (max-width:860px){
+  .stk-r{grid-template-columns:minmax(0,1fr);gap:10px}
+  .stk-bar{margin:0 14px 0 14px}
+  .stk-m{width:26px;height:26px;margin:-13px 0 0 -13px;font-size:10.5px}
+}
 .tm-p .st,.tm-p .st:hover{height:auto;min-height:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;transform:none;filter:none;line-height:1.2}
 .tm-p .st{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px}.tm-p .st i{width:8px;height:8px;border-radius:50%;background:#6b7d72}.tm-p .st.on i{background:var(--g)}
 .tm-p .nums{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:14px 0 4px;text-align:center}.tm-p .nums b{display:block;font-size:20px}.tm-p .nums span{font-size:10.5px;color:var(--muted);font-weight:600}
@@ -2830,7 +2871,7 @@ function personModal(p){
   if(mine)p={...p,avatar:S.me.avatar,media:S.me.media,ext:{...ext,banner:(S.me.ext||{}).banner}};
   const bn=bannerOf(p);
   openModal(`<div class="pcard" style="--acc:${acc}"><div class="pban has-img" id="pBan" style="--bp:${bn.pos}%">${imgTag(bn.src,bn.still)}</div><div class="pav">${avHTML(p.name,p.avatar,p.media)}</div>
-   <h2>${esc(p.name)}${ext.mood?` <span class="pm">${esc(ext.mood)}</span>`:""}</h2>
+   <h2>${esc(p.name)}${ext.mood?` <span class="pm">${esc(ext.mood)}</span>`:""}${streakChip(p.id,{zero:true,big:true})}</h2>
    <div class="sub">${esc([ext.title,p.role==="admin"?"Admin":"Rep"].filter(Boolean).join(" · "))} · <span class="${p.online?"on":""}">${p.online?"Online":"Offline"}</span></div>
    ${bdgSlot(p.id,8,true).replace('class="bdg"','class="bdg bdg-list"')}
    ${ext.bio?`<p class="pbio2">${esc(ext.bio)}</p>`:""}
@@ -2926,6 +2967,49 @@ setInterval(()=>{if(S.ready&&!document.hidden&&!S.running)reload()},180000);  /*
 
 /* ---------------- team dashboard ---------------- */
 function tmTime(iso){try{const d=new Date(iso),t=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});return d.toDateString()===new Date().toDateString()?t:d.toLocaleDateString([],{month:"short",day:"numeric"})+" "+t}catch(e){return""}}
+/* ---------------- call streaks ----------------
+   A streak grows by one for every workday someone reaches the team's daily call target (Admin > daily targets).
+   Weekends never break a streak; reaching the target on a weekend counts as a bonus day.
+   Today never breaks it either: until midnight it still counts from yesterday. */
+const STREAK=[[3,"#FFD60A","Spark"],[5,"#FF9F1C","Heating up"],[10,"#E8590C","On fire"],[15,"#E5383B","Blazing"],[20,"#A4161A","Inferno"],[30,"#A855F7","Electric"],[45,"#6B21A8","Legendary"],[60,"#3B82F6","Blue flame"]];
+const STK={memo:{},at:-1};
+const STREAK_GOAL=25;                       /* calls in a day that keep a streak going */
+function streakGoal(){return STREAK_GOAL}
+function streakTier(n){let t=-1;STREAK.forEach((x,i)=>{if(n>=x[0])t=i});return t}
+function streakOf(pid){
+  const d=B.data;if(!d||!d.stats||!pid)return null;
+  const goal=streakGoal(),key=pid+"|"+goal;if(STK.at!==B.at){STK.memo={};STK.at=B.at}if(STK.memo[key])return STK.memo[key];
+  const calls={};d.stats.forEach(r=>{if(r.employee_id===pid)calls[r.day]=(calls[r.day]||0)+(+r.calls||0)});
+  const today=d.today||isoDay(new Date()),days=Object.keys(calls).filter(k=>(calls[k]||0)>=goal).sort();
+  const wkend=k=>{const x=new Date(k+"T12:00:00").getDay();return x===0||x===6};
+  let cur=0,best=0;
+  if(days.length)for(let k=days[0],i=0;k<=today&&i<4000;k=dayShift(k,1),i++){
+    if((calls[k]||0)>=goal){cur++;if(cur>best)best=cur}else if(k!==today&&!wkend(k))cur=0}
+  return STK.memo[key]={n:cur,best,goal,today:calls[today]||0,doneToday:(calls[today]||0)>=goal,tier:streakTier(cur)};
+}
+function streakTip(s){const t=STREAK[s.tier];return `${s.n}-day call streak${t?" · "+t[2]:""} · ${s.doneToday?"today's "+s.goal+" calls done ✓":s.today+" of "+s.goal+" calls today"} · best ${s.best}`}
+function streakChip(pid,o={}){const s=streakOf(pid);if(!s)return "";
+  if(!s.n)return o.zero?`<span class="stk none${o.big?" big":""}" title="No call streak yet. ${s.goal} calls on a workday starts one.">${ic("flame")}0</span>`:"";
+  const t=STREAK[s.tier],c=t?t[1]:"";
+  return `<span class="stk${t?"":" low"}${o.big?" big":""}"${t?` style="--sc:${c};--st:${ink(c)}"`:""} title="${esc(streakTip(s))}" aria-label="${esc(streakTip(s))}">${ic("flame")}${s.n}</span>`}
+function streakBar(n){
+  const seg=100/STREAK.length;let fill=0;
+  for(let i=0;i<STREAK.length;i++){const lo=i?STREAK[i-1][0]:0,hi=STREAK[i][0];if(n>=hi)fill+=seg;else{fill+=seg*Math.max(0,(n-lo)/(hi-lo));break}}
+  const grad=`linear-gradient(90deg,${STREAK[0][1]} 0%,${STREAK.map((t,i)=>`${t[1]} ${((i+1)*seg).toFixed(2)}%`).join(",")})`,nx=STREAK.findIndex(t=>n<t[0]);
+  return `<div class="stk-bar" role="img" aria-label="${n} day streak; milestones ${STREAK.map(t=>t[0]).join(", ")}"><div class="stk-track"><i style="--w:${(100-fill).toFixed(2)}%;background:${grad}"></i></div>
+    ${STREAK.map((t,i)=>`<span class="stk-m${n>=t[0]?" on":i===nx?" next":""}" style="left:${((i+1)*seg).toFixed(2)}%;--sc:${t[1]};--st:${ink(t[1])}" title="${t[0]} days · ${t[2]}">${t[0]}</span>`).join("")}</div>`}
+/* each Team card gets its own streak bar, right under the person's latest activity */
+const STK_SEEN=new Set();
+function paintStreaks(){
+  const pg=$("#pg-team");if(!pg)return;
+  $$("[data-stk]",pg).forEach(el=>{const pid=el.dataset.stk,s=streakOf(pid);
+    if(!s){el.innerHTML=`<div class="stk-cap"><span class="muted">Loading streak…</span></div>`;return}
+    const t=STREAK[s.tier];
+    el.innerHTML=`<div class="stk-cap"><span style="${t?`color:${t[1]};font-weight:800`:""}">${ic("flame")}</span><span class="${s.doneToday?"ok":""}">${s.n?`${s.n}-day streak${t?" · "+esc(t[2]):""}`:"No streak yet"} · ${s.doneToday?`today's ${s.goal} calls done ✓`:`${num(s.today)}/${s.goal} calls today`}</span><small>best ${s.best}</small></div>${streakBar(s.n)}`;
+    el.title=`Reach ${s.goal} calls on a workday to keep the streak going. Weekends never break it; reaching it on a weekend is a bonus day.`;
+    if(!STK_SEEN.has(pid)&&!REDUCE){STK_SEEN.add(pid);const i=$(".stk-track i",el);i.classList.add("go");requestAnimationFrame(()=>requestAnimationFrame(()=>i.classList.remove("go")))}else STK_SEEN.add(pid)});
+  hydrateIcons(pg);
+}
 async function renderTeam(){
   const pg=$("#pg-team");let t;
   try{t=await api("get_team")}catch(e){t={ok:false,error:"The app engine did not respond."}}
@@ -2941,18 +3025,20 @@ async function renderTeam(){
     <div class="tm-tile"><span>Revenue closed today</span><b>${usd(d.revenue_today)}</b><small>${num(d.deals_today)} deal${d.deals_today===1?"":"s"} (upfront)</small></div></div>
    ${d.people.some(p=>freshThought(p.ext))?`<div class="card tm-th"><h3>Thoughts of the day</h3>${d.people.filter(p=>freshThought(p.ext)).map(p=>`<div class="th-i">${avHTML(p.name,p.avatar,p.media)}<div><q>${esc(p.ext.thought)}</q><small>${esc(p.name)}${p.ext.mood?" "+esc(p.ext.mood):""}</small></div></div>`).join("")}</div>`:""}
    <div class="tm-people">${d.people.map(p=>`<div class="card tm-p ${S.me&&S.me.id===p.id?"me":""}" data-pid="${esc(p.id)}" style="--acc:${okAccent((p.ext||{}).accent)||"transparent"}">
-     <h3>${avHTML(p.name,p.avatar,p.media)}${esc(p.name)}${(p.ext||{}).mood?` <span>${esc(p.ext.mood)}</span>`:""}<span class="role">${p.role==="admin"?"Admin":"Rep"}</span><span class="st ${p.online?"on":""}"><i></i>${p.online?"Online":"Offline"}</span></h3>
+     <h3>${avHTML(p.name,p.avatar,p.media)}${esc(p.name)}${(p.ext||{}).mood?` <span>${esc(p.ext.mood)}</span>`:""}${streakChip(p.id)}<span class="role">${p.role==="admin"?"Admin":"Rep"}</span><span class="st ${p.online?"on":""}"><i></i>${p.online?"Online":"Offline"}</span></h3>
      ${bdgSlot(p.id,8)}${(p.ext||{}).title?`<div class="psub">${esc(p.ext.title)}</div>`:""}${(p.ext||{}).bio?`<div class="pbio">${esc(p.ext.bio)}</div>`:""}${freshThought(p.ext)?`<div class="pth">“${esc(p.ext.thought)}”</div>`:""}
      <div class="nums"><div><b>${p.today.calls}</b><span>Calls</span></div><div><b>${p.today.connections}</b><span>Connected</span></div><div><b>${p.today.prospects}</b><span>Prospects</span></div><div><b>${p.today.meetings}</b><span>Meetings</span></div><div><b>${p.today.sales}</b><span>Sales</span></div>${d.tasks_enabled?`<div><b>${p.today.tasks||0}</b><span>Tasks done</span></div>`:""}</div>
      <div class="tm-bar" title="${p.progress}% of the daily call target"><i style="width:${Math.min(100,p.progress)}%"></i></div>
-     <div class="last">${p.last?esc(p.last.text)+" · "+esc(tmTime(p.last.at)):"No activity yet."}</div></div>`).join("")}</div>
+     <div class="last">${p.last?esc(p.last.text)+" · "+esc(tmTime(p.last.at)):"No activity yet."}</div>
+     <div class="tm-stkc" data-stk="${esc(p.id)}"></div></div>`).join("")}</div>
    <div class="tm-2">
     <div class="card tm-card"><h3>Last ${d.series.length} days · team calls</h3>
      ${barChart({labels:d.series.map(x=>x.day.slice(8)),hi:d.series.findIndex(x=>x.day===d.today),h:200,still:true,aria:"Team calls per day",series:[{v:d.series.map(x=>x.calls),c:"b0",name:"Calls"},{v:d.series.map(x=>x.meetings),c:"b1",name:"Meetings"}],tips:d.series.map(x=>`${dayFmt(x.day)}: ${num(x.calls)} calls · ${num(x.meetings)} meetings · ${num(x.sales)} sales`)})}
      <table><tr><th></th><th>Calls</th><th>Connected</th><th>Meetings</th><th>Sales</th></tr><tr><td>This week</td>${W(d.week,d.last_week)}</tr><tr><td>Last week</td>${W(d.last_week,d.week)}</tr></table></div>
     <div class="card tm-card"><h3>Activity</h3><div class="tm-feed">${d.activity.length?d.activity.map(a=>`<div>${esc(a.text)}<small>${esc(tmTime(a.at))}</small></div>`).join(""):"<div>Nothing yet today.</div>"}</div></div>
-   </div></div>`;
-  hydrateIcons(pg);ensureBoard();
+   </div>
+   </div>`;
+  hydrateIcons(pg);paintStreaks();ensureBoard().then(()=>{if(S.page==="team")paintStreaks()});
   $$("[data-pid]",pg).forEach(c=>c.onclick=()=>personModal(d.people.find(x=>x.id===c.dataset.pid)));
 }
 setInterval(()=>{if(S.ready&&S.page==="team"&&!document.hidden)renderTeam()},8000);
@@ -3455,7 +3541,7 @@ function showHover(anchor,pid){
   const el=document.createElement("div");el.className="hcard";el.setAttribute("role","dialog");el.setAttribute("aria-label",p.name+"'s profile");
   const bn=bannerOf(p);
   el.innerHTML=`<div class="hb">${bn.src?imgTag(bn.src,bn.still).replace('<img ','<img style="width:100%;height:100%;object-fit:cover;object-position:center '+bn.pos+'%" '):""}</div><div class="hm">${avHTML(p.name,p.avatar,p.media)}
-    <h4>${esc(p.name)}${ext.mood?` <span>${esc(ext.mood)}</span>`:""}</h4><div class="sub">${esc([ext.title,p.role==="admin"?"Admin":p.role?"Rep":""].filter(Boolean).join(" · "))}</div>
+    <h4>${esc(p.name)}${ext.mood?` <span>${esc(ext.mood)}</span>`:""}${streakChip(pid,{zero:true})}</h4><div class="sub">${esc([ext.title,p.role==="admin"?"Admin":p.role?"Rep":""].filter(Boolean).join(" · "))}</div>
     ${bdgSlot(pid,8,false)}${ext.bio?`<p>${esc(ext.bio)}</p>`:""}
     ${tl?`<div class="hs"><div><b>${num(tl.calls)}</b><span>Calls this wk</span></div><div><b>${num(tl.meetings)}</b><span>Meetings</span></div><div><b>${usd(tl.money)}</b><span>Collected</span></div></div>`:""}</div>`;
   document.body.appendChild(el);hydrateIcons(el);HC.el=el;HC.pid=pid;HC.anchor=anchor;
@@ -4207,7 +4293,7 @@ function mxPaintInfo(){
     <div class="mx-blk"><h5>Members · ${(c.members||[]).length}<button data-add>+ Add people</button></h5>${(c.members||[]).map(m=>`<div class="mx-mem">${mxPAv(m.user_id,"sm")}<span class="nm" data-au="${esc(m.user_id)}">${esc(personById(m.user_id).name)}${m.user_id===mxMe()?" (you)":""}</span>${m.role!=="member"?`<small>${m.role==="owner"?"Owner":"Admin"}</small>`:""}
       ${can&&m.user_id!==mxMe()&&(m.role!=="owner"||(S.me&&S.me.role==="admin"))?`<button class="rm" data-kick="${esc(m.user_id)}" title="Remove from group" aria-label="Remove ${esc(personById(m.user_id).name)}">${ic("trash")}</button>`:""}</div>`).join("")}</div>`}
   else{const o=mxOther(c),p=personFull(o),on=MX.presence[o];
-    h+=`<div class="mx-pf">${mxPAv(o,"big")}<h3>${esc(p.name)}</h3><div class="sub">${esc([p.ext&&p.ext.title,p.role==="admin"?"Admin":"Rep"].filter(Boolean).join(" · "))}</div>
+    h+=`<div class="mx-pf">${mxPAv(o,"big")}<h3>${esc(p.name)}${typeof streakChip==="function"?streakChip(o,{zero:true}):""}</h3><div class="sub">${esc([p.ext&&p.ext.title,p.role==="admin"?"Admin":"Rep"].filter(Boolean).join(" · "))}</div>
       <div class="sub" style="color:${on?"var(--accent-hi)":"var(--muted)"}">${on?"● Online now":"Offline"}</div>${p.ext&&p.ext.bio?`<div class="ds">${esc(p.ext.bio)}</div>`:""}
       <div class="acts"><button class="btn sm" data-prof>${ic("user")}View profile</button></div></div>`}
   h+=`<div class="mx-blk"><h5>Pinned messages</h5>${pins===undefined?`<div class="muted" style="font-size:12.5px">Loading…</div>`:pins.length?pins.slice(0,8).map(m=>`<button class="mx-pinr" data-pj="${esc(m.id)}"><b>${esc(mxName(m.sender_id))} · ${esc(mxWhen(m.created_at))}</b><span>${esc(mxPlain(m.content)||"📎 file")}</span></button>`).join(""):`<div class="muted" style="font-size:12.5px">Nothing pinned yet.</div>`}</div>

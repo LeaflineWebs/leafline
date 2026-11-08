@@ -445,7 +445,10 @@ class Sync:
             today = datetime.now(TZ).date().isoformat()
             stats = self.remote.call("POST", "/rest/v1/rpc/daily_stats", body={"p_from": "2020-01-01", "p_to": today})
             deals = self.remote.all_pages("deals", {"select": "owner_id,upfront,monthly,months,closed_at,first_bill" + (",confirmed" if self.caps.get("paid") else ""), "order": "closed_at.asc"})
+            try: tg = (self.remote.rest("GET", "settings", params={"key": "eq.daily_targets", "select": "value"}) or [{}])[0].get("value") or {}
+            except Http: tg = {}
             out = dict(ok=True, stale=False, today=today, people=[self._pub(p) for p in prof if p.get("active")], stats=stats, deals=deals,
+                       targets={"calls": 100, "connections": 20, "meetings": 3, "sales": 1, **tg},
                        fetched=datetime.now().strftime("%H:%M"))
             self._kv("board", json.dumps(out))
             return out
