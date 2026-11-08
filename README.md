@@ -95,6 +95,22 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.7: polish pass
+- The Leafline logo now sits in the top-left corner for everyone (sidebar on computers, top bar on phones). Your own
+  picture stays where your account lives: under the logo in the sidebar, and at the right end of the phone's top bar.
+  The start-up animation now flies the logo to its home in the corner.
+- Fixed a stray letter (your initial) that showed next to the page title on computers. A style name used by Messages
+  clashed with the phone's picture button.
+- On mid-size screens (about 860 to 1365 pixels wide) the floating page bar no longer runs under the sidebar and off
+  the window. It keeps the main shortcuts there, and the sidebar still lists every page.
+- Motion: Team, Leaderboard, Announcements, Messages, Profits, Notes and Admin now ease their content in when you open
+  them, like Dashboard and Called Leads already did. Pages that wait for the database show a shimmering outline of
+  what is coming instead of "Loading...". Switching chats slides the conversation in. Counters and badges pop in.
+  The activity list cascades open. Sign-in errors nudge so you notice them. The theme list fades out when closed.
+- "Reduce motion" in Windows, macOS, iPhone or Android settings is now respected everywhere, including the page title.
+- The desktop app no longer asks for two font files it never had (two failed requests every launch) and has its own
+  tab icon.
+
 ## What is new in 11.6: more themes
 - Eight new themes next to Forest, Emerald and Midnight (which look exactly as before): Ruby (red), Amber (orange),
   Gold (yellow), Lime (green), Ocean (blue), Indigo, Violet, and Obsidian, a darker near-black theme with the Leafline green.

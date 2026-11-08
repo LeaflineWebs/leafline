@@ -1,7 +1,7 @@
 {
   "name": "leafline-lead-finder",
   "productName": "Leafline Lead Finder",
-  "version": "11.6.0",
+  "version": "11.7.0",
   "description": "Leafline Web Services - Lead Finder",
   "author": "Leafline Web Services",
   "main": "main.js",

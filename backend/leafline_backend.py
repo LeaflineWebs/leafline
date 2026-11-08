@@ -8,7 +8,7 @@ Data:  Google Maps is read through a real (visible) Edge/Chrome window. Each bus
 Optional: put Inter-Regular.ttf and Inter-Bold.ttf in a folder called "fonts" next to this file
           (or install Inter in Windows) and the interface uses it automatically.
 """
-import calendar, csv, heapq, hmac, html, json, os, queue, random, re, secrets, sqlite3, sys, threading, webbrowser
+import base64, calendar, csv, heapq, hmac, html, json, os, queue, random, re, secrets, sqlite3, sys, threading, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import date, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1542,6 +1542,7 @@ UI_HTML = r'''<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Leafline Web Services - Lead Finder</title>
+<link rel="icon" id="appIcon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230A120E'/%3E%3Cpath d='M51 9C30 9 13 20 13 39c0 6 2 11 5 15 2-12 9-22 21-29-9 8-15 18-17 30 4 2 8 3 12 3 19 0 26-19 26-37 0-5-1-9-9-12z' fill='%234ADE8B'/%3E%3C/svg%3E">
 <script>try{var lfT=localStorage.getItem("lf_theme");if(["emerald", "midnight", "ruby", "amber", "gold", "lime", "ocean", "indigo", "violet", "obsidian"].indexOf(lfT)>-1)document.documentElement.dataset.theme=lfT}catch(e){}</script>
 <style>
 @font-face{font-family:"InterLocal";src:local("Inter"),url("__FONT_REG__") format("truetype");font-weight:400}
@@ -1836,7 +1837,8 @@ button.grp[aria-expanded="false"]{color:var(--muted)}button.grp[aria-expanded="f
 .note{font-size:12.5px;color:var(--muted);line-height:1.5}
 .note code{background:rgba(0,0,0,.28);padding:1px 6px;border-radius:6px;font-size:12px;word-break:break-all}
 /* floating nav */
-.fnav{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:10px}
+/* centred with auto margins, not a transform, so its entrance animation (a transform) can't knock it off-centre */
+.fnav{position:absolute;left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 24px);bottom:18px;z-index:20;display:flex;align-items:center;gap:10px}
 .fpill{position:relative;display:flex;gap:2px;padding:6px;border-radius:30px;background:linear-gradient(160deg,var(--side1),var(--side2));box-shadow:0 14px 30px rgba(0,0,0,.45),var(--hi)}
 .fpill .fbg{position:absolute;top:6px;bottom:6px;border-radius:24px;background:var(--nav-pill);transition:left .55s var(--spring),width .5s var(--spring)}
 .fpill button{position:relative;z-index:1;height:40px;padding:0 20px;border-radius:24px;font-weight:700;font-size:13.5px;color:#DDF0E4;transition:color .3s,transform .4s var(--spring)}
@@ -2055,7 +2057,7 @@ body.focus .side,body.focus .top,body.focus .fnav,body.focus .nt-list{display:no
 body.focus .app{grid-template-columns:1fr}body.focus .nt{grid-template-columns:1fr;padding-bottom:0}
 /* docked script */
 .dock{display:none;position:absolute;top:0;right:0;bottom:0;width:var(--dockw,380px);z-index:15;flex-direction:column;gap:8px;padding:0 20px 14px 10px}
-.main.hasdock .dock{display:flex}.main.hasdock .page{right:var(--dockw,380px)}.main.hasdock .fnav{left:calc((100% - var(--dockw,380px))/2)}
+.main.hasdock .dock{display:flex}.main.hasdock .page{right:var(--dockw,380px)}@media (min-width:861px){.main.hasdock .fnav{right:var(--dockw,380px)}}
 .dk-grip{position:absolute;left:-2px;top:20px;bottom:20px;width:12px;cursor:col-resize;z-index:2}
 .dk-grip::after{content:"";position:absolute;left:5px;top:50%;height:46px;width:4px;margin-top:-23px;border-radius:2px;background:var(--line)}
 .dk-head{display:flex;gap:6px;align-items:center;padding-top:8px}.dk-head select{flex:1;min-width:0;height:36px}
@@ -2153,7 +2155,7 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.45;resize:vertical;font
   .srch,#userBtn,#scriptBtn{display:none}
   .sync{height:34px;padding:0 10px;font-size:12px}.sync span{max-width:92px;overflow:hidden;text-overflow:ellipsis}
   .page{padding:8px 12px calc(92px + env(safe-area-inset-bottom))}
-  .fnav{left:0;right:0;bottom:0;transform:none;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(12,22,17,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+  .fnav{left:0;right:0;width:auto;max-width:none;margin:0;bottom:0;transform:none;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(12,22,17,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 -8px 24px rgba(0,0,0,.35)}
   .fpill{overflow-x:auto;max-width:100%;scrollbar-width:none;border-radius:26px;width:100%}.fpill::-webkit-scrollbar{display:none}
   .fpill button{height:38px;padding:0 14px;font-size:13px;flex:none}
   .fplus{display:none}
@@ -2284,6 +2286,13 @@ img.fade{opacity:0;transition:opacity var(--d-card) var(--e-out)}img.fade.ok{opa
 .nv.on .badge{background:var(--accent);color:var(--accent-text)}
 .side .foot{color:var(--muted)}
 .side .foot .lgt{display:flex;width:max-content;margin:10px auto 0}
+/* company logo: always the Leafline mark, never a person's picture */
+.bmk{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:11.5px;background:linear-gradient(160deg,var(--card3),var(--side2));box-shadow:0 0 0 1px var(--accent-line),0 6px 16px rgba(0,0,0,.28),0 0 22px var(--glow-soft)}
+.bmk svg{width:21px;height:21px;filter:drop-shadow(0 0 6px var(--glow))}
+.brand{align-self:stretch;display:flex;align-items:center;gap:10px;padding:0 6px;margin:-4px 0 18px}
+.brand .bwm{font-size:17px;font-weight:800;letter-spacing:-.2px;background:linear-gradient(120deg,var(--text),var(--accent-hi));-webkit-background-clip:text;background-clip:text;color:transparent}
+.side .ring{width:84px;height:84px}.side .ring .in-av{font-size:27px}
+.mbrand{display:none}
 /* ---------- floating bottom bar (inspired by the reference: glass bar + lamp) ---------- */
 .fnav{z-index:var(--z-nav)}
 .fpill{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015)),var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
@@ -2384,7 +2393,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 .flyer .fl-sq{border-radius:28.8%}.flyer .fl-ci{border-radius:50%;opacity:0}
 .flyer .fl-av{border-radius:50%;overflow:hidden}
 .flyer .fl-glow{position:absolute;inset:-35%;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--accent-rgb),.55),rgba(var(--accent-rgb),.18) 55%,transparent 72%);opacity:0;will-change:transform,opacity}
-.flyer .fl-ring{position:absolute;inset:-2px;border-radius:50%;box-shadow:0 0 0 3px var(--accent-hi),0 0 24px var(--glow);opacity:0;will-change:transform,opacity}
+.flyer .fl-ring{position:absolute;inset:-2px;border-radius:30%;box-shadow:0 0 0 3px var(--accent-hi),0 0 24px var(--glow);opacity:0;will-change:transform,opacity}
 .flyer .fl-logo,.flyer .fl-av{position:absolute;inset:0;display:grid;place-items:center;will-change:transform,opacity}
 .flyer .fl-bl{filter:blur(8px)}.flyer .fl-logo.fl-bl{filter:blur(3px)}
 /* the lens: a circle whose giant shadow is the cover. Growing it is a pure GPU scale, so the reveal stays smooth */
@@ -2591,7 +2600,9 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   body{font-size:15px}
   .main{background:linear-gradient(180deg,var(--main1),var(--bg) 60%);box-shadow:none}
   .top{padding:12px 18px 8px;gap:10px;min-height:64px}
-  .mav{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;padding:2px;flex:none;background:conic-gradient(from 200deg,var(--accent),var(--accent-hi),var(--accent));box-shadow:0 0 16px var(--glow-soft)}
+  .mbrand{display:grid}
+  .top h1{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mav{order:8;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;padding:2px;flex:none;background:conic-gradient(from 200deg,var(--accent),var(--accent-hi),var(--accent));box-shadow:0 0 16px var(--glow-soft)}
   .mav .in-av{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--av-bg);color:#fff}
   .top h1{font-size:21px;letter-spacing:-.3px}
   .top .lgt,#bellBtn{display:none}
@@ -2605,7 +2616,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   .page{padding:10px 16px calc(120px + env(safe-area-inset-bottom))}
   .card{border-radius:24px}
   /* bottom tab bar */
-  .fnav{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));padding:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;transform:none}
+  .fnav{left:10px;right:10px;width:auto;max-width:none;margin:0;bottom:calc(10px + env(safe-area-inset-bottom));padding:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;transform:none}
   .fpill{width:100%;overflow:visible;justify-content:space-around;padding:6px 6px;border-radius:28px}
   .fpill button{flex:1 1 0;min-width:0;height:56px;padding:0 2px;font-size:11px}
   .fpill button.fx{display:none}
@@ -2739,7 +2750,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   .tm-people,.lb-badges .grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
   .page{padding-left:24px;padding-right:24px}
-  .fnav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,94vw)}
+  .fnav{left:0;right:0;margin:0 auto;transform:none;width:min(560px,94vw)}
 }
 @media (prefers-reduced-motion:reduce){
   #intro,#introLogo,#intro .t1,#intro .t2{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
@@ -2756,6 +2767,53 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 .mpick button .tav{width:26px;height:26px;font-size:10px}
 .mpick button small{margin-left:auto;color:var(--muted);font-size:11.5px}
 .mpick button.on,.mpick button:hover{background:var(--accent-soft)}
+
+/* =====================================================================
+   MOTION SYSTEM (11.7). Every timing below comes from the shared tokens
+   (--d-micro/hover/pop/card/page, --e-out/spring/bounce/io). Only transform
+   and opacity move. prefers-reduced-motion turns all of it off (rule near the top).
+   ===================================================================== */
+:root{--stagger:34ms}
+/* skeletons: shown while a page waits for the database; fade in late so fast loads never flash */
+.skl{display:grid;gap:16px;animation:fadeup var(--d-pop) var(--e-out) 140ms both}
+.skr{display:grid;gap:16px}
+.skl i{position:relative;display:block;overflow:hidden;border-radius:24px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px var(--line)}
+.skl i:after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:sklShine 1.5s var(--e-io) infinite}
+@keyframes sklShine{to{transform:translateX(100%)}}
+.skl .skc{border-radius:50%}
+/* small segmented controls: the chosen option eases in instead of snapping */
+.seg button{transition:background-color var(--d-hover) var(--e-out),color var(--d-hover) var(--e-out),transform var(--d-card) var(--e-spring)}
+.seg button:hover{color:var(--text)}.seg button:active{transform:scale(.94)}
+.seg button.on{animation:segOn var(--d-pop) var(--e-spring)}
+@keyframes segOn{from{transform:scale(.9)}to{transform:none}}
+/* counters and badges pop in when they appear */
+.nv .badge,.fpill .nb,.sheet .nb{animation:badgeIn var(--d-card) var(--e-bounce)}
+@keyframes badgeIn{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+/* activity list: rows slide in one after another when the bell opens */
+.bell.on .it{animation:fadeup var(--d-card) var(--e-out) both}
+.bell.on .it:nth-child(2){animation-delay:calc(var(--stagger)*1)}.bell.on .it:nth-child(3){animation-delay:calc(var(--stagger)*2)}
+.bell.on .it:nth-child(4){animation-delay:calc(var(--stagger)*3)}.bell.on .it:nth-child(5){animation-delay:calc(var(--stagger)*4)}
+.bell.on .it:nth-child(6){animation-delay:calc(var(--stagger)*5)}.bell.on .it:nth-child(n+7){animation-delay:calc(var(--stagger)*6)}
+/* form errors arrive with a small nudge so they are noticed */
+#lgErr:not(:empty),#pwErr:not(:empty),.ferr:not(:empty){animation:errIn var(--d-card) var(--e-spring)}
+@keyframes errIn{0%{opacity:0;transform:translateX(-6px)}40%{opacity:1;transform:translateX(4px)}70%{transform:translateX(-2px)}100%{transform:none}}
+/* inputs and selects ease their focus ring instead of snapping */
+input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-shadow var(--d-hover) var(--e-out),background-color var(--d-hover) var(--e-out),transform var(--d-hover) var(--e-out)}
+/* cards that open something lift slightly under the pointer */
+@media (hover:hover){.tm-p,.prow,.nt-it,.mx-c{transition:transform var(--d-card) var(--e-spring),box-shadow var(--d-hover) var(--e-out),background-color var(--d-hover) var(--e-out),border-color var(--d-hover) var(--e-out)}
+  .tm-p:hover{transform:translateY(-3px)}}
+.tm-p:active,.prow:active,.nt-it:active{transform:scale(.985)}
+/* theme picker and other light pop-overs close with a short fade */
+.thpop.out,.mx-pop.out{animation:popOut var(--d-micro) var(--e-in) forwards;pointer-events:none}
+@keyframes popOut{to{opacity:0;transform:translateY(-4px) scale(.97)}}
+/* messages: reply/edit bar and chosen files slide up from the composer */
+.mx-rpl{animation:fadeup var(--d-pop) var(--e-out)}
+@media (max-width:860px){.skr{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* floating page bar on mid-size screens: the full bar (~940px) is wider than the content area there, so it ran under
+   the sidebar and off the window. The sidebar already lists every page, so the bar keeps only the main shortcuts. */
+@media (min-width:861px) and (max-width:1365px){.fpill button.fx{display:none}}
+@media (min-width:861px) and (max-width:1745px){.main.hasdock .fpill button.fx{display:none}}
+@media (prefers-reduced-motion:reduce){.skl i:after{display:none}}
 </style>
 </head>
 <body>
@@ -2764,6 +2822,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   <div class="t1">LEAFLINE</div><div class="t2" id="introTx" aria-live="polite">Loading</div></div></div>
 <div class="app">
   <aside class="side" id="side">
+    <div class="brand pop" id="sideBrand" role="img" aria-label="Leafline"><span class="bmk"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lgS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--logo1)"/><stop offset=".55" style="stop-color:var(--logo2)"/><stop offset="1" style="stop-color:var(--logo3)"/></linearGradient></defs><path d="M51 9C30 9 13 20 13 39c0 6 2 11 5 15 2-12 9-22 21-29-9 8-15 18-17 30 4 2 8 3 12 3 19 0 26-19 26-37 0-5-1-9-9-12z" fill="url(#lgS)"/><path d="M22 55c3-13 10-23 21-30" fill="none" stroke="rgba(4,33,15,.45)" stroke-width="2.2" stroke-linecap="round"/></svg></span><span class="bwm">Leafline</span></div>
     <div class="ring pop" id="ringBtn" title="Open account" role="button" tabindex="0"><div class="in-av" id="sideAv">LF</div><span class="dot"></span></div>
     <div class="hi pop" id="hiTxt">Hi there!</div>
     <nav class="nav pop" id="nav" aria-label="Main">
@@ -2787,8 +2846,9 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 
   <section class="main" id="main">
     <header class="top">
-      <button class="mav" id="mAvBtn" aria-label="Open settings"><span class="in-av" id="mAv">LF</span></button>
+      <span class="mbrand bmk" id="mBrand" role="img" aria-label="Leafline"><svg class="mk" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lgM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--logo1)"/><stop offset=".55" style="stop-color:var(--logo2)"/><stop offset="1" style="stop-color:var(--logo3)"/></linearGradient></defs><path d="M51 9C30 9 13 20 13 39c0 6 2 11 5 15 2-12 9-22 21-29-9 8-15 18-17 30 4 2 8 3 12 3 19 0 26-19 26-37 0-5-1-9-9-12z" fill="url(#lgM)"/><path d="M22 55c3-13 10-23 21-30" fill="none" stroke="rgba(4,33,15,.45)" stroke-width="2.2" stroke-linecap="round"/></svg></span>
       <h1 id="title" class="pop">Dashboard</h1>
+      <button class="mav" id="mAvBtn" aria-label="Open settings"><span class="in-av" id="mAv">LF</span></button>
       <div class="srch pop"><i class="ic" data-ic="search"></i><input id="gq" placeholder="Search businesses, owners, phone numbers..." autocomplete="off" aria-label="Search"><kbd>/</kbd></div>
       <div class="lgt pop" data-lgt aria-label="Theme" role="radiogroup"></div>
       <button class="sync pop" id="syncBtn" aria-live="polite"><i></i><span id="syncTx">Sync</span></button>
@@ -2840,7 +2900,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
       <div class="page" id="pg-account"></div>
 
       <!-- TEAM -->
-      <div class="page" id="pg-team"><div class="empty" style="margin-top:90px"><div class="spin"></div><b>Loading the team...</b></div></div>
+      <div class="page" id="pg-team"><div class="skl" role="status" aria-label="Loading the team"><div class="skr" style="grid-template-columns:repeat(6,minmax(0,1fr))"><i style="height:92px"></i><i style="height:92px"></i><i style="height:92px"></i><i style="height:92px"></i><i style="height:92px"></i><i style="height:92px"></i></div><div class="skr" style="grid-template-columns:repeat(3,minmax(0,1fr))"><i style="height:220px"></i><i style="height:220px"></i><i style="height:220px"></i></div></div></div>
 
       <!-- LEADERBOARD + ANNOUNCEMENTS -->
       <div class="page" id="pg-board"></div>
@@ -2903,6 +2963,9 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* Reduced motion, enforced in one place: any scripted animation (Web Animations API) finishes at once, ending in its
+   final state. CSS animations are switched off by the stylesheet rule. */
+if(REDUCE&&Element.prototype.animate){const A=Element.prototype.animate;Element.prototype.animate=function(k,o){const opt=typeof o==="number"?{}:Object.assign({},o);opt.duration=1;opt.delay=0;opt.endDelay=0;if(!isFinite(opt.iterations))opt.iterations=1;return A.call(this,k,opt)}}
 const ICONS={
  mega:'<path d="M4 10v4a1 1 0 001 1h2l5 4V5L7 9H5a1 1 0 00-1 1z"/><path d="M16 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>',
  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
@@ -2986,6 +3049,28 @@ new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{
   if(n.nodeType!==1)return;if(n.classList.contains("pop"))io.observe(n);n.querySelectorAll&&n.querySelectorAll(".pop").forEach(e=>io.observe(e))
 }))).observe(document.body,{childList:true,subtree:true});
 function arm(root){$$(".pop",root).forEach(e=>{e.classList.remove("in");io.observe(e)})}
+/* ---------- motion system: one place decides how lists arrive ----------
+   When a page opens (or its skeleton is replaced by real content), list items that match MOTION.sel
+   glide in one after another. Polling refreshes later on stay still, so numbers never "dance".
+   Only the first ~14 on screen animate; the rest appear at once, so long lists stay quick. */
+const MOTION={navAt:0,seen:new WeakSet(),
+  sel:".tm-tile,.tm-p,.th-i,.nt-it,.prow,.ad>.card,.ad .tbl tr,.mx-c,.lbr,.pod,.post"};
+function stagger(els,o={}){
+  if(REDUCE)return;let i=0;const max=o.max||14,H=innerHeight+40;
+  for(const e of els){if(MOTION.seen.has(e))continue;MOTION.seen.add(e);if(i>=max)continue;
+    const r=e.getBoundingClientRect();if(!r.height||r.top>H||e.getAnimations().length)continue;
+    e.animate([{opacity:0,transform:`translateY(${o.y||12}px) scale(.985)`},{opacity:1,transform:"none"}],{duration:o.d||380,delay:(o.base||30)+i*(o.step||34),easing:EASE.out,fill:"backwards"});i++}
+}
+function fadeRemove(el,ms=160){if(!el)return;if(REDUCE){el.remove();return}el.classList.add("out");setTimeout(()=>el.remove(),ms)}
+/* skeleton placeholder: rows of [height, columns] */
+function skel(rows){return `<div class="skl" role="status" aria-label="Loading">${rows.map(([h,c=1])=>`<div class="skr" style="grid-template-columns:repeat(${c},minmax(0,1fr))">${`<i style="height:${h}px"></i>`.repeat(c)}</div>`).join("")}</div>`}
+const SKEL={team:[[92,6],[220,3],[220,3]],admin:[[150],[320]],board:[[120,3],[64],[64],[64],[64]],posts:[[150],[150],[150]],list:[[64],[64],[64],[64],[64]]};
+(()=>{const root=document.querySelector(".pages")||document.body;
+  new MutationObserver(ms=>{if(REDUCE)return;let open=performance.now()-MOTION.navAt<2500;const add=[];
+    for(const m of ms){for(const n of m.removedNodes)if(n.nodeType===1&&(n.matches(".skl,.empty")||n.querySelector&&n.querySelector(".skl")))open=true;
+      for(const n of m.addedNodes){if(n.nodeType!==1)continue;if(n.matches(MOTION.sel))add.push(n);n.querySelectorAll&&n.querySelectorAll(MOTION.sel).forEach(x=>add.push(x))}}
+    if(!add.length)return;if(!open){add.forEach(e=>MOTION.seen.add(e));return}
+    requestAnimationFrame(()=>stagger(add))}).observe(root,{childList:true,subtree:true})})();
 function quiet(root){$$(".pop",root).forEach(e=>{e.dataset.quiet=1;e.classList.add("in")})}
 function bump(el){if(!el||REDUCE)return;el.animate([{transform:"scale(.9)"},{transform:"scale(1.05)",offset:.55},{transform:"scale(1)"}],{duration:520,easing:"cubic-bezier(.22,1,.36,1)"})}
 function countTo(el,to,dec=0,suffix="",ms=1000){
@@ -3105,7 +3190,7 @@ let navToken=0;
 async function go(p,force){
   if(p===S.page&&!force)return;
   if(S.page==="notes"&&p!=="notes"){await flushNote();document.body.classList.remove("focus")}
-  const my=++navToken,old=$(".page.on"),next=$("#pg-"+p);
+  const my=++navToken,old=$(".page.on"),next=$("#pg-"+p);MOTION.navAt=performance.now();
   S.page=p;closeSheet();hideHover(true);
   document.body.className=document.body.className.replace(/\bp-\w+/g,"").trim()+" p-"+p;
   $$("[data-go]").forEach(b=>b.classList.toggle("on",b.dataset.go===p));movePills();
@@ -4014,7 +4099,7 @@ setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))re
 async function renderAdmin(){
   const pg=$("#pg-admin");
   if(!S.me||S.me.role!=="admin"){pg.innerHTML=`<div class="card empty" style="margin-top:40px"><b>Administrators only</b>This page is for James, Omar and Akbar.</div>`;return}
-  if(!pg.querySelector(".ad"))pg.innerHTML=`<div class="empty" style="margin-top:80px"><div class="spin"></div><b>Loading the admin tools...</b></div>`;
+  if(!pg.querySelector(".ad"))pg.innerHTML=skel(SKEL.admin);
   const tmo=(pr,ms)=>Promise.race([pr,new Promise(r=>setTimeout(()=>r({ok:false,error:"The shared database took too long to answer."}),ms))]);
   const [a1,a2]=await Promise.allSettled([tmo(api("admin_people"),15000),tmo(api("get_team"),15000)]);
   let r=a1.status==="fulfilled"&&a1.value?a1.value:{ok:false,error:"The app engine did not respond."},t=a2.status==="fulfilled"?a2.value:null;
@@ -4439,7 +4524,7 @@ function paintLgt(){
   const pop=$(".thpop");if(pop)$$("[data-th]",pop).forEach(b=>{const y=b.dataset.th===cur;b.classList.toggle("on",y);b.setAttribute("aria-checked",y)});
 }
 function thPop(anchor){
-  if($(".thpop")){$(".thpop").remove();return}
+  if($(".thpop:not(.out)")){fadeRemove($(".thpop:not(.out)"));return}
   const el=document.createElement("div");el.className="thpop";el.setAttribute("role","dialog");el.setAttribute("aria-label","Choose a theme");
   el.innerHTML=`<div class="thh">Theme</div><div class="thg" role="radiogroup">${THEMES.map(t=>`<button type="button" role="radio" data-th="${t[0]}" title="${t[1]}">${thSwatch(t)}<span>${t[1]}</span></button>`).join("")}</div>`;
   document.body.appendChild(el);
@@ -4448,7 +4533,7 @@ function thPop(anchor){
   const r=anchor.getBoundingClientRect(),w=el.offsetWidth,h=el.offsetHeight;
   let top=r.bottom+8;if(top+h>innerHeight-8)top=Math.max(8,r.top-h-8);
   el.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+"px";el.style.top=top+"px";
-  const close=ev=>{if(ev.type==="keydown"&&ev.key!=="Escape")return;el.remove();removeEventListener("click",close);removeEventListener("keydown",close)};
+  const close=ev=>{if(ev.type==="keydown"&&ev.key!=="Escape")return;fadeRemove(el);removeEventListener("click",close);removeEventListener("keydown",close)};
   setTimeout(()=>{addEventListener("click",close);addEventListener("keydown",close)},0);
   const on=$(".on",el);(on||$("button",el)).focus({preventScroll:true});
 }
@@ -4467,7 +4552,7 @@ $("#sheetBell").onclick=()=>{closeSheet();setTimeout(()=>{const b=$("#bell");b.c
 $("#sheetOut").onclick=()=>{closeSheet();$("#outBtn").click()};
 $("#mAvBtn").onclick=()=>go("account");
 
-/* ---------- intro: logo -> press -> flies top-left -> becomes your picture ---------- */
+/* ---------- intro: logo -> press -> flies to its home in the top-left corner ---------- */
 const INTRO={el:$("#intro"),on:!!$("#intro"),t0:performance.now(),skip:!!navigator.webdriver||/[?&]nointro\b/.test(location.search)};
 if(INTRO.skip&&INTRO.el){INTRO.el.remove();INTRO.on=false}
 function introProgress(f){const c=$("#introPg");if(c)c.style.strokeDashoffset=String(Math.max(0,1-Math.min(1,f)))}
@@ -4502,7 +4587,7 @@ async function flyLogo(from,toEl){
 /* Signature start-up: the logo travels to where your picture lives, then the app opens outward from that spot
    like a lens while the logo turns into your picture. Everything that moves is a GPU transform or fade. */
 let LENS=null;
-const avTarget=()=>[$("#mAv"),$("#sideAv")].find(e=>e&&e.getBoundingClientRect().width>0);
+const avTarget=()=>[$("#mBrand"),$("#sideBrand .bmk")].find(e=>e&&e.getBoundingClientRect().width>0);
 function makeLens(){
   if(LENS)return LENS;setTimeout(()=>{if(LENS&&!LENS.flying){dropLens();$$(".flyer").forEach(f=>f.remove())}},15000);const t=avTarget();if(!t||REDUCE||INTRO.skip)return null;
   const r=t.getBoundingClientRect(),d=Math.max(8,r.width),cx=r.left+r.width/2,cy=r.top+r.height/2,R=Math.ceil(Math.hypot(Math.max(cx,innerWidth-cx),Math.max(cy,innerHeight-cy)))+80;
@@ -4521,38 +4606,29 @@ async function flyToAvatar(from,cover){
   const tgt=avTarget();
   if(!tgt||!from||REDUCE||INTRO.skip){dropLens();fade();return}
   const L=makeLens(),to=tgt.getBoundingClientRect();if(L)L.flying=true;
-  const me=S.me||{},{src}=avSrc(me.avatar,me.media),ok=src?await imgReady(src,1500):false;
-  const f=makeFlyer(from),nm=me.display_name||(S.profile&&S.profile.name)||"";
-  f.innerHTML=`<div class="fl-glow"></div><div class="fl-in"><div class="fl-sq"></div><div class="fl-ci"></div><div class="fl-logo">${LOGO}</div><div class="fl-logo fl-bl" style="opacity:0">${LOGO}</div><div class="fl-av fl-bl">${ok?"":esc(nm?initials(nm):"LF")}</div><div class="fl-av">${ok?"":esc(nm?initials(nm):"LF")}</div></div><div class="fl-ring"></div>`;
-  const inn=$(".fl-in",f),[avB,av]=$$(".fl-av",f),[lgo,lgoB]=$$(".fl-logo",f),glow=$(".fl-glow",f),ring=$(".fl-ring",f);
-  [avB,av].forEach(x=>{if(ok)x.style.backgroundImage=`url("${src}")`;else x.style.background=`linear-gradient(150deg,${(S.profile&&S.profile.color)||"#4ADE8B"}66,var(--av-bg))`;x.style.fontSize=Math.round(from.width*.34)+"px"});
+  const f=makeFlyer(from);
+  f.innerHTML=`<div class="fl-glow"></div><div class="fl-in"><div class="fl-sq"></div><div class="fl-logo">${LOGO}</div></div><div class="fl-ring"></div>`;
+  const glow=$(".fl-glow",f),ring=$(".fl-ring",f);
   document.body.appendChild(f);tgt.style.opacity="0";
   if(cover){const t=$(".ib0",cover);t&&t.animate([{opacity:1},{opacity:0}],{duration:260,easing:EASE.out,fill:"forwards"});
     cover.animate([{opacity:1},{opacity:0}],{duration:520,delay:120,easing:EASE.out,fill:"forwards"}).finished.then(()=>cover.remove(),()=>cover.remove())}
   await raf2();                                   /* let the browser settle the new layers before moving anything */
   const dx=to.left-from.left,dy=to.top-from.top,k=to.width/from.width,mk=(1+k)/2,T1=950;
-  /* 1. travel: glide left first, then rise into the picture's spot */
+  /* 1. travel: glide left first, then rise into the logo's spot */
   const a=f.animate([{transform:"none"},{transform:`translate(${dx*.82}px,${dy*.3}px) scale(${mk})`,offset:.55},{transform:`translate(${dx}px,${dy}px) scale(${k})`}],{duration:T1,easing:EASE.io,fill:"forwards"});
-  /* rounded square -> circle: two ready-made shapes crossfade (no repainting while moving) */
-  $(".fl-sq",f).animate([{opacity:1},{opacity:1,offset:.45},{opacity:0}],{duration:T1,easing:EASE.io,fill:"forwards"});
-  $(".fl-ci",f).animate([{opacity:0},{opacity:0,offset:.4},{opacity:1}],{duration:T1,easing:EASE.io,fill:"forwards"});
   try{await a.finished}catch(e){}
-  /* 2. the app opens outward from the picture while the logo becomes the picture */
+  /* 2. the app opens outward from the logo, which settles with a small bounce */
   const D=950,end=`translate(${dx}px,${dy}px) scale(${k})`;
   if(L){$("b",L.el).animate([{opacity:1},{opacity:0}],{duration:120,fill:"forwards"});$("i",L.el).animate([{opacity:0},{opacity:1,offset:.15},{opacity:.6}],{duration:D,easing:EASE.out,fill:"forwards"});
     L.el.animate([{transform:"scale(1)"},{transform:`scale(${(2*L.R/L.d).toFixed(3)})`}],{duration:D,easing:"cubic-bezier(.6,0,.2,1)",fill:"forwards"})}
-  f.animate([{transform:end},{transform:`translate(${dx}px,${dy}px) scale(${k*1.22})`,offset:.35},{transform:end}],{duration:760,easing:EASE.spring,fill:"forwards"});
-  /* logo spins away going soft; picture arrives soft then sharpens (pre-blurred copies crossfade: no per-frame blur) */
-  const out={duration:420,easing:EASE.out,fill:"forwards"},inn2={duration:520,delay:120,easing:EASE.out,fill:"forwards"};
-  lgo.animate([{opacity:1,transform:"none"},{opacity:0,transform:"rotate(-24deg) scale(.6)"}],out);
-  lgoB.animate([{opacity:0,transform:"none"},{opacity:.9,transform:"rotate(-12deg) scale(.8)",offset:.4},{opacity:0,transform:"rotate(-24deg) scale(.6)"}],out);
-  avB.animate([{opacity:0,transform:"scale(1.4)"},{opacity:1,transform:"scale(1.15)",offset:.45},{opacity:0,transform:"none"}],inn2);
-  av.animate([{opacity:0,transform:"scale(1.4)"},{opacity:0,transform:"scale(1.15)",offset:.3},{opacity:1,transform:"none"}],inn2);
+  f.animate([{transform:end},{transform:`translate(${dx}px,${dy}px) scale(${k*1.18})`,offset:.35},{transform:end}],{duration:760,easing:EASE.spring,fill:"forwards"});
   glow.animate([{opacity:0,transform:"scale(.6)"},{opacity:1,transform:"scale(1.15)",offset:.35},{opacity:0,transform:"scale(1.6)"}],{duration:900,easing:EASE.out,fill:"forwards"});
   ring.animate([{opacity:.9,transform:"scale(1)"},{opacity:0,transform:"scale(1.35)"}],{duration:800,delay:150,easing:EASE.out,fill:"forwards"});
   await new Promise(r=>setTimeout(r,D));
   tgt.style.opacity="";dropLens();fade();
-  const rg=tgt.closest(".ring,.mav");rg&&rg.animate([{transform:"scale(1)"},{transform:"scale(1.06)",offset:.4},{transform:"scale(1)"}],{duration:600,easing:EASE.spring});
+  /* your picture says hello once the app is open */
+  const rg=[$("#mAvBtn"),$("#ringBtn")].find(e=>e&&e.getBoundingClientRect().width>0);
+  rg&&rg.animate([{transform:"scale(.9)",opacity:.4},{transform:"scale(1.06)",opacity:1,offset:.5},{transform:"scale(1)",opacity:1}],{duration:560,easing:EASE.spring});
   f.animate([{opacity:1},{opacity:0}],{duration:200,easing:EASE.out}).finished.then(()=>f.remove(),()=>f.remove());
 }
 
@@ -4637,7 +4713,7 @@ async function renderRanks(q){
   const pg=$("#pg-board");
   if(!pg.dataset.built){
     pg.innerHTML=`<div class="lbd"><div class="lb-head pop"><div class="lseg" id="lbM" role="tablist" aria-label="Ranking">${'<span class="sk"></span>'}${LBM.map(([k,i,n])=>`<button role="tab" data-m="${k}">${ic(i)}<span class="lbx">${n}</span><span class="lbs">${n.replace("Most ","").replace(" Made","")}</span></button>`).join("")}</div>
-      <div class="lseg sm" id="lbP" aria-label="Period"><span class="sk"></span>${LBP.map(([k,n])=>`<button data-p="${k}">${n}</button>`).join("")}</div></div><div id="lbBody"><div class="empty" style="margin-top:60px"><div class="spin"></div><b>Loading the leaderboard...</b></div></div></div>`;
+      <div class="lseg sm" id="lbP" aria-label="Period"><span class="sk"></span>${LBP.map(([k,n])=>`<button data-p="${k}">${n}</button>`).join("")}</div></div><div id="lbBody">${skel(SKEL.board)}</div></div>`;
     pg.dataset.built=1;
     $$("#lbM button").forEach(b=>b.onclick=()=>{setP("lbMetric",b.dataset.m);drawRanks(true)});
     $$("#lbP button").forEach(b=>b.onclick=()=>{setP("lbPeriod",b.dataset.p);drawRanks(true)});
@@ -4691,7 +4767,7 @@ async function renderPosts(){
        <div class="acts"><div class="ps-f" id="psKind">${Object.entries(KINDS).map(([k,[n,i]])=>`<button type="button" class="chip${k==="announcement"?" on":""}" data-k="${k}">${ic(i)}${n}</button>`).join("")}</div>
        <div style="display:flex;gap:8px;flex:1;justify-content:flex-end"><button class="btn" id="psCancel">Cancel</button><button class="btn pri" id="psPost">${ic("send")}Post</button></div></div></div></div></div>
      <div class="ps-f pop" id="psFilter"><button class="chip" data-f="all">All</button>${Object.entries(KINDS).map(([k,[n,i]])=>`<button class="chip" data-f="${k}">${ic(i)}${n}s</button>`).join("")}</div>
-     <div id="psList"><div class="empty" style="margin-top:50px"><div class="spin"></div><b>Loading the board...</b></div></div></div>`;
+     <div id="psList">${skel(SKEL.posts)}</div></div>`;
     pg.dataset.built=1;hydrateIcons(pg);
     const comp=$("#psComp"),open=()=>comp.classList.add("open");
     $("#psTitle").addEventListener("focus",open);$("#psTitle").addEventListener("input",open);
@@ -5020,8 +5096,17 @@ FONT_FALLBACK = {"__FONT_REG__": "fonts/Inter-Regular.ttf", "__FONT_BOLD__": "fo
 
 def make_handler(api, port, token):
     page = UI_HTML
+    # The optional Inter files are embedded when present. When they are missing (the usual case), the url() is dropped
+    # so the window doesn't ask for files this server never serves (that showed up as two failed requests per launch).
+    base = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
     for k, v in FONT_FALLBACK.items():
-        page = page.replace(k, v)
+        fp = os.path.join(base, *v.split("/"))
+        if os.path.isfile(fp):
+            with open(fp, "rb") as fh:
+                page = page.replace(k, "data:font/ttf;base64," + base64.b64encode(fh.read()).decode("ascii"))
+        else:
+            page = page.replace(',url("%s") format("truetype")' % k, "")
+    assert "__FONT_" not in page
     hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
 
     class H(BaseHTTPRequestHandler):

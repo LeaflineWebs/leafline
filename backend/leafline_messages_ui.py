@@ -28,7 +28,7 @@ MSG_CSS = r'''
 .mx-sec{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);padding:12px 8px 6px}
 .mx-c{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:4px 11px;align-items:center;padding:9px 9px;border-radius:14px;text-align:left;position:relative;transition:background-color var(--d-hover) var(--e-out)}
 .mx-c:hover{background:rgba(255,255,255,.04)}.mx-c.on{background:var(--accent-soft)}
-.mx-c .mav{grid-row:1/3}
+.mx-c .mxav{grid-row:1/3}
 .mx-c .nm{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px}
 .mx-c .nm .ic{width:13px;height:13px;color:var(--faint);flex:none}
 .mx-c .mxt{font-size:11.5px;color:var(--faint);font-weight:600;justify-self:end}
@@ -39,17 +39,17 @@ MSG_CSS = r'''
 .mx-c .bd b.at{background:#F2D88C;color:#2a1f05}
 .mx-c.mute .bd b{background:var(--card3);color:var(--text2)}
 .mx-c .pv .ty{color:var(--accent-hi);font-weight:600}
-.mav{position:relative;display:block;width:44px;height:44px;flex:none}
-.mav .tav{width:100%;height:100%;font-size:15px}
-.mav.sm{width:30px;height:30px}.mav.sm .tav{font-size:11.5px}
-.mav.xs{width:22px;height:22px}.mav.xs .tav{font-size:9px;box-shadow:none}
-.mav.big{width:72px;height:72px}.mav.big .tav{font-size:24px}
-.mav .od{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;background:#56685d;border:2.5px solid var(--bg)}
-.mav .od.on{background:var(--g)}
-.mav.sm .od{width:10px;height:10px;border-width:2px}
+.mxav{position:relative;display:block;width:44px;height:44px;flex:none}
+.mxav .tav{width:100%;height:100%;font-size:15px}
+.mxav.sm{width:30px;height:30px}.mxav.sm .tav{font-size:11.5px}
+.mxav.xs{width:22px;height:22px}.mxav.xs .tav{font-size:9px;box-shadow:none}
+.mxav.big{width:72px;height:72px}.mxav.big .tav{font-size:24px}
+.mxav .od{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;background:#56685d;border:2.5px solid var(--bg)}
+.mxav .od.on{background:var(--g)}
+.mxav.sm .od{width:10px;height:10px;border-width:2px}
 .gav{width:100%;height:100%;border-radius:15px;display:grid;place-items:center;font-weight:800;font-size:15px;color:var(--accent-hi);background:linear-gradient(150deg,var(--card3),var(--av-bg));overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.08)}
 .gav img{width:100%;height:100%;object-fit:cover}
-.mav.big .gav{border-radius:24px;font-size:24px}
+.mxav.big .gav{border-radius:24px;font-size:24px}
 .mx-empty{display:grid;place-items:center;text-align:center;gap:10px;padding:40px 20px;color:var(--muted);font-size:13.5px;line-height:1.5}
 .mx-empty .bub{width:60px;height:60px;border-radius:20px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-hi)}
 .mx-empty .bub .ic{width:28px;height:28px}
@@ -119,7 +119,7 @@ MSG_CSS = r'''
 .mm-rx button:hover{transform:translateY(-1px);border-color:var(--line2)}.mm-rx button.pulse{animation:rxp 420ms var(--e-bounce)}
 .mm-st{font-size:11px;color:var(--faint);margin:3px 6px 0;display:flex;gap:6px;align-items:center}
 .mm-st.bad{color:#FF9AA0}.mm-st button{color:var(--accent-hi);font-weight:700;text-decoration:underline}
-.mm-st .rd{display:inline-flex;gap:-4px}.mm-st .rd .mav.xs{margin-left:-5px}
+.mm-st .rd{display:inline-flex;gap:-4px}.mm-st .rd .mxav.xs{margin-left:-5px}
 .mm-pin{font-size:11px;color:#F2D88C;margin:2px 6px 0;display:flex;align-items:center;gap:4px}.mm-pin .ic{width:12px;height:12px}
 .mm-act{position:absolute;top:-14px;right:8px;display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--card3);border:1px solid var(--line2);box-shadow:0 8px 22px rgba(0,0,0,.4);opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity var(--d-micro) var(--e-out),transform var(--d-micro) var(--e-out);z-index:3}
 .mm.me .mm-act{right:auto;left:8px}
@@ -226,7 +226,7 @@ MSG_CSS = r'''
 .mx-pick .ck .ic{width:13px;height:13px}
 .mx-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:0}
 .mx-chips span{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 6px 0 4px;border-radius:14px;background:var(--accent-soft);font-size:12.5px;font-weight:700;color:var(--accent-hi);animation:clChip .3s var(--e-spring)}
-.mx-chips span .mav.xs{width:20px;height:20px}
+.mx-chips span .mxav.xs{width:20px;height:20px}
 .mx-seg{display:flex;gap:4px;padding:3px;border-radius:12px;background:rgba(0,0,0,.2);margin:14px 0 4px}
 .mx-seg button{flex:1;height:34px;border-radius:9px;font-size:13px;font-weight:700;color:var(--muted)}
 .mx-seg button.on{background:var(--card2);color:var(--text)}
@@ -330,10 +330,10 @@ async function mxRpc(fn,args={}){let r;try{r=await api("sb_rpc",fn,args)}catch(e
 function mxCan(c){return c&&(c.role==="owner"||c.role==="admin"||(S.me&&S.me.role==="admin"))}
 
 /* ---------- avatars ---------- */
-function mxPAv(id,cls=""){const p=personById(id);return `<span class="mav ${cls}" data-au="${esc(id)}">${avHTML(p.name,p.avatar,p.media)}<i class="od${MX.presence[id]?" on":""}"></i></span>`}
+function mxPAv(id,cls=""){const p=personById(id);return `<span class="mxav ${cls}" data-au="${esc(id)}">${avHTML(p.name,p.avatar,p.media)}<i class="od${MX.presence[id]?" on":""}"></i></span>`}
 function mxCAv(c,cls=""){if(c.type==="direct")return mxPAv(mxOther(c),cls);
   const img=c.avatar_url&&/^https:\/\//.test(c.avatar_url)?`<img src="${esc(c.avatar_url)}" alt="" loading="lazy">`:esc(initialsOf(c.name||"G"));
-  return `<span class="mav ${cls}"><span class="gav">${img}</span></span>`}
+  return `<span class="mxav ${cls}"><span class="gav">${img}</span></span>`}
 
 /* ---------- message text: **bold**, *italic*, ~~strike~~, `code`, ```blocks```, - lists, links, @mentions ---------- */
 function mxInline(t){
@@ -389,7 +389,7 @@ async function mxOverview(force){
 }
 const mxOvSoon=(ms=250)=>{clearTimeout(MX.ovT);MX.ovT=setTimeout(()=>mxOverview(true),ms)};
 async function mxPresence(){const r=await mxRpc("msg_presence");if(r.ok){MX.presence={};(r.data||[]).forEach(p=>{MX.presence[p.id]=!!p.online})}MX.lastPres=Date.now();
-  if(S.page==="msgs"){$$("#pg-msgs .mav[data-au] .od").forEach(o=>o.classList.toggle("on",!!MX.presence[o.parentElement.dataset.au]));mxPaintHead()}}
+  if(S.page==="msgs"){$$("#pg-msgs .mxav[data-au] .od").forEach(o=>o.classList.toggle("on",!!MX.presence[o.parentElement.dataset.au]));mxPaintHead()}}
 async function mxNotes(){
   const r=await mxRpc("msg_notifications",{p_limit:40});MX.lastNotes=Date.now();if(!r.ok)return;
   const fresh=(r.data||[]).filter(n=>!n.is_read&&MX.noteIds&&!MX.noteIds.has(n.id));
@@ -570,10 +570,12 @@ async function mxLoadMentions(){const r=await mxRpc("msg_mentions",{p_limit:60})
 
 /* ---------- opening a chat ---------- */
 async function mxOpen(cid){
-  if(MX.cur!==cid){MX.reply=null;MX.editing=null;MX.atts=[];MX.draft=""}
+  const sw=MX.cur!==cid;
+  if(sw){MX.reply=null;MX.editing=null;MX.atts=[];MX.draft=""}
   MX.cur=cid;setP("msgLast",cid);mxClosePops();
   if(S.page!=="msgs")await go("msgs");
   mxRender();const t=mxT(cid);
+  if(sw&&!REDUCE){const c=$("#mxChat");c&&c.animate([{opacity:0,transform:"translateX(12px)"},{opacity:1,transform:"none"}],{duration:320,easing:EASE.out})}
   if(!t.loaded||t.gap)await mxLoad(cid);else{mxPaintMsgs({bottom:true});mxRead(cid);mxNewer(cid)}
   if(MX.info)mxLoadSide(cid);
   if(innerWidth>860){const ta=$("#mxTa");ta&&ta.focus()}
@@ -784,7 +786,7 @@ function mxMentionCheck(ta){const c=MX.byId[MX.cur];if(!c)return;const v=ta.valu
   if(!MX.mp||!MX.mp.el){mxMpClose();const el=document.createElement("div");el.className="mx-pop mx-mp";el.setAttribute("role","listbox");document.body.appendChild(el);MX.mp={el,i:0}}
   MX.mp.list=list;MX.mp.start=cur-m[2].length-1;MX.mp.i=Math.min(MX.mp.i,list.length-1);mxMpDraw();
   const r=ta.getBoundingClientRect(),h=MX.mp.el.offsetHeight;Object.assign(MX.mp.el.style,{left:Math.max(8,Math.min(innerWidth-MX.mp.el.offsetWidth-8,r.left+8))+"px",top:Math.max(8,r.top-h-8)+"px"})}
-function mxMpDraw(){const mp=MX.mp;if(!mp)return;mp.el.innerHTML=mp.list.map((p,i)=>`<button type="button" class="${i===mp.i?"on":""}" data-i="${i}">${p.id==="everyone"?`<span class="mav sm"><span class="gav">@</span></span><span>@everyone</span><small>Notify the whole group</small>`
+function mxMpDraw(){const mp=MX.mp;if(!mp)return;mp.el.innerHTML=mp.list.map((p,i)=>`<button type="button" class="${i===mp.i?"on":""}" data-i="${i}">${p.id==="everyone"?`<span class="mxav sm"><span class="gav">@</span></span><span>@everyone</span><small>Notify the whole group</small>`
   :`${mxPAv(p.id,"sm")}<span>${esc(p.name)}</span><small>${MX.presence[p.id]?"Online":"Offline"}</small>`}</button>`).join("");
   $$("button",mp.el).forEach(b=>b.onmousedown=e=>{e.preventDefault();mxMpPick(mp.list[+b.dataset.i])})}
 function mxMpPick(p){const ta=$("#mxTa"),mp=MX.mp;if(!ta||!mp||!p)return;const v=ta.value,cur=ta.selectionStart,txt="@"+p.name+" ";

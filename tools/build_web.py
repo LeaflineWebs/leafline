@@ -26,6 +26,7 @@ def build(out=OUT):
     ui = b.UI_HTML
     ui = re.sub(r',url\("__FONT_(?:REG|BOLD)__"\) format\("truetype"\)', "", ui)        # the optional bundled font files are not part of the website
     assert "__FONT_" not in ui
+    ui = re.sub(r'<link rel="icon" id="appIcon"[^>]*>\n?', "", ui)                  # the website has its own PNG icons
     head = ('<meta name="theme-color" content="#0A120E">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n'
             '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n<meta name="apple-mobile-web-app-title" content="Leafline">\n'
             '<link rel="manifest" href="manifest.webmanifest">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="icon" href="icon-192.png">\n'
