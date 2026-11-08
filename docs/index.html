@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.8.1"></script>
-<script src="engine.js?v=11.8.1"></script>
+<script src="config.js?v=11.8.2"></script>
+<script src="engine.js?v=11.8.2"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1374,6 +1374,47 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
    the sidebar and off the window. The sidebar already lists every page, so the bar keeps only the main shortcuts. */
 @media (min-width:861px) and (max-width:1365px){.fpill button.fx{display:none}}
 @media (min-width:861px) and (max-width:1745px){.main.hasdock .fpill button.fx{display:none}}
+.lcall{display:none}
+.selbar{display:none}
+.mark.ask{animation:askPulse 1.2s var(--e-out) 2}
+@keyframes askPulse{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 2px var(--accent),0 0 30px var(--glow)}}
+@media (max-width:860px){
+  /* bottom bar: full width, sitting on the bottom edge, with room for the iPhone home bar */
+  .fnav{left:0;right:0;bottom:0}
+  .fpill{border-radius:24px 24px 0 0;padding:6px 6px calc(2px + env(safe-area-inset-bottom));border-bottom:0;
+    box-shadow:0 -12px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.07),0 -1px 0 var(--line2)}
+  .fpill:hover{box-shadow:0 -12px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.07),0 -1px 0 var(--accent-line)}
+  .fpill .fthumb{bottom:calc(3px + env(safe-area-inset-bottom))}
+  .flamp{height:auto;bottom:env(safe-area-inset-bottom)}
+  .page{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(80px + env(safe-area-inset-bottom))}
+  .hcard{bottom:calc(80px + env(safe-area-inset-bottom))}
+  /* Find Leads: the whole page scrolls; the list is no longer a small box with its own scroll */
+  #pg-find.page.flex.on{display:block}
+  #pg-find .split{display:block;min-height:0}
+  #pg-find .pane:not(.dpane){overflow:visible;border-radius:24px}
+  #pg-find .list{overflow:visible;flex:none;padding:2px 6px 8px}
+  .web #pg-find .fcard{display:none}
+  #pg-find .ph{padding:14px 14px 8px}#pg-find .ph h3{font-size:17px}
+  #pg-find .tools{margin-top:10px}#fExport{display:none}
+  #pg-find .li{gap:10px;padding:10px 8px 10px 10px;margin-bottom:6px;background:rgba(255,255,255,.025);border-color:var(--line)}
+  #pg-find .li .av{display:none}
+  #pg-find .li .lt b{font-size:15px}
+  .lcall{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:50%;background:linear-gradient(160deg,var(--accent),var(--accent2));color:var(--accent-text);
+    box-shadow:0 6px 16px rgba(0,0,0,.3),0 0 18px var(--glow-soft);border:0;text-decoration:none;-webkit-tap-highlight-color:transparent;transition:transform var(--d-card) var(--e-spring)}
+  .lcall:active{transform:scale(.9)}.lcall .ic{width:20px;height:20px}.lcall[hidden]{display:none}
+  /* ticked businesses: a bar above the page bar to mark them together */
+  .selbar{display:flex;position:fixed;left:10px;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:calc(var(--z-nav) + 1);align-items:center;gap:8px;
+    padding:8px 8px 8px 16px;border-radius:20px;background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--accent-line);
+    box-shadow:var(--sh-lg),0 0 24px var(--glow-soft);transform:translateY(calc(100% + 100px));transition:transform var(--d-card) var(--e-spring)}
+  .selbar.on{transform:none}
+  /* with a business open, messages show at the top so they never cover its buttons */
+  body.dopen .toast{bottom:auto;top:calc(10px + env(safe-area-inset-top))}
+  .selbar span{flex:1;font-weight:800;font-size:14px}.selbar .btn{height:40px}
+  body:not(.p-find) .selbar{display:none}
+  /* More menu: long names (Announcements) shrink or wrap instead of being cut off */
+  .sheet .sg button{padding:14px 4px;font-size:12px;line-height:1.2;text-align:center;overflow-wrap:anywhere;min-width:0}
+}
 @media (prefers-reduced-motion:reduce){.skl i:after{display:none}}
 
 /* ================= Messages ================= */
@@ -1435,7 +1476,9 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
 .mx-ch .sub{font-size:12.5px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mx-ch .sub .onl{color:var(--accent-hi)}
 .mx-back{display:none}
-.mx-scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 18px 8px;scroll-behavior:auto}
+.mx-scroll{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y pinch-zoom;padding:14px 18px 8px;scroll-behavior:auto}
+#pg-msgs,.mx,.mx-chat,.mx-list,.mx-info{overflow-x:clip}
+.mm .mb,.mm .mb *{overflow-wrap:anywhere}
 .mx-day{display:flex;align-items:center;gap:12px;margin:16px 0 10px;color:var(--faint);font-size:11.5px;font-weight:700;letter-spacing:.3px}
 .mx-day:before,.mx-day:after{content:"";flex:1;height:1px;background:var(--line)}
 .mx-sys{text-align:center;font-size:12.5px;color:var(--muted);margin:10px 0;padding:0 20px}
@@ -1622,7 +1665,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
 @media (max-width:1180px){.mx.info{grid-template-columns:290px minmax(0,1fr) 0px}.mx{grid-template-columns:290px minmax(0,1fr) 0}.mx.info .mx-info{position:absolute;right:0;top:0;bottom:96px;width:310px;background:var(--panel);z-index:6;box-shadow:-20px 0 40px rgba(0,0,0,.35);border-radius:22px 0 0 22px}}
 /* phones: one panel at a time, like Messages on a phone */
 @media (max-width:860px){
-  .mx,.mx.info{grid-template-columns:minmax(0,1fr);padding:4px 16px calc(96px + env(safe-area-inset-bottom))}
+  .mx,.mx.info{grid-template-columns:minmax(0,1fr);padding:4px 16px calc(84px + env(safe-area-inset-bottom))}
   .mx-list{padding-right:0;border-right:0}
   .mx .mx-chat,.mx .mx-info{display:none}
   .mx.chat .mx-list{display:none}.mx.chat .mx-chat{display:flex}
@@ -1958,7 +2001,7 @@ function alertBox(title,msg){openModal(`<h2>${esc(title)}</h2><p class="muted" s
    On a computer, and in the desktop app (which can't place calls), the same tap copies the number instead. */
 function telHref(ph){const d=String(ph||"").replace(/[^\d+]/g,"");if(!d)return "";const n=d.replace(/\D/g,"");
   return "tel:"+(d.startsWith("+")?"+"+n:n.length===10?"+1"+n:n.length===11&&n[0]==="1"?"+"+n:n)}
-const canCall=()=>!window.LF_API&&matchMedia("(hover:none),(pointer:coarse)").matches;
+const canCall=()=>matchMedia("(hover:none) and (pointer:coarse)").matches;
 function telLink(ph,cls=""){const h=telHref(ph);return h?`<a class="tel ${cls}" href="${esc(h)}" data-ph="${esc(ph)}" aria-label="Call ${esc(ph)}">${esc(ph)}</a>`:esc(ph||"")}
 function callBtn(ph){const h=telHref(ph);return h?`<a class="btn sm pri tel callb" href="${esc(h)}" data-ph="${esc(ph)}" aria-label="Call ${esc(ph)}">${ic("phone")}Call</a>`:""}
 document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a.tel");if(!a)return;
@@ -1971,6 +2014,16 @@ function closeDetailSheet(fromHistory){if(!document.body.classList.contains("dop
   if(!fromHistory&&history.state&&history.state.dsheet){try{history.back()}catch(e){}}
   const li=S.active&&$(`.li[data-id="${CSS.escape(S.active)}"]`);li&&li.focus({preventScroll:true})}
 window.addEventListener("popstate",()=>closeDetailSheet(true));
+/* After calling from Find Leads on a phone: when you come back to the app, that business opens at "Mark this business
+   as", so logging the result is one more tap. Only if the app actually went to the background (the call started). */
+function noteCall(id){if(canCall())S.lastCall={id,t:Date.now(),away:false}}
+document.addEventListener("visibilitychange",()=>{const c=S.lastCall;if(!c)return;
+  if(document.hidden){if(Date.now()-c.t<60000)c.away=true;return}
+  if(!c.away||Date.now()-c.t>45*60000){if(Date.now()-c.t>60000)S.lastCall=null;return}
+  S.lastCall=null;setTimeout(()=>{const l=S.find.find(x=>x.id===c.id);if(!l||!isPhone())return;
+    if(S.page!=="find")go("find");S.active=l.id;S.sel.clear();lastDetail=null;renderFind();openDetailSheet();
+    setTimeout(()=>{const mk=$("#detail .mark");if(!mk)return;mk.scrollIntoView({block:"center",behavior:REDUCE?"auto":"smooth"});mk.classList.add("ask");setTimeout(()=>mk.classList.remove("ask"),2400)},320);
+    toast("How did the call with "+l.name+" go?")},700)});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("dopen")&&!$(".ov.on"))closeDetailSheet()});
 function copyText(t){
   const done=()=>toast("Phone number copied");
@@ -2145,15 +2198,17 @@ function renderDash(q){
 /* ---------------- FIND ---------------- */
 function mkItem(){
   const n=document.createElement("div");n.className="li pop";n.tabIndex=0;n.setAttribute("role","option");
-  n.innerHTML=`<button class="chk" aria-label="Select this business"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg></button><div class="av"></div><div class="lm"><div class="lt"><b></b><span class="op"></span></div><div class="ls"><span class="ty"></span><span class="hr"></span><span class="rv"></span></div></div>`;
+  n.innerHTML=`<button class="chk" aria-label="Select this business"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg></button><div class="av"></div><div class="lm"><div class="lt"><b></b><span class="op"></span></div><div class="ls"><span class="ty"></span><span class="hr"></span><span class="rv"></span></div></div><a class="lcall tel" href="#" aria-label="Call">${ic("phone")}</a>`;
   return n;
 }
 function fillItem(n,l){
   n.dataset.id=l.id;const av=$(".av",n);av.textContent=initials(l.name);av.style.background=hue(l.btype);
   $("b",n).textContent=l.name;const ph=$(".ty",n);ph.textContent=l.phone;
+  const lc=$(".lcall",n),th=telHref(l.phone);lc.hidden=!th;if(th&&lc.getAttribute("href")!==th){lc.setAttribute("href",th);lc.dataset.ph=l.phone;lc.setAttribute("aria-label","Call "+l.name+", "+l.phone)}
   const rv=$(".rv",n),rt=reviewTxt(l);if(rv.textContent!==rt){rv.textContent=rt;rv.classList.toggle("none",l.reviews===NA)}
   const hr=$(".hr",n),h=hoursShort(l);if(hr.textContent!==h)hr.textContent=h;
   const op=$(".op",n),pl=openPill(l);if(op.dataset.v!==pl){op.dataset.v=pl;op.innerHTML=pl}
+  hr.hidden=/N\/A/.test(h)&&/N\/A/.test(pl);            /* no hours known: the pill already says so */
   n.classList.toggle("act",S.active===l.id);n.classList.toggle("sel",S.sel.has(l.id));n.setAttribute("aria-selected",S.active===l.id);
   const sep=n.querySelector(".ls");sep.title=l.btype+" · "+(l.hours||"");
 }
@@ -2175,9 +2230,18 @@ function renderFind(){
   const total=S.find.length,openN=S.find.filter(l=>l.open==="open").length;
   $("#fSub").textContent=`${num(total)} business${total===1?"":"es"} to call · ${num(openN)} open now`;
   S.sel.forEach(id=>{if(!S.find.some(l=>l.id===id))S.sel.delete(id)});
+  paintSelBar();
   const allOn=arr.length&&arr.every(l=>S.sel.has(l.id));$("#allChk").style.cssText=allOn?"background:var(--accent);border-color:var(--accent);color:var(--accent-text)":"";
   renderDetail();
 }
+function paintSelBar(){let b=$("#selBar");const n=S.sel.size;
+  if(!b){b=document.createElement("div");b.id="selBar";b.className="selbar";b.setAttribute("role","region");b.setAttribute("aria-label","Selected businesses");
+    b.innerHTML=`<span></span><button type="button" class="btn sm" data-sx>Clear</button><button type="button" class="btn sm pri" data-sm>Mark as…</button>`;
+    $("#pg-find").appendChild(b);
+    $("[data-sx]",b).onclick=()=>{S.sel.clear();renderFind()};
+    $("[data-sm]",b).onclick=()=>{if(!S.sel.has(S.active))S.active=[...S.sel][0];lastDetail=null;renderFind();openDetailSheet();
+      setTimeout(()=>{const mk=$("#detail .mark");mk&&mk.scrollIntoView({block:"center"})},320)}}
+  $("span",b).textContent=`${n} selected`;b.classList.toggle("on",n>0)}
 let lastDetail=null;
 function renderDetail(){
   const d=$("#detail"),l=S.find.find(x=>x.id===S.active);
@@ -3249,6 +3313,7 @@ $("#openOnly").onclick=e=>{S.openOnly=!S.openOnly;e.currentTarget.classList.togg
 $("#allChk").onclick=()=>{const a=visibleFind(),all=a.length&&a.every(l=>S.sel.has(l.id));a.forEach(l=>all?S.sel.delete(l.id):S.sel.add(l.id));renderFind()};
 $("#list").addEventListener("click",e=>{
   const li=e.target.closest(".li");if(!li)return;const id=li.dataset.id;
+  if(e.target.closest("a.tel")){noteCall(id);return}
   if(e.target.closest(".chk")){S.sel.has(id)?S.sel.delete(id):S.sel.add(id);renderFind();return}
   if(S.active!==id){saveDetail(true);S.active=id;lastDetail=null;renderFind()}
   openDetailSheet();
@@ -3260,6 +3325,7 @@ $("#list").addEventListener("keydown",e=>{
 });
 $("#detail").addEventListener("click",e=>{
   const l=S.find.find(x=>x.id===S.active);if(!l)return;
+  if(e.target.closest("a.tel"))noteCall(l.id);
   if(e.target.closest("#dClose"))closeDetailSheet();
   else if(e.target.closest("#dCopy"))copyText(l.phone);
   else if(e.target.closest("#dSite"))api("open_site",l.id).catch(()=>{});

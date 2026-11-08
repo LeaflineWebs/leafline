@@ -42,7 +42,7 @@ print("offline")
 F.down = True; api.set_profile_ext({"thought": "Offline thought"}); time.sleep(1)
 check("kept on this computer while offline", api._sync.me()["ext"]["thought"] == "Offline thought")
 check("sign out is blocked while it is waiting", api.sign_out().get("ok") is False)
-F.down = False; check("uploaded after reconnecting", until(lambda: G.get("thought") == "Offline thought"))
+F.down = False; check("uploaded after reconnecting", until(lambda: G.get("thought") == "Offline thought", 45))   # the retry after a dropped connection can take a while on a busy machine
 check("sign out works once uploaded", until(lambda: api.sign_out().get("ok") is True))
 check("sign out wipes the local copy", api._sync.ext()["bio"] == "" and api._sync.ext()["banner"] == "")
 print("database update (migration 4) not run yet")

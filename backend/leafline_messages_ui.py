@@ -62,7 +62,9 @@ MSG_CSS = r'''
 .mx-ch .sub{font-size:12.5px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mx-ch .sub .onl{color:var(--accent-hi)}
 .mx-back{display:none}
-.mx-scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 18px 8px;scroll-behavior:auto}
+.mx-scroll{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y pinch-zoom;padding:14px 18px 8px;scroll-behavior:auto}
+#pg-msgs,.mx,.mx-chat,.mx-list,.mx-info{overflow-x:clip}
+.mm .mb,.mm .mb *{overflow-wrap:anywhere}
 .mx-day{display:flex;align-items:center;gap:12px;margin:16px 0 10px;color:var(--faint);font-size:11.5px;font-weight:700;letter-spacing:.3px}
 .mx-day:before,.mx-day:after{content:"";flex:1;height:1px;background:var(--line)}
 .mx-sys{text-align:center;font-size:12.5px;color:var(--muted);margin:10px 0;padding:0 20px}
@@ -249,7 +251,7 @@ MSG_CSS = r'''
 @media (max-width:1180px){.mx.info{grid-template-columns:290px minmax(0,1fr) 0px}.mx{grid-template-columns:290px minmax(0,1fr) 0}.mx.info .mx-info{position:absolute;right:0;top:0;bottom:96px;width:310px;background:var(--panel);z-index:6;box-shadow:-20px 0 40px rgba(0,0,0,.35);border-radius:22px 0 0 22px}}
 /* phones: one panel at a time, like Messages on a phone */
 @media (max-width:860px){
-  .mx,.mx.info{grid-template-columns:minmax(0,1fr);padding:4px 16px calc(96px + env(safe-area-inset-bottom))}
+  .mx,.mx.info{grid-template-columns:minmax(0,1fr);padding:4px 16px calc(84px + env(safe-area-inset-bottom))}
   .mx-list{padding-right:0;border-right:0}
   .mx .mx-chat,.mx .mx-info{display:none}
   .mx.chat .mx-list{display:none}.mx.chat .mx-chat{display:flex}
