@@ -87,6 +87,32 @@ with sync_playwright() as p:
     r = pg.evaluate("()=>{const r=document.querySelector('.fpill').getBoundingClientRect();return [r.left,r.right,r.bottom,innerWidth,innerHeight]}")
     check(f"the page bar is full width and sits on the bottom edge ({r})", r[0] <= 0.5 and r[1] >= r[3] - 0.5 and abs(r[2] - r[4]) <= 0.5)
     check("the page bar leaves room for the iPhone home bar", "calc(2px + env(safe-area-inset-bottom))" in B.UI_HTML)
+    # with lead generation switched on and a real-sized list (hundreds of leads), the list still shows
+    pg.evaluate("""async()=>{setP('leadgen',{on:true,provider:'google_places'});const b=S.find.slice();S.find=[];for(let k=0;k<25;k++)b.forEach(l=>S.find.push(Object.assign({},l,{id:l.id+'_'+k})));
+      await go('dash');await go('find');renderFind();paintLeadgenFind();const pane=document.querySelector('#pg-find .pane');pane.classList.remove('in');io.observe(pane);await new Promise(r=>setTimeout(r,1500))}""")
+    r = pg.evaluate("""()=>{const pane=document.querySelector('#pg-find .pane'),lg=document.getElementById('lgFind'),sb=document.getElementById('selBar').getBoundingClientRect();
+      return {n:S.find.length,tall:pane.getBoundingClientRect().height>5000,shown:getComputedStyle(pane).opacity==='1',lg:!lg||getComputedStyle(lg).display==='none',
+        firstLead:document.querySelector('#list .li').getBoundingClientRect().top,bar:getComputedStyle(document.getElementById('selBar')).visibility,barTop:Math.round(sb.top)}}""")
+    check(f"hundreds of leads ({r['n']}): the list still shows", r["tall"] and r["shown"])
+    check("the lead generation card is hidden on phones", r["lg"])
+    check(f"the first lead starts high on the screen ({round(r['firstLead'])}px)", r["firstLead"] < 420)
+    check("with nothing ticked, the selection bar is fully hidden (doesn't peek under the page bar)", r["bar"] == "hidden")
+    # Called Leads: compact header, result tabs, one full-width list
+    pg.evaluate("""async()=>{setP('calledTab','red');await go('called');renderBoard(false);await new Promise(r=>setTimeout(r,1500))}""")
+    r = pg.evaluate("""()=>{const p=document.getElementById('pg-called'),cols=[...p.querySelectorAll('.col')].filter(c=>c.getBoundingClientRect().height>0).map(c=>c.dataset.col),
+      kc=p.querySelector('.col[data-col=red] .kc');return {cols,kc:kc?Math.round(kc.getBoundingClientRect().top):null,wide:p.scrollWidth>innerWidth+1||document.documentElement.scrollWidth>innerWidth+1,
+      desc:getComputedStyle(p.querySelector('.cdesc')).display}}""")
+    check(f"Called Leads shows one result's list, full width ({r['cols']})", r["cols"] == ["red"] and not r["wide"])
+    check(f"Called Leads: the first lead is well clear of the page bar ({r['kc']}px)", r["kc"] is not None and r["kc"] < 520)
+    check("Called Leads: the drag tip is hidden on phones", r["desc"] == "none")
+    pg.tap("#pg-called [data-tab=orange]"); pg.wait_for_timeout(500)
+    check("tapping a result tab switches the list", pg.evaluate("()=>[...document.querySelectorAll('#pg-called .col')].filter(c=>c.getBoundingClientRect().height>0).map(c=>c.dataset.col).join()") == "orange")
+    # News instead of Announcements on phones
+    pg.evaluate("async()=>{await go('posts')}"); pg.wait_for_timeout(600)
+    check("the News page is titled News on phones", pg.inner_text("#title").strip() == "News")
+    pg.evaluate("()=>document.getElementById('fmore').click()"); pg.wait_for_timeout(600)
+    check("the More menu says News, not Announcements", pg.evaluate("()=>{const t=document.getElementById('msheet').innerText;return t.includes('News')&&!t.includes('Announcements')}"))
+    pg.evaluate("()=>document.getElementById('msheet').classList.remove('on','show')")
     # chat: up and down only
     check("chat scrolls up and down only (can't be dragged sideways)", ".mx-scroll{flex:1;overflow-y:auto;overflow-x:hidden" in B.UI_HTML and "touch-action:pan-y pinch-zoom" in B.UI_HTML)
     check("no page errors", not errs or print(errs))

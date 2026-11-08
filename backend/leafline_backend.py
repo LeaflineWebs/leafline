@@ -2936,9 +2936,30 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   .selbar{display:flex;position:fixed;left:10px;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:calc(var(--z-nav) + 1);align-items:center;gap:8px;
     padding:8px 8px 8px 16px;border-radius:20px;background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--accent-line);
     box-shadow:var(--sh-lg),0 0 24px var(--glow-soft);transform:translateY(calc(100% + 100px));transition:transform var(--d-card) var(--e-spring)}
-  .selbar.on{transform:none}
+  .selbar{visibility:hidden;transition:transform var(--d-card) var(--e-spring),visibility 0s linear var(--d-card)}
+  .selbar.on{transform:none;visibility:visible;transition:transform var(--d-card) var(--e-spring),visibility 0s}
+  #lgFind{display:none}
   /* with a business open, messages show at the top so they never cover its buttons */
   body.dopen .toast{bottom:auto;top:calc(10px + env(safe-area-inset-top))}
+  /* Called Leads: compact header, result tabs, one full-width list (no sideways columns) */
+  #pg-called .cdesc,#cExport{display:none}
+  #pg-called .two{margin-bottom:8px!important}
+  #pg-called .cflt{flex-wrap:nowrap;overflow-x:auto;margin:8px -16px 0;padding:0 16px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  #pg-called .cflt::-webkit-scrollbar{display:none}
+  #pg-called .cflt select{flex:0 0 auto;width:auto;max-width:200px;height:40px}
+  #pg-called .cstats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 12px}
+  #pg-called .cstat{flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:9px 4px;border-radius:16px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:background-color var(--d-hover) var(--e-out),border-color var(--d-hover) var(--e-out),box-shadow var(--d-hover) var(--e-out),transform var(--d-card) var(--e-spring)}
+  #pg-called .cstat:active{transform:scale(.95)}
+  #pg-called .cstat .ico{display:none}
+  #pg-called .cstat .n{font-size:19px}
+  #pg-called .cstat .t{font-size:11px;line-height:1.2;overflow-wrap:anywhere}
+  #pg-called .cstat.on{background:var(--accent-soft)!important;border-color:var(--accent-line);box-shadow:0 0 0 1px var(--accent-line),0 0 18px var(--glow-soft)}
+  #pg-called .board{display:block;margin:0;padding:0;overflow:visible}
+  #pg-called .board[data-show] .col{display:none}
+  #pg-called .board[data-show="green"] .col[data-col="green"],#pg-called .board[data-show="yellow"] .col[data-col="yellow"],
+  #pg-called .board[data-show="orange"] .col[data-col="orange"],#pg-called .board[data-show="red"] .col[data-col="red"]{display:block}
+  #pg-called .col{min-height:0;padding:10px 8px}
   .selbar span{flex:1;font-weight:800;font-size:14px}.selbar .btn{height:40px}
   body:not(.p-find) .selbar{display:none}
   /* More menu: long names (Announcements) shrink or wrap instead of being cut off */
@@ -3168,11 +3189,11 @@ const NA="N/A";
 
 /* ---------------- animation: pop-in for everything that enters view ---------------- */
 const io=new IntersectionObserver(es=>{
-  const vis=es.filter(e=>e.isIntersecting).map(e=>e.target);
+  const vis=es.filter(e=>e.isIntersecting&&(e.intersectionRatio>=.04||e.intersectionRect.height>=80)).map(e=>e.target);
   vis.forEach(t=>io.unobserve(t));
   vis.sort((a,b)=>{const A=a.getBoundingClientRect(),B=b.getBoundingClientRect();return (A.top-B.top)||(A.left-B.left)});
   vis.forEach((el,i)=>popIn(el,Math.min(i,16)*40));
-},{threshold:.04});
+},{threshold:[0,.04]});
 function popIn(el,delay=0){
   const quiet=el.dataset.quiet;el.classList.add("in");
   if(quiet){delete el.dataset.quiet;return}
@@ -3348,6 +3369,7 @@ function movePills(){
     const t=$("#fthumb");if(t){t.style.left=(fb.offsetLeft+fb.offsetWidth*.3)+"px";t.style.width=(fb.offsetWidth*.4)+"px"}
     const fp=$("#fpill");if(fp.scrollWidth>fp.clientWidth+2)fp.scrollTo({left:Math.max(0,fb.offsetLeft-(fp.clientWidth-fb.offsetWidth)/2),behavior:"smooth"})}
 }
+const pageTitle=p=>p==="posts"&&matchMedia("(max-width:860px)").matches?"News":TITLES[p];
 const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",admin:"Admin",account:"Settings"};
 let navToken=0;
 async function go(p,force){
@@ -3357,7 +3379,7 @@ async function go(p,force){
   S.page=p;closeSheet();hideHover(true);if(document.body.classList.contains("dopen"))closeDetailSheet();
   document.body.className=document.body.className.replace(/\bp-\w+/g,"").trim()+" p-"+p;
   $$("[data-go]").forEach(b=>b.classList.toggle("on",b.dataset.go===p));movePills();
-  const t=$("#title");t.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:140,easing:EASE.in,fill:"forwards"}).finished.then(()=>{if(my!==navToken)return;t.textContent=TITLES[p];t.getAnimations().forEach(a=>a.cancel());t.animate([{opacity:0,transform:"translateY(10px)",filter:"blur(4px)"},{opacity:1,transform:"none",filter:"blur(0)"}],{duration:460,easing:EASE.out})}).catch(()=>{});
+  const t=$("#title");t.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px)"}],{duration:140,easing:EASE.in,fill:"forwards"}).finished.then(()=>{if(my!==navToken)return;t.textContent=pageTitle(p);t.getAnimations().forEach(a=>a.cancel());t.animate([{opacity:0,transform:"translateY(10px)",filter:"blur(4px)"},{opacity:1,transform:"none",filter:"blur(0)"}],{duration:460,easing:EASE.out})}).catch(()=>{});
   if(old&&old!==next&&!REDUCE){try{await old.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(8px) scale(.99)"}],{duration:170,easing:EASE.in,fill:"forwards"}).finished}catch(e){}}
   if(my!==navToken)return;
   if(old){old.getAnimations().forEach(a=>a.cancel());old.classList.remove("on")}
@@ -3563,6 +3585,7 @@ async function changeStatus(ids,status,prev){
   toast(status==="none"?"Back on the call list":`Moved to ${ST[status].label}`,{action:{label:"Undo",fn:async()=>{try{await api("mark",ids,prev)}catch(e){};await reload()}}});
   if(status==="green")meetingModal(ids);
 }
+const calledTab=()=>{const t=getP("calledTab","green");return ORDER.includes(t)?t:"green"};
 function renderBoard(q){
   const pg=$("#pg-called"),all=S.called.filter(match),types=[...new Map(S.called.map(l=>[l.btype.toLowerCase(),l.btype])).values()].sort((a,b)=>a.localeCompare(b));
   if(S.type!=="all"&&!types.some(t=>t.toLowerCase()===S.type))S.type="all";
@@ -3577,18 +3600,24 @@ function renderBoard(q){
   const fold=new Set(getP("calledFold",[]));
   const sig=JSON.stringify([rows,S.type,types,who,grp,srt,[...fold]]);if(q&&S.lastSig.board===sig)return;S.lastSig.board=sig;
   const scroll=$$(".col .cb",pg).map(c=>c.scrollTop);
-  pg.innerHTML=`<div class="two" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:4px"><div><h3 style="font-size:20px;font-weight:800">Call results</h3><div class="muted" style="font-size:13px;margin-top:2px">Drag a card to another column to change its result, or click a card to edit it. Group and filter by business type, who called, or the day.</div></div>
+  pg.innerHTML=`<div class="two" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:4px"><div><h3 style="font-size:20px;font-weight:800">Call results</h3><div class="muted cdesc" style="font-size:13px;margin-top:2px">Drag a card to another column to change its result, or click a card to edit it. Group and filter by business type, who called, or the day.</div></div>
     <div class="cflt"><select id="cwho" aria-label="Who called"><option value="all">Everyone's calls</option><option value="me"${who==="me"?" selected":""}>My calls</option>${callers.filter(c=>c[0]!==mid).map(c=>`<option value="${esc(c[0])}"${who===c[0]?" selected":""}>${esc(c[1])}'s calls</option>`).join("")}<option value="none"${who==="none"?" selected":""}>Caller not recorded</option></select>
      <select id="cgrp" aria-label="Group cards by"><option value="type"${grp==="type"?" selected":""}>Group: type</option><option value="caller"${grp==="caller"?" selected":""}>Group: caller</option><option value="day"${grp==="day"?" selected":""}>Group: day</option></select>
      <select id="csort" aria-label="Sort cards"><option value="new"${srt==="new"?" selected":""}>Newest calls first</option><option value="old"${srt==="old"?" selected":""}>Oldest calls first</option><option value="name"${srt==="name"?" selected":""}>Business A-Z</option></select>
      <select id="tsel" aria-label="Business type"><option value="all">All business types</option>${types.map(t=>`<option value="${esc(t.toLowerCase())}"${S.type===t.toLowerCase()?" selected":""}>${esc(t)}</option>`).join("")}</select><button class="btn" id="cExport">${ic("down")}Export CSV</button></div></div>
-   <div class="cstats">${ORDER.map(k=>`<div class="cstat pop"><div class="ico tone-${ST[k].cls}">${ic(k==="green"?"check":k==="yellow"?"user":k==="orange"?"phone":"bell")}</div><div><div class="n">${num(cnt(k))}</div><div class="t">${ST[k].label}</div></div></div>`).join("")}</div>
-   ${S.called.length?`<div class="board">${ORDER.map(k=>{const a=by(k),g0=new Map();a.forEach(l=>{const key=gkey(l);if(!g0.has(key))g0.set(key,{n:glabel(l),a:[]});g0.get(key).a.push(l)});
+   <div class="cstats" role="tablist" aria-label="Call results">${ORDER.map(k=>`<div class="cstat pop${calledTab()===k?" on":""}" data-tab="${k}" role="tab" tabindex="0" aria-selected="${calledTab()===k}"><div class="ico tone-${ST[k].cls}">${ic(k==="green"?"check":k==="yellow"?"user":k==="orange"?"phone":"bell")}</div><div><div class="n">${num(cnt(k))}</div><div class="t">${ST[k].label}</div></div></div>`).join("")}</div>
+   ${S.called.length?`<div class="board" data-show="${calledTab()}">${ORDER.map(k=>{const a=by(k),g0=new Map();a.forEach(l=>{const key=gkey(l);if(!g0.has(key))g0.set(key,{n:glabel(l),a:[]});g0.get(key).a.push(l)});
        const g=new Map([...g0.entries()].sort((x,y)=>grp==="day"?(srt==="old"?x[0].localeCompare(y[0]):y[0].localeCompare(x[0])):x[1].n.localeCompare(y[1].n)));
      return `<div class="col pop" data-col="${k}"><div class="ch"><i style="background:${ST[k].color}"></i>${ST[k].label}<span class="n">${a.length}</span>${g.size>1?(()=>{const allShut=[...g.keys()].every(gk=>fold.has(foldKey(k,grp,gk)));return `<button class="fall${allShut?" all":""}" data-fall="${k}" title="${allShut?"Show every group":"Hide every group"}" aria-label="${allShut?"Show every group in":"Hide every group in"} ${esc(ST[k].label)}">${ic("down")}</button>`})():""}${k==="green"?`<button class="addm" data-addmeet title="Set up a meeting and add it to the Calendar" aria-label="Set up a meeting">${ic("plus")}Set up a meeting</button>`:""}</div><div class="cb">${a.length?[...g.entries()].map(([gk,x])=>{const fk=foldKey(k,grp,gk),shut=fold.has(fk);return `<button class="grp" data-fold="${esc(fk)}" aria-expanded="${!shut}" style="--cc:${ST[k].color}" title="${shut?"Show":"Hide"} ${esc(x.n)}"><i class="ic gc">${svg("down")}</i><span class="gl">${esc(x.n)}</span><span class="gn">${x.a.length}</span></button><div class="gb${shut?" fold":""}"><div>${x.a.map(l=>`<div class="kc ${q?"":"pop"}" draggable="true" data-id="${esc(l.id)}" tabindex="0" style="--cc:${ST[k].color}"><b>${esc(l.name)}</b><div class="m"><span>${esc(l.phone)}</span>${l.owner!==NA?`<span>${esc(l.owner)}</span>`:""}</div>${l.called_by_name?`<div class="cby"><i>${esc(initialsOf(l.called_by_name))}</i>Called by ${esc(l.called_by_name)}</div>`:""}${openPill(l)}<span class="hrs">${esc(l.hours!==NA?(l.hours==="Closed"?"Closed today":l.hours):"")}</span>${k==="green"?`${l.meeting_at?`<button class="mchip" data-meet="${esc(l.id)}" title="Change the meeting time">${ic("cal")}${esc(meetFmt(l.meeting_at))}</button>`:`<button class="mchip setup" data-setup="${esc(l.id)}" title="Adds a meeting for ${esc(l.name)} to the Calendar (next business day, 10 am)">${ic("cal")}Set up meeting</button>`}`:""}<div class="when">${esc(fmtDate(l.called_at))}</div></div>`).join("")}</div></div>`}).join(""):`<div class="muted" style="font-size:13px;padding:14px 10px;text-align:center">Drop a card here</div>`}</div></div>`}).join("")}</div>`
     :`<div class="card empty pop" style="margin-top:6px"><div class="bub">${ic("phone")}</div><b>No called businesses yet</b>Mark a business on Find Leads and it shows up here.</div>`}`;
   hydrateIcons(pg);if(q)quiet(pg);
   $$(".col .cb",pg).forEach((c,i)=>c.scrollTop=scroll[i]||0);
+  /* phones: the count tiles are tabs; the chosen result's leads show full width below them */
+  $$("[data-tab]",pg).forEach(t=>{const pick=()=>{if(!isPhone())return;setP("calledTab",t.dataset.tab);
+      $$("[data-tab]",pg).forEach(x=>{const y=x===t;x.classList.toggle("on",y);x.setAttribute("aria-selected",String(y))});
+      const b=$(".board",pg);if(b)b.dataset.show=t.dataset.tab;const c=b&&$(`.col[data-col="${t.dataset.tab}"]`,b);
+      if(c&&!REDUCE)c.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:280,easing:EASE.out})};
+    t.onclick=pick;t.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick()}}});
   const ts=$("#tsel");if(ts)ts.onchange=()=>{S.type=ts.value;renderBoard(true)};
   [["cwho","calledWho"],["cgrp","calledGroup"],["csort","calledSort"]].forEach(([id,k])=>{const e=$("#"+id,pg);if(e)e.onchange=()=>{setP(k,e.value);renderBoard(true)}});
   $$("[data-setup]",pg).forEach(b=>{b.onclick=e=>{e.stopPropagation();quickMeeting(b.dataset.setup)};b.draggable=false;b.onmousedown=e=>e.stopPropagation()});
@@ -4791,7 +4820,7 @@ function thPop(anchor){
 const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["admin","shield","Admin"],["account","gear","Settings"]];
 function openSheet(){
   const sh=$("#msheet"),adm=S.me&&S.me.role==="admin";
-  $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n}">${ic(i)}${n==="Announcements"?`<span class="lgl">${n}</span><span class="sht">News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
+  $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n==="Announcements"?"News":n}">${ic(i)}${n==="Announcements"?`<span>News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
   sh.classList.add("on");sh.setAttribute("aria-hidden","false");paintLgt();requestAnimationFrame(()=>requestAnimationFrame(()=>{sh.classList.add("show");paintLgt()}));
 }
 function closeSheet(){const sh=$("#msheet");if(!sh.classList.contains("on"))return;sh.classList.remove("show");sh.setAttribute("aria-hidden","true");setTimeout(()=>{if(!sh.classList.contains("show"))sh.classList.remove("on")},460)}
@@ -5348,7 +5377,7 @@ async function boot(){
   if(S.me){try{await loadNotes()}catch(e){}acctPull()}
   S.ready=true;initUpdates().then(()=>{if(UP&&UP.platform!=="web"&&UPS.state==="ready")paintUpd()});
   if(window.LF_API){const sl=$("#sText");if(sl)sl.textContent="New businesses are found in the Leafline desktop app and show up here automatically."}
-  const start=TITLES[pageFromHash]?pageFromHash:"dash";S.page="__";$("#title").textContent=TITLES[start];
+  const start=TITLES[pageFromHash]?pageFromHash:"dash";S.page="__";$("#title").textContent=pageTitle(start);
   await go(start,true);renderAll(true);applyDock();if(S.page!=="find")renderFind();
   introProgress(.85);
   if(S.me){ensureBoard(true);setTimeout(pollPosts,6000);const a=avSrc(S.me.avatar,S.me.media);if(a.src&&INTRO.on)await imgReady(a.src,2500)}

@@ -95,6 +95,15 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.8.3: phone fixes
+- **Fix: the Find Leads list could be invisible on phones.** With hundreds of leads the list is very tall, and the
+  fade-in only started once 4% of it was on screen, which a phone can never show. Long panels now appear as soon
+  as a piece of them is visible.
+- The lead generation note is hidden on phones, and the selection bar no longer peeks out under the page bar.
+- **Called Leads on phones:** the drag tip and Export are hidden, the filters sit in one swipeable row, and the four
+  counts are tabs: tap Meeting set up / Interested / No answer / Not interested to see that list full width.
+- Phones say **News** instead of Announcements (More menu and page title).
+
 ## What is new in 11.8.2: Find Leads on phones
 - **Call works on the website.** 11.8.1 copied the number instead of calling when Leafline was opened in Safari on
   an iPhone. Now any phone offers to call, on the website too; computers still copy.
