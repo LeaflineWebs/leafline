@@ -80,3 +80,11 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261107000006_cr
 - **"Credited to"** on Called Leads and on deals: give a meeting you booked to a teammate, or claim one someone booked for you.
   Only the person who has it, the person it's for, or an admin can move it, and every move shows in the team Activity feed.
   The call itself stays with whoever dialled; only the meeting or sale moves.
+
+## Seventh migration (Leafline 11.3: confirm payments)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000007_confirm_payments.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.)
+- A deal payment now counts toward "money made" (Profits, Dashboard, leaderboard) only after someone presses **Confirm** on it.
+  A payment whose date passed without a confirmation shows under **Waiting for confirmation** on the Profits page.
+- Until it is run, confirmations stay on the computer that made them and upload by themselves afterwards.
+  On the website, Confirm asks for this update first.

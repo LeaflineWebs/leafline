@@ -1,4 +1,4 @@
--- LEAFLINE: ALL DATABASE UPDATES (2 to 6) IN ONE FILE
+-- LEAFLINE: ALL DATABASE UPDATES (2 to 7) IN ONE FILE
 -- Open this file in Notepad, press Ctrl+A then Ctrl+C, paste into Supabase > SQL Editor > New query, press Run.
 -- Safe to run more than once. Nothing is deleted.
 
@@ -277,6 +277,17 @@ where l.status in ('green','yellow','orange','red') and l.called_by is not null 
   and not exists (select 1 from public.call_log c where c.lead_id = l.id)
 on conflict (client_op_id) do nothing;
 alter table public.call_log enable trigger feed_call_log;
+
+-- =================== 20261108000007_confirm_payments.sql ===================
+-- Seventh migration (Leafline 11.3): "Confirm payment". Safe to run more than once.
+-- A deal payment now counts toward the money made only after someone ticks it as really received.
+-- The ticks are stored on the deal as a comma-separated list of "YYYY-MM-DD:upfront" / "YYYY-MM-DD:monthly" keys.
+-- Until this is run, ticks stay on the computer that made them and upload by themselves afterwards.
+alter table public.deals add column if not exists confirmed text not null default '';
+do $$ begin
+  alter table public.deals add constraint deals_confirmed_shape
+    check (length(confirmed) < 20000 and confirmed ~ '^([0-9]{4}-[0-9]{2}-[0-9]{2}:(upfront|monthly)(,|$))*$');
+exception when duplicate_object then null; end $$;
 
 -- Check: how many calls each person now has (shown under the query when you press Run)
 select p.display_name, count(c.*) as calls_on_record

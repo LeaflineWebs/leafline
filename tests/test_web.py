@@ -36,7 +36,7 @@ def login(pg, user, pw):
     pg.wait_for_function("document.querySelector('#syncTx').textContent==='Synced'", timeout=15000)
 def wait(pg, js, t=8000): pg.wait_for_function(js, timeout=t)
 with sync_playwright() as p:
-    br = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+    br = p.chromium.launch(executable_path=os.environ.get("LEAFLINE_CHROME", "/usr/bin/google-chrome"), args=["--no-sandbox"])
     ctx = br.new_context(viewport={"width": 1440, "height": 900}); pg = ctx.new_page()
     pg.on("console", lambda m: errs.append(m.text) if m.type == "error" and "ERR_EMPTY_RESPONSE" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text and "Failed to fetch" not in m.text and "fonts/" not in m.text and "403" not in m.text and "401" not in m.text and "favicon" not in m.text else None)
     pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("dialog", lambda d: d.accept())
@@ -84,9 +84,17 @@ with sync_playwright() as p:
     D = [d for d in F.t["deals"] if d["client"] == "Acme Roofing"]
     check("deal reached the database with owner stamped", len(D) == 1 and D[0]["owner_id"] == ids["gio"] and float(D[0]["upfront"]) == 1200 and D[0]["months"] == 12)
     deals = A(pg, "get_deals"); acme = [d for d in deals if d["client"] == "Acme Roofing"][0]
-    check("deal summary: collected 1200 so far, 12 x 99 still to come", acme["collected"] == 1200 and acme["remaining"] == 1188 and acme["next_date"] == "2026-12-07")
+    check("deal summary: nothing counts as collected until it is confirmed; 12 x 99 still to come", acme["collected"] == 0 and acme["unconfirmed"] == 1200 and acme["unconfirmed_count"] == 1 and acme["remaining"] == 1188 and acme["next_date"] == "2026-12-07")
     old = [d for d in deals if d["client"] == "Old Client"][0]; check("teammate's deal is visible", old["remaining"] == 600 and isinstance(old["id"], int))
-    mny = A(pg, "stats")["money"]; check("profits numbers add up", mny["all"]["deals"] == 2 and mny["all"]["collected"] == 1700 and mny["all"]["mrr"] == 199)
+    mny = A(pg, "stats")["money"]
+    check("unconfirmed payments wait in the confirmation list", mny["all"]["collected"] == 0 and mny["all"]["unconfirmed"] == 1700 and {(p["client"], p["kind"]) for p in mny["all"]["to_confirm"]} == {("Acme Roofing", "upfront"), ("Old Client", "upfront")})
+    check("a payment that isn't due yet can't be confirmed", not A(pg, "confirm_payment", acme["id"], "2026-12-07", "monthly", True)["ok"])
+    check("a payment that doesn't exist can't be confirmed", not A(pg, "confirm_payment", acme["id"], "2026-11-05", "upfront", True)["ok"])
+    check("confirm both upfront payments", A(pg, "confirm_payment", acme["id"], "2026-11-07", "upfront", True)["ok"] and A(pg, "confirm_payment", old["id"], "2026-11-01", "upfront", True)["ok"]); time.sleep(1.2)
+    check("confirmation reached the shared database", [d for d in F.t["deals"] if d["client"] == "Acme Roofing"][0].get("confirmed") == "2026-11-07:upfront")
+    mny = A(pg, "stats")["money"]; check("profits numbers add up once confirmed", mny["all"]["deals"] == 2 and mny["all"]["collected"] == 1700 and mny["all"]["unconfirmed"] == 0 and mny["all"]["mrr"] == 199)
+    check("un-confirming takes it back out", A(pg, "confirm_payment", old["id"], "2026-11-01", "upfront", False)["ok"] and A(pg, "stats")["money"]["all"]["collected"] == 1200)
+    A(pg, "confirm_payment", old["id"], "2026-11-01", "upfront", True)
     A(pg, "save_deal", {"id": acme["id"], "client": "Acme Roofing Ltd", "upfront": 1200, "monthly": 99, "months": 12, "closed_at": "2026-11-07"}); time.sleep(1)
     check("editing a deal updates it (no duplicate)", len(F.t["deals"]) == 2 and F.t["deals"][-1]["client"] == "Acme Roofing Ltd")
     check("event needs a title", not A(pg, "save_event", {"title": "", "date": "2026-11-09"})["ok"])

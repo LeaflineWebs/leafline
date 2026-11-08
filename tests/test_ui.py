@@ -1,6 +1,7 @@
 import os, sys, tempfile, threading, time, json
 os.environ["NO_PROXY"] = "127.0.0.1,localhost"; os.environ["no_proxy"] = "127.0.0.1,localhost"
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path[:0] = [os.path.join(HERE, "..", "backend"), HERE]
+_BROWSER_HOME = os.environ.get("USERPROFILE", "")       # a Windows browser needs the real profile folder to start
 os.environ["HOME"] = tempfile.mkdtemp(); os.environ["USERPROFILE"] = os.environ["HOME"]
 from fake_supabase import Fake
 F = Fake(); os.environ["SUPABASE_URL"] = F.url
@@ -18,7 +19,7 @@ def check(l, c):
     else: fail += 1; print("  FAIL", l)
 errs = []
 with sync_playwright() as p:
-    br = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"]); pg = br.new_page(viewport={"width": 1440, "height": 900})
+    br = p.chromium.launch(executable_path=os.environ.get("LEAFLINE_CHROME", "/usr/bin/google-chrome"), args=["--no-sandbox"], env=dict(os.environ, USERPROFILE=_BROWSER_HOME) if _BROWSER_HOME else None); pg = br.new_page(viewport={"width": 1440, "height": 900})
     pg.on("console", lambda m: errs.append(m.text) if m.type == "error" and "fonts/" not in m.text and "403" not in m.text else None)
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/?t=tok"); pg.wait_for_selector("#login.on", timeout=8000)

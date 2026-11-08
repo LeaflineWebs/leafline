@@ -13,7 +13,7 @@ class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
         self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions")}
-        self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True
+        self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.down = False; self.done_cap = True; self.avatar_cap = True; self.pext_cap = True; self.drop_next_write = False; self.expire_tokens = False; self.n = 0
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
         self.url = f"http://127.0.0.1:{self.httpd.server_address[1]}"
@@ -136,6 +136,8 @@ class Fake:
                     if "done" in q.get("select", "") or any(k in ("done", "done_at") for k in q) or any(k in ("done", "done_at", "done_by") for it in ((body if isinstance(body, list) else [body]) if body else []) for k in it):
                         return s.reply(400, {"code": "42703", "message": "column events.done does not exist"})
                 cols = set(q.get("select", "").split(","))      # exact column names, like PostgREST
+                if tbl == "deals" and not F.paid_cap and ("confirmed" in cols or any("confirmed" in it for it in ((body if isinstance(body, list) else [body]) if isinstance(body, (dict, list)) else []))):
+                    return s.reply(400, {"code": "42703", "message": "column deals.confirmed does not exist"})
                 if tbl == "profiles" and not F.avatar_cap and ("avatar" in cols or (isinstance(body, dict) and "avatar" in body)):
                     return s.reply(400, {"code": "42703", "message": "column profiles.avatar does not exist"})
                 PX = ("bio", "thought", "thought_at", "title", "mood", "accent", "banner")

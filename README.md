@@ -60,3 +60,10 @@ Optional: run `supabase/migrations/20261106000002_tasks.sql` once in the Supabas
 
 ## v10.2: website, phone app, automatic updates, richer profiles
 See **WEBSITE_AND_UPDATES.md**. The website is generated from the same interface file as the desktop app (`python tools/build_web.py` writes the `docs/` folder) and talks straight to Supabase through `web_src/engine.js`. Desktop updates use electron-updater with GitHub Releases (`updater.js`, `github_workflows/release.yml`).
+
+## What is new in 11.3
+- **Confirm payment** (Profits page and Calendar): a deal payment only counts toward money made (Profits, Dashboard, leaderboard) after someone presses **Confirm** once the money is really in. Payments whose date passed without a confirmation are listed under **Waiting for confirmation**. Run `supabase/migrations/20261108000007_confirm_payments.sql` once (it is also in `RUN_IN_SUPABASE.sql`) so confirmations are shared with the team.
+- **Call Log animations**: rows cascade in, new calls glow when they arrive, counts tick up, filters and chips respond to touch.
+- **Called Leads groups fold away**: click a group header (for example "Home renovation" under Meeting set up) to hide it; it stays hidden until you open it again. The arrow next to each column's count folds or opens every group in that column.
+- **Phone layout pass**: every text box is 16px so iPhones no longer zoom in, bigger tap targets, call-log filters in two columns, the Settings save row and data-folder path no longer run off the screen, the lead pop-up gives the owner box a full row and the results a 2 x 2 grid, the Team page's Online label no longer sits in a stray box, and the calendar header and More menu fit on 320px phones.
+- Browser tests can run on Windows: set `LEAFLINE_CHROME` to Chrome or Edge (for example `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`). New test: `python tests/test_payments.py`.

@@ -120,7 +120,7 @@
   const st = {
     session: LS.get("lf_session", null), me: LS.get("lf_me", null), profile: null,
     leads: new Map(), deals: new Map(), events: new Map(), notes: new Map(), people: LS.get("lf_people", []),
-    caps: { done: null, avatar: null, pext: null, media: null }, prefs: LS.get("lf_prefs", {}), cosmetic: LS.get("lf_profile", null),
+    caps: { done: null, avatar: null, pext: null, media: null, paid: null }, prefs: LS.get("lf_prefs", {}), cosmetic: LS.get("lf_profile", null),
     sync: { state: "signed_out", pending: 0, blocked: 0, conflicts: 0, last_ok: null, error: "" },
     since: {}, lastBeat: 0, lastRecon: 0, loaded: false, busy: false, cycle: 0, teamCache: LS.get("lf_team", null), callsCache: LS.get("lf_calls", null),
   };
@@ -183,7 +183,7 @@
     address: R.address || NA, search: R.search || "", btype: R.btype || "", hours: R.hours || "", status: R.status || "none", notes: R.notes || "",
     enriched: R.enriched ? 1 : 0, added_at: isoToLocal(R.added_at), called_at: isoToLocal(R.called_at), meeting_at: isoToLocal(R.meeting_at), called_by: R.called_by || "", version: R.version || 1,
   });
-  const dealIn = (R) => ({ uuid: R.id, id: lidOf("deals", R.id), client: R.client || "", upfront: Number(R.upfront || 0), monthly: Number(R.monthly || 0), months: R.months || 0, closed_at: R.closed_at || "", first_bill: R.first_bill || R.closed_at || "", notes: R.notes || "", created_at: R.created_at || "" });
+  const dealIn = (R) => ({ uuid: R.id, id: lidOf("deals", R.id), client: R.client || "", upfront: Number(R.upfront || 0), monthly: Number(R.monthly || 0), months: R.months || 0, closed_at: R.closed_at || "", first_bill: R.first_bill || R.closed_at || "", notes: R.notes || "", confirmed: R.confirmed || "", created_at: R.created_at || "" });
   const eventIn = (R) => ({
     uuid: R.id, id: lidOf("events", R.id), title: R.title || "", date: R.day || "", time: R.start_time || "", color: R.color || EVENT_COLORS[0], icon: R.icon || EVENT_ICONS[0],
     repeat: R.repeat_kind || "none", until: R.until || "", notes: R.notes || "", lead_id: R.lead_id || "", assigned_to: R.assigned_to || "", created_by: R.created_by || "",
@@ -257,7 +257,7 @@
     catch (e) { if (e instanceof Http && [400, 404].includes(e.status)) st.caps[key] = false; else throw e; }
   }
   async function probeAll() {
-    for (const [col, table, key] of [["done,done_at", "events", "done"], ["avatar", "profiles", "avatar"], ["bio,thought,thought_at,title,mood,accent,banner", "profiles", "pext"], ["avatar_url,banner_url,banner_pos", "profiles", "media"]]) {
+    for (const [col, table, key] of [["done,done_at", "events", "done"], ["avatar", "profiles", "avatar"], ["bio,thought,thought_at,title,mood,accent,banner", "profiles", "pext"], ["avatar_url,banner_url,banner_pos", "profiles", "media"], ["confirmed", "deals", "paid"]]) {
       if (st.caps[key] == null) { try { await probe(col, table, key); } catch (e) { if (e instanceof Offline || e instanceof AuthLost) throw e; } }
     }
   }
@@ -424,15 +424,18 @@
     }
   }
   function paymentsBetween(d, lo, hi) { const out = []; for (const p of dealPayments(d)) { if (p[0] > hi) break; if (p[0] >= lo) out.push(p); } return out; }
+  /* a payment counts as received only once someone confirmed it; keys look like "2026-11-03:upfront" */
+  const confSet = (d) => new Set(String(d.confirmed || "").split(",").filter((k) => /^\d{4}-\d{2}-\d{2}:(upfront|monthly)$/.test(k)));
+  const isConf = (set, dt, kind) => set.has(dayStr(dt) + ":" + kind);
   function dealSummary(d, today) {
-    let got = 0, left = 0, nxt = null; const ongoing = d.monthly > 0 && d.months === 0;
-    for (const [dt, amt] of dealPayments(d)) {
-      if (dt <= today) { got += amt; continue; }
+    let got = 0, left = 0, waiting = 0, nWait = 0, nxt = null; const ongoing = d.monthly > 0 && d.months === 0, cs = confSet(d);
+    for (const [dt, amt, kind] of dealPayments(d)) {
+      if (dt <= today) { if (isConf(cs, dt, kind)) got += amt; else { waiting += amt; nWait++; } continue; }
       if (!nxt) nxt = [dt, amt];
       if (ongoing) break;
       left += amt;
     }
-    return { collected: money(got), remaining: ongoing ? null : money(left), ongoing, next_date: nxt ? dayStr(nxt[0]) : "", next_amount: nxt ? money(nxt[1]) : 0 };
+    return { collected: money(got), unconfirmed: money(waiting), unconfirmed_count: nWait, remaining: ongoing ? null : money(left), ongoing, next_date: nxt ? dayStr(nxt[0]) : "", next_amount: nxt ? money(nxt[1]) : 0 };
   }
   function* eventDates(e, lo, hi) {
     const start = parseDay(e.date); if (!start) return;
@@ -516,24 +519,27 @@
     const today = parseDay(todayStr()), w0 = addDays(today, -wd(today)), w1 = addDays(w0, 6), nd = dim(today.getUTCFullYear(), today.getUTCMonth());
     const m0 = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)), m1 = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), nd));
     const lo = w0 < m0 ? w0 : m0, hi = w1 > m1 ? w1 : m1;
-    const daily = Array(nd).fill(0), wdays = Array(7).fill(0), wpay = []; let collected = 0, onWay = 0, mrr = 0, closedWeek = 0;
+    const daily = Array(nd).fill(0), dmade = Array(nd).fill(0), wdays = Array(7).fill(0), wpay = [], todo = []; let collected = 0, onWay = 0, mrr = 0, closedWeek = 0, waiting = 0, made = 0;
     const deals = dealsList();
     for (const d of deals) {
-      const sm = dealSummary(d, today); collected += sm.collected; onWay += sm.remaining || 0;
+      const sm = dealSummary(d, today), cs = confSet(d); collected += sm.collected; waiting += sm.unconfirmed; onWay += sm.remaining || 0;
+      if (sm.unconfirmed_count) for (const [dt, amt, kind] of dealPayments(d)) { if (dt > today) break; if (!isConf(cs, dt, kind)) todo.push({ deal_id: d.id, client: d.client, date: dayStr(dt), amount: money(amt), kind }); }
       if (d.monthly > 0 && sm.next_date) mrr += d.monthly;
       const c = parseDay(d.closed_at); if (c && w0 <= c && c <= w1) closedWeek++;
       for (const [dt, amt, kind] of paymentsBetween(d, lo, hi)) {
-        if (m0 <= dt && dt <= m1) daily[dt.getUTCDate() - 1] += amt;
-        if (w0 <= dt && dt <= w1) { wdays[Math.round((dt - w0) / 86400000)] += amt; wpay.push({ client: d.client, date: dayStr(dt), amount: money(amt), kind, paid: dt <= today }); }
+        const ok = isConf(cs, dt, kind);
+        if (m0 <= dt && dt <= m1) { daily[dt.getUTCDate() - 1] += amt; if (ok) { made += amt; dmade[dt.getUTCDate() - 1] += amt; } }
+        if (w0 <= dt && dt <= w1) { wdays[Math.round((dt - w0) / 86400000)] += amt; wpay.push({ deal_id: d.id, client: d.client, date: dayStr(dt), amount: money(amt), kind, paid: ok, due: dt <= today }); }
       }
     }
     wpay.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : cmpName(a.client, b.client)));
-    const sum = (a) => a.reduce((x, y) => x + y, 0), made = sum(daily.slice(0, today.getUTCDate())), rest_ = sum(daily) - made, got = sum(wpay.filter((p) => p.paid).map((p) => p.amount));
+    todo.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : cmpName(a.client, b.client)));
+    const sum = (a) => a.reduce((x, y) => x + y, 0), rest_ = sum(daily) - made, got = sum(wpay.filter((p) => p.paid).map((p) => p.amount));
     const label = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(today);
-    return { today: dayStr(today), month: { label, made: money(made), rest: money(rest_), total: money(made + rest_), daily: daily.map(money), today: today.getUTCDate(), days: nd },
+    return { today: dayStr(today), month: { label, made: money(made), rest: money(rest_), total: money(made + rest_), daily: daily.map(money), daily_made: dmade.map(money), today: today.getUTCDate(), days: nd },
       week: { start: dayStr(w0), end: dayStr(w1), projected: money(sum(wdays)), received: money(got), upcoming: money(sum(wdays) - got), closed: closedWeek, payments: wpay,
         days: wdays.map((a, i) => ({ label: SHORT[i], date: dayStr(addDays(w0, i)), amount: money(a), future: addDays(w0, i) > today })) },
-      all: { collected: money(collected), on_the_way: money(onWay), mrr: money(mrr), deals: deals.length } };
+      all: { collected: money(collected), on_the_way: money(onWay), mrr: money(mrr), deals: deals.length, unconfirmed: money(waiting), to_confirm: todo.slice(-200) } };
   }
   const guardNet = async (f) => { try { return await f(); } catch (e) { return fail(netErr(e)); } };
 
@@ -685,6 +691,16 @@
       }
       saveCache(); return { ok: true };
     },
+    confirm_payment(id, day, kind, on = true) {
+      const uu = byLid.deals.get(parseInt(id, 10)), d = uu && st.deals.get(uu); if (!d) return fail("Deal not found.");
+      const dt = parseDay(day); if (!dt || !["upfront", "monthly"].includes(kind)) return fail("That payment doesn't exist.");
+      if (on && dt > parseDay(todayStr())) return fail("This payment isn't due yet. You can confirm it on or after its date.");
+      if (!paymentsBetween(d, dt, dt).some((p) => p[2] === kind)) return fail("That payment doesn't exist.");
+      if (st.caps.paid === false) return fail("Confirming payments needs the 7th database update. Ask an admin to run it (see SETUP_SUPABASE.md).");
+      const cs = confSet(d), k = dayStr(dt) + ":" + kind; if (on) cs.add(k); else cs.delete(k);
+      d.confirmed = [...cs].sort().join(","); enqueue({ kind: "patch", table: "deals", id: d.uuid, body: { confirmed: d.confirmed } }); saveCache();
+      return { ok: true, confirmed: !!on };
+    },
     delete_deal(id) {
       const uu = byLid.deals.get(parseInt(id, 10)); if (!uu) return { ok: false };
       st.deals.delete(uu); enqueue({ kind: "delete", table: "deals", id: uu }); saveCache(); return { ok: true };
@@ -698,7 +714,7 @@
       for (const l of st.leads.values()) if (l.status === "green" && l.meeting_at) { const d = l.meeting_at.slice(0, 10); if (d >= dayStr(lo) && d <= dayStr(hi)) items.push({ src: "meeting", key: `m:${l.id}`, title: l.name || "", date: d, time: l.meeting_at.slice(11, 16), lead_id: l.id, phone: l.phone || "", owner: l.owner && l.owner !== NA ? l.owner : "" }); }
       for (const d of dealsList()) {
         const c = parseDay(d.closed_at); if (c && lo <= c && c <= hi) items.push({ src: "closed", key: `c:${d.id}`, title: d.client, date: dayStr(c), time: "", deal_id: d.id });
-        for (const [dt, amt, kind] of paymentsBetween(d, lo, hi)) items.push({ src: "payment", key: `p:${d.id}:${dayStr(dt)}:${kind}`, title: d.client, date: dayStr(dt), time: "", amount: money(amt), kind, paid: dt <= today, deal_id: d.id });
+        for (const [dt, amt, kind] of paymentsBetween(d, lo, hi)) items.push({ src: "payment", key: `p:${d.id}:${dayStr(dt)}:${kind}`, title: d.client, date: dayStr(dt), time: "", amount: money(amt), kind, paid: confSet(d).has(dayStr(dt) + ":" + kind), due: dt <= today, deal_id: d.id });
       }
       for (const e of st.events.values()) {
         const ld = e.lead_id && st.leads.get(e.lead_id);
@@ -889,7 +905,7 @@
       try {
         const prof = await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active"), order: "display_name.asc" } });
         const stats = await call("POST", "/rest/v1/rpc/daily_stats", { body: { p_from: "2020-01-01", p_to: todayStr() } });
-        const deals = await allPages("deals", { select: "owner_id,upfront,monthly,months,closed_at,first_bill", order: "closed_at.asc" });
+        const deals = await allPages("deals", { select: "owner_id,upfront,monthly,months,closed_at,first_bill" + (st.caps.paid ? ",confirmed" : ""), order: "closed_at.asc" });
         const out = { ok: true, stale: false, today: todayStr(), people: prof.filter((p) => p.active).map(pub), stats, deals, fetched: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
         LS.set("lf_board", out); return out;
       } catch (e) {

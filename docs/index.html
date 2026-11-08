@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.2.4"></script>
-<script src="engine.js?v=11.2.4"></script>
+<script src="config.js?v=11.3.0"></script>
+<script src="engine.js?v=11.3.0"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -242,6 +242,19 @@ svg text{font-family:var(--font)}
 .ch{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:4px 8px 10px;font-weight:700;font-size:14px}
 .ch i{width:11px;height:11px;border-radius:50%}.ch .n{margin-left:auto;min-width:26px;height:24px;padding:0 8px;border-radius:12px;background:var(--card2);display:grid;place-items:center;font-size:12.5px}
 .grp{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text2);padding:8px 8px 6px;display:flex;justify-content:space-between}
+/* Called Leads: each group folds away (and stays folded) with a click on its header */
+button.grp{width:100%;align-items:center;gap:8px;text-align:left;border-radius:12px;min-height:34px;margin-top:2px;transition:background-color var(--d-hover) var(--e-out),color var(--d-hover) var(--e-out)}
+button.grp:hover{background:rgba(255,255,255,.05);color:var(--text)}
+button.grp .gl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button.grp .gn{min-width:24px;height:22px;padding:0 7px;border-radius:11px;background:rgba(255,255,255,.07);display:grid;place-items:center;font-size:11.5px;letter-spacing:0}
+button.grp .gc{width:16px;height:16px;flex:none;transition:transform var(--d-card) var(--e-spring)}
+button.grp[aria-expanded="false"] .gc{transform:rotate(-90deg)}
+button.grp[aria-expanded="false"]{color:var(--muted)}button.grp[aria-expanded="false"] .gn{background:var(--cc,rgba(255,255,255,.12));color:#0C1A12}
+.gb{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--d-card) var(--e-out),opacity var(--d-card) var(--e-out)}
+.gb>div{min-height:0;overflow:hidden;display:grid;gap:inherit}
+.gb.fold{grid-template-rows:0fr;opacity:0}
+.ch .fall{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--muted);transition:background-color var(--d-hover) var(--e-out),color var(--d-hover) var(--e-out),transform var(--d-card) var(--e-spring)}
+.ch .fall:hover{background:rgba(255,255,255,.07);color:var(--text)}.ch .fall .ic{width:16px;height:16px}.ch .fall.all .ic{transform:rotate(-90deg)}
 .kc{position:relative;border-radius:20px;padding:12px 13px;margin-bottom:9px;cursor:grab;background:linear-gradient(170deg,var(--card3),var(--card2));box-shadow:0 8px 16px rgba(0,0,0,.28),var(--hi);border-left:5px solid var(--cc);transition:transform .45s var(--spring),box-shadow .3s,opacity .3s}
 .kc:hover{transform:translateY(-3px);box-shadow:0 14px 24px rgba(0,0,0,.36),var(--hi)}
 .kc:active{cursor:grabbing}.kc.drag{opacity:.45;transform:scale(.96)}
@@ -313,6 +326,14 @@ svg text{font-family:var(--font)}
 .ib:hover{transform:scale(1.12);color:var(--text);background:var(--card3)}.ib:active{transform:scale(.92)}.ib .ic{width:16px;height:16px}
 .plist{max-height:236px;overflow:auto;margin:0 -6px;padding:0 6px}
 .prow{display:flex;align-items:center;gap:12px;padding:10px 2px;border-top:1px solid rgba(255,255,255,.05);font-size:13.5px}.prow:first-child{border-top:0}
+.cfm{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;border:1.5px solid rgba(255,214,10,.55);background:rgba(255,214,10,.12);color:#FFE36B;font-size:12.5px;font-weight:800;white-space:nowrap;flex:none;transition:transform .15s,background .2s,border-color .2s}
+.cfm:hover{background:rgba(255,214,10,.22);border-color:#FFD60A;transform:translateY(-1px)}.cfm:active{transform:scale(.95)}.cfm .ic{width:14px;height:14px}
+.cfm.done{border-color:rgba(52,210,123,.45);background:rgba(52,210,123,.16);color:#7DF0A8}.cfm.done:hover{border-color:#FF9AA0;color:#FF9AA0;background:rgba(255,107,112,.12)}
+.cfm[disabled]{opacity:.55;pointer-events:none}
+.cfm.pulse{animation:cfmPop .45s cubic-bezier(.2,1.4,.4,1)}@keyframes cfmPop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+.tocf{border:1px solid rgba(255,214,10,.28);background:linear-gradient(180deg,rgba(255,214,10,.07),rgba(255,214,10,.02));margin-top:16px}
+.tocf .hd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.tocf .plist{max-height:320px;overflow:auto}
+.tocf .prow.gone{animation:rowOut .4s ease forwards}@keyframes rowOut{to{opacity:0;transform:translateX(24px);height:0;padding:0;margin:0}}
 /* calendar */
 .cal-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .cal-nav{display:flex;align-items:center;gap:10px}
@@ -380,6 +401,7 @@ svg text{font-family:var(--font)}
 .tav{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(150deg,var(--accent-soft),var(--av-bg));box-shadow:0 0 0 2px rgba(255,255,255,.12)}
 .avbtns{display:flex;gap:8px;justify-content:center;margin-top:12px}
 .tm-p .role{font-size:11px;font-weight:700;padding:3px 8px;border-radius:9px;background:rgba(255,255,255,.08);color:var(--muted)}
+.tm-p .st,.tm-p .st:hover{height:auto;min-height:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;transform:none;filter:none;line-height:1.2}
 .tm-p .st{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px}.tm-p .st i{width:8px;height:8px;border-radius:50%;background:#6b7d72}.tm-p .st.on i{background:var(--g)}
 .tm-p .nums{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:14px 0 4px;text-align:center}.tm-p .nums b{display:block;font-size:20px}.tm-p .nums span{font-size:10.5px;color:var(--muted);font-weight:600}
 .tm-p .last{margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.4;min-height:34px}
@@ -459,6 +481,24 @@ mark.hit{background:#FFD60A;color:#111;border-radius:3px}
 .tbl{width:100%;border-collapse:collapse;font-size:13.5px}.tbl th{text-align:left;color:var(--muted);font-size:12px;font-weight:700;padding:8px 12px;position:sticky;top:0;background:var(--card)}
 .tbl td{padding:9px 12px;border-top:1px solid rgba(255,255,255,.05);vertical-align:top}.tbl tr:hover td{background:rgba(255,255,255,.03)}
 .tbl .nt2{color:var(--muted);max-width:340px;white-space:pre-wrap}
+/* call log motion: rows cascade in, new calls glow, chips pop, numbers count up */
+#clBody .tbl tr.rin{animation:clRow .52s var(--e-out) both;animation-delay:calc(var(--i,0)*26ms)}
+@keyframes clRow{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#clBody .tbl tr.fresh td{animation:clFresh 2.4s var(--e-out)}
+@keyframes clFresh{0%,25%{background:rgba(74,222,139,.16)}100%{background:transparent}}
+#clBody .tbl tr td{transition:background-color var(--d-hover) var(--e-out)}
+#clBody .tbl tr:hover td{background:rgba(74,222,139,.06)}
+#clBody .tbl tr .op{transition:transform var(--d-pop) var(--e-spring)}#clBody .tbl tr:hover .op{transform:scale(1.06)}
+#clBody{transition:opacity var(--d-hover) var(--e-out)}#clBody.busy{opacity:.55}
+.cl-sum button{transition:transform var(--d-card) var(--e-spring),border-color var(--d-hover) var(--e-out),background-color var(--d-hover) var(--e-out)}
+.cl-sum button:hover{transform:translateY(-2px)}.cl-sum button:active{transform:scale(.95)}
+.cl-sum button.on{background:rgba(74,222,139,.10)}
+.cl-sum button.cin{animation:clChip .5s var(--e-spring) both;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes clChip{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
+.cl-sk{display:grid;gap:10px;padding:10px 6px}.cl-sk i{display:block;height:38px;border-radius:12px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));background-size:200% 100%;animation:slide 1.3s linear infinite}
+.cl-sk i:nth-child(2){opacity:.8}.cl-sk i:nth-child(3){opacity:.6}.cl-sk i:nth-child(4){opacity:.4}.cl-sk i:nth-child(5){opacity:.25}
+#clBody .empty{animation:clRow .5s var(--e-out) both}
+#clLog .ic{transition:transform var(--d-card) var(--e-spring)}#clLog:hover .ic{transform:rotate(90deg)}
 .oc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 14px}
 .oc button{padding:10px 12px;border-radius:14px;background:var(--panel);border:2px solid var(--line);text-align:left;font-weight:700;font-size:13.5px;display:flex;gap:8px;align-items:center}
 .oc button.on{border-color:var(--accent);background:rgba(74,222,139,.12)}
@@ -546,6 +586,8 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.45;resize:vertical;font
   #clBody .tbl tr:first-child{display:none}
   #clBody .tbl tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:12px 14px;border-radius:18px;background:rgba(0,0,0,.18);border:1px solid var(--line)}
   #clBody .tbl td{padding:0;border:0;background:none!important}
+  #clBody .tbl tr.fresh{animation:clFreshM 2.4s var(--e-out)}@keyframes clFreshM{0%,25%{border-color:var(--accent);box-shadow:0 0 0 3px rgba(74,222,139,.18)}100%{}}
+  #clBody .tbl tr{transition:transform var(--d-card) var(--e-spring),border-color var(--d-hover) var(--e-out)}#clBody .tbl tr:active{transform:scale(.985)}
   #clBody .tbl td:nth-child(1){grid-column:1;color:var(--muted);font-size:12.5px}#clBody .tbl td:nth-child(5){grid-column:2;grid-row:1/3;align-self:center}
   #clBody .tbl td:nth-child(2){grid-column:1;font-size:12.5px;color:var(--muted)}#clBody .tbl td:nth-child(3){grid-column:1/-1;font-size:14.5px}
   #clBody .tbl td:nth-child(4){grid-column:1/-1;font-size:13px}#clBody .tbl td:nth-child(6){grid-column:1/-1;max-width:none}#clBody .tbl td:nth-child(6):empty{display:none}
@@ -919,6 +961,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 .sheet .sx .btn{height:40px;padding:0 10px;white-space:nowrap;min-width:0}
 .sheet .nb{position:absolute;top:8px;right:16px;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--accent-text);font-size:10.5px;font-weight:800;display:grid;place-items:center;padding:0 5px}
 .sheet .sg button{position:relative}
+.sheet .sg .sht{display:none}
 .ndot{position:absolute;top:8px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--glow);opacity:0;transform:scale(0);transition:transform var(--d-card) var(--e-bounce),opacity var(--d-pop)}
 .ndot.on{opacity:1;transform:none}
 
@@ -1013,6 +1056,58 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   .ib{width:38px;height:38px}
   .toast{left:14px;right:14px;max-width:none;bottom:calc(96px + env(safe-area-inset-bottom))}
   .bell{left:12px;right:12px;width:auto;top:72px}
+}
+/* ---------- phone audit (11.3): no zoom-on-tap, bigger tap targets, nothing running off the screen ---------- */
+.tocf{padding:18px 20px}
+@media (max-width:860px){
+  /* iPhone zooms the whole page into any text box under 16px; keep every field at 16px */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea,.inp,.tools select,.cflt select{font-size:16px!important}
+  .tools select{height:42px}
+  .cmw{display:none}
+  .fact .inp{height:42px}
+  /* tap targets: at least ~38px tall */
+  .mchip{height:38px;padding:0 14px;font-size:13px;border-radius:19px}
+  .addm{height:40px;border-radius:20px;font-size:13.5px}
+  .ch .fall{width:38px;height:38px;border-radius:12px}
+  button.grp{min-height:42px}
+  .cfm{height:38px;padding:0 14px;border-radius:19px}
+  .nt-chips .chip{height:38px;padding:0 14px}
+  .lseg button{min-height:40px}
+  .cl-sum button{min-height:40px}
+  .post .rx button{height:38px;min-width:48px;border-radius:19px}
+  .sw{gap:12px;flex-wrap:wrap}.sw button{width:38px;height:38px}
+  .evc{gap:10px}.evc button{width:38px;height:38px}
+  .chk{width:28px;height:28px;position:relative}.chk:after{content:"";position:absolute;inset:-9px}
+  /* lead pop-up: the owner box gets a full row, results become a 2 x 2 grid */
+  .facts{gap:10px}
+  .fact:has(#mOwner),.fact:has(#dOwner),.fact:has(#mOwner)+.fact,.fact:has(#dOwner)+.fact{grid-column:1/-1}
+  .sb{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.sb .st{height:48px}
+  /* Find Leads: city gets a full row like business type */
+  .frow>div:nth-child(3){grid-column:1/3}
+  /* Settings: Save button above the data-folder path, path wraps instead of running off */
+  #aSave{flex:none}#aSave+.note,#dbNote{min-width:0;flex:1 1 100%;overflow-wrap:anywhere;word-break:break-all}
+  #aSave{width:100%}
+  div:has(>#aSave){flex-wrap:wrap;gap:10px!important}
+  /* Call log: filters in two columns so the calls show up sooner */
+  .cl-f{gap:10px 10px}
+  .cl-f>div{flex:1 1 calc(50% - 5px);min-width:0}
+  .cl-f>div:has(#clQ){flex:1 1 100%!important}
+  .cl-f .inp,.cl-f select{min-width:0!important;width:100%}
+  #clRange{flex:1 1 100%!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}#clRange .chip{justify-content:center;padding:0 6px}
+  #clLog{flex:1 1 100%;justify-content:center}
+  /* Profits: payment rows wrap cleanly */
+  .tocf .hd .pill{margin-left:auto}
+  .prow{gap:10px}.prow>div:first-child{min-width:0}
+  .prow .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media (max-width:380px){
+  .sheet .sx .btn{padding:0 8px;font-size:13px;gap:5px}
+  .sheet .sx .btn .ic{width:16px;height:16px}
+  .sheet .sg button{font-size:11.5px;padding:12px 3px;min-width:0}.sheet .sg .lgl{display:none}.sheet .sg .sht{display:inline}
+  .cal-nav{width:100%;min-width:0;gap:6px}.cal-title{flex:1;min-width:0;font-size:16.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-nav .chip{padding:0 12px;flex:none}
+  .cfm{padding:0 11px}
+  .prow .num{font-size:13px}
 }
 @media (max-width:380px){
   .page{padding-left:12px;padding-right:12px}
@@ -1427,10 +1522,10 @@ const isoDay=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+S
 const terms=d=>{const a=[];if(d.upfront>0)a.push(usd(d.upfront)+" upfront");if(d.monthly>0)a.push(usd(d.monthly)+"/mo"+(d.months?" × "+d.months:", ongoing"));return a.join(" + ")};
 function moneyTile(m){
   if(!m)return "";
-  const mo=m.month,W=240,H=64,n=mo.days;let c=0;const cum=mo.daily.map(v=>(c+=v));
+  const mo=m.month,W=240,H=64,n=mo.days;let c=0,c2=0;const cum=mo.daily.map(v=>(c+=v)),cm=(mo.daily_made||mo.daily).map(v=>(c2+=v));
   const mx=Math.max(mo.total,1),X=i=>n>1?i*(W/(n-1)):0,Y=v=>H-5-(H-12)*v/mx,t=Math.min(Math.max(mo.today,1),n)-1;
-  const made=cum.slice(0,t+1).map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
-  const proj=cum.slice(t).map((v,i)=>(i?"L":"M")+X(t+i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
+  const made=cm.slice(0,t+1).map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
+  const proj=[cm[t]].concat(cum.slice(t+1)).map((v,i)=>(i?"L":"M")+X(t+i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
   const pct=mo.total>0?Math.round(100*mo.made/mo.total):0,dec=Number.isInteger(mo.made)?0:2;
   return `<button class="mtile" data-go="profits" aria-label="Open Profits"><div class="mk"><span>Made in ${esc(mo.label.split(" ")[0])}</span><span>${pct}%</span></div>
    <div class="mv"><small>$</small><span class="vl" data-n="${mo.made}" data-d="${dec}" data-s="">0</span></div>
@@ -1440,7 +1535,7 @@ function moneyTile(m){
     <path class="marea" d="${made} L${X(t).toFixed(1)},${H-1} L0,${H-1} Z" fill="rgba(61,220,132,.30)"/>
     <path class="mproj" d="${proj}" fill="none" stroke="#CFE7D8" stroke-width="2" stroke-dasharray="4 5" stroke-linecap="round"/>
     <path class="mline" pathLength="1" d="${made}" fill="none" stroke="#7DF0A8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle class="mdot" style="--i:4" cx="${X(t).toFixed(1)}" cy="${Y(cum[t]).toFixed(1)}" r="5" fill="#FFD60A" stroke="#153a28" stroke-width="2"/></svg></button>`;
+    <circle class="mdot" style="--i:4" cx="${X(t).toFixed(1)}" cy="${Y(cm[t]).toFixed(1)}" r="5" fill="#FFD60A" stroke="#153a28" stroke-width="2"/></svg></button>`;
 }
 function renderDash(q){
   const st=S.stats;if(!st)return;const p=S.profile,pg=$("#pg-dash"),sig=JSON.stringify([st,p.name,p.goal]);
@@ -1585,7 +1680,8 @@ function renderBoard(q){
   const gkey=l=>grp==="caller"?(l.called_by||"~none"):grp==="day"?(byDay(l)||"~"):l.btype.toLowerCase();
   const glabel=l=>grp==="caller"?(l.called_by_name||"Caller not recorded"):grp==="day"?(byDay(l)?dayFmt(byDay(l)):"No date"):l.btype;
   const by=k=>rows.filter(l=>l.status===k),cnt=k=>S.called.filter(l=>l.status===k).length;
-  const sig=JSON.stringify([rows,S.type,types,who,grp,srt]);if(q&&S.lastSig.board===sig)return;S.lastSig.board=sig;
+  const fold=new Set(getP("calledFold",[]));
+  const sig=JSON.stringify([rows,S.type,types,who,grp,srt,[...fold]]);if(q&&S.lastSig.board===sig)return;S.lastSig.board=sig;
   const scroll=$$(".col .cb",pg).map(c=>c.scrollTop);
   pg.innerHTML=`<div class="two" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:4px"><div><h3 style="font-size:20px;font-weight:800">Call results</h3><div class="muted" style="font-size:13px;margin-top:2px">Drag a card to another column to change its result, or click a card to edit it. Group and filter by business type, who called, or the day.</div></div>
     <div class="cflt"><select id="cwho" aria-label="Who called"><option value="all">Everyone's calls</option><option value="me"${who==="me"?" selected":""}>My calls</option>${callers.filter(c=>c[0]!==mid).map(c=>`<option value="${esc(c[0])}"${who===c[0]?" selected":""}>${esc(c[1])}'s calls</option>`).join("")}<option value="none"${who==="none"?" selected":""}>Caller not recorded</option></select>
@@ -1595,7 +1691,7 @@ function renderBoard(q){
    <div class="cstats">${ORDER.map(k=>`<div class="cstat pop"><div class="ico tone-${ST[k].cls}">${ic(k==="green"?"check":k==="yellow"?"user":k==="orange"?"phone":"bell")}</div><div><div class="n">${num(cnt(k))}</div><div class="t">${ST[k].label}</div></div></div>`).join("")}</div>
    ${S.called.length?`<div class="board">${ORDER.map(k=>{const a=by(k),g0=new Map();a.forEach(l=>{const key=gkey(l);if(!g0.has(key))g0.set(key,{n:glabel(l),a:[]});g0.get(key).a.push(l)});
        const g=new Map([...g0.entries()].sort((x,y)=>grp==="day"?(srt==="old"?x[0].localeCompare(y[0]):y[0].localeCompare(x[0])):x[1].n.localeCompare(y[1].n)));
-     return `<div class="col pop" data-col="${k}"><div class="ch"><i style="background:${ST[k].color}"></i>${ST[k].label}<span class="n">${a.length}</span>${k==="green"?`<button class="addm" data-addmeet title="Set up a meeting and add it to the Calendar" aria-label="Set up a meeting">${ic("plus")}Set up a meeting</button>`:""}</div><div class="cb">${a.length?[...g.values()].map(x=>`<div class="grp"><span>${esc(x.n)}</span><span>${x.a.length}</span></div>${x.a.map(l=>`<div class="kc ${q?"":"pop"}" draggable="true" data-id="${esc(l.id)}" tabindex="0" style="--cc:${ST[k].color}"><b>${esc(l.name)}</b><div class="m"><span>${esc(l.phone)}</span>${l.owner!==NA?`<span>${esc(l.owner)}</span>`:""}</div>${l.called_by_name?`<div class="cby"><i>${esc(initialsOf(l.called_by_name))}</i>Called by ${esc(l.called_by_name)}</div>`:""}${openPill(l)}<span class="hrs">${esc(l.hours!==NA?(l.hours==="Closed"?"Closed today":l.hours):"")}</span>${k==="green"?`${l.meeting_at?`<button class="mchip" data-meet="${esc(l.id)}" title="Change the meeting time">${ic("cal")}${esc(meetFmt(l.meeting_at))}</button>`:`<button class="mchip setup" data-setup="${esc(l.id)}" title="Adds a meeting for ${esc(l.name)} to the Calendar (next business day, 10 am)">${ic("cal")}Set up meeting</button>`}`:""}<div class="when">${esc(fmtDate(l.called_at))}</div></div>`).join("")}`).join(""):`<div class="muted" style="font-size:13px;padding:14px 10px;text-align:center">Drop a card here</div>`}</div></div>`}).join("")}</div>`
+     return `<div class="col pop" data-col="${k}"><div class="ch"><i style="background:${ST[k].color}"></i>${ST[k].label}<span class="n">${a.length}</span>${g.size>1?(()=>{const allShut=[...g.keys()].every(gk=>fold.has(foldKey(k,grp,gk)));return `<button class="fall${allShut?" all":""}" data-fall="${k}" title="${allShut?"Show every group":"Hide every group"}" aria-label="${allShut?"Show every group in":"Hide every group in"} ${esc(ST[k].label)}">${ic("down")}</button>`})():""}${k==="green"?`<button class="addm" data-addmeet title="Set up a meeting and add it to the Calendar" aria-label="Set up a meeting">${ic("plus")}Set up a meeting</button>`:""}</div><div class="cb">${a.length?[...g.entries()].map(([gk,x])=>{const fk=foldKey(k,grp,gk),shut=fold.has(fk);return `<button class="grp" data-fold="${esc(fk)}" aria-expanded="${!shut}" style="--cc:${ST[k].color}" title="${shut?"Show":"Hide"} ${esc(x.n)}"><i class="ic gc">${svg("down")}</i><span class="gl">${esc(x.n)}</span><span class="gn">${x.a.length}</span></button><div class="gb${shut?" fold":""}"><div>${x.a.map(l=>`<div class="kc ${q?"":"pop"}" draggable="true" data-id="${esc(l.id)}" tabindex="0" style="--cc:${ST[k].color}"><b>${esc(l.name)}</b><div class="m"><span>${esc(l.phone)}</span>${l.owner!==NA?`<span>${esc(l.owner)}</span>`:""}</div>${l.called_by_name?`<div class="cby"><i>${esc(initialsOf(l.called_by_name))}</i>Called by ${esc(l.called_by_name)}</div>`:""}${openPill(l)}<span class="hrs">${esc(l.hours!==NA?(l.hours==="Closed"?"Closed today":l.hours):"")}</span>${k==="green"?`${l.meeting_at?`<button class="mchip" data-meet="${esc(l.id)}" title="Change the meeting time">${ic("cal")}${esc(meetFmt(l.meeting_at))}</button>`:`<button class="mchip setup" data-setup="${esc(l.id)}" title="Adds a meeting for ${esc(l.name)} to the Calendar (next business day, 10 am)">${ic("cal")}Set up meeting</button>`}`:""}<div class="when">${esc(fmtDate(l.called_at))}</div></div>`).join("")}</div></div>`}).join(""):`<div class="muted" style="font-size:13px;padding:14px 10px;text-align:center">Drop a card here</div>`}</div></div>`}).join("")}</div>`
     :`<div class="card empty pop" style="margin-top:6px"><div class="bub">${ic("phone")}</div><b>No called businesses yet</b>Mark a business on Find Leads and it shows up here.</div>`}`;
   hydrateIcons(pg);if(q)quiet(pg);
   $$(".col .cb",pg).forEach((c,i)=>c.scrollTop=scroll[i]||0);
@@ -1605,6 +1701,11 @@ function renderBoard(q){
   const ex=$("#cExport");if(ex)ex.onclick=()=>exportCsv(true);
   $$("[data-meet]",pg).forEach(b=>{b.onclick=e=>{e.stopPropagation();meetingModal([b.dataset.meet])};b.draggable=false;b.onmousedown=e=>e.stopPropagation()});
   const am=$("[data-addmeet]",pg);if(am)am.onclick=()=>pickMeetingModal();
+  $$("[data-fold]",pg).forEach(b=>{b.onclick=e=>{e.stopPropagation();const open=b.getAttribute("aria-expanded")==="true";setFold([b.dataset.fold],open);
+      b.setAttribute("aria-expanded",String(!open));b.title=(open?"Show ":"Hide ")+$(".gl",b).textContent;b.nextElementSibling.classList.toggle("fold",open);syncFall(pg)};
+    b.onkeydown=e=>e.stopPropagation()});
+  $$("[data-fall]",pg).forEach(b=>b.onclick=e=>{e.stopPropagation();const col=b.closest(".col"),hs=$$("[data-fold]",col),shut=!b.classList.contains("all");
+    setFold(hs.map(h=>h.dataset.fold),shut);hs.forEach(h=>{h.setAttribute("aria-expanded",String(!shut));h.nextElementSibling.classList.toggle("fold",shut)});syncFall(pg)});
   $$(".kc",pg).forEach(c=>{
     c.onclick=()=>{const l=S.called.find(x=>x.id===c.dataset.id);l&&leadModal(l)};
     c.onkeydown=e=>{if(e.key==="Enter")c.click()};
@@ -1618,6 +1719,14 @@ function renderBoard(q){
       if(l&&l.status!==col.dataset.col)changeStatus([id],col.dataset.col,l.status)};
   });
 }
+const foldKey=(col,grp,gk)=>col+"|"+grp+"|"+String(gk).slice(0,40);
+function setFold(keys,shut){
+  const f=getP("calledFold",[]).filter(k=>!keys.includes(k));if(shut)f.push(...keys);
+  let out=f.slice(-60);while(out.length&&JSON.stringify(out).length>1900)out=out.slice(1);
+  setP("calledFold",out);S.lastSig.board=null;
+}
+function syncFall(pg){$$("[data-fall]",pg).forEach(b=>{const hs=$$("[data-fold]",b.closest(".col")),all=hs.length&&hs.every(h=>h.getAttribute("aria-expanded")==="false");
+  b.classList.toggle("all",all);b.title=all?"Show every group":"Hide every group"})}
 /* ---------------- PROFITS ---------------- */
 function renderProfits(q){
   const st=S.stats,pg=$("#pg-profits");if(!st||!st.money)return;
@@ -1625,29 +1734,49 @@ function renderProfits(q){
   if(q&&S.lastSig.profits===sig)return;S.lastSig.profits=sig;
   const sc=pg.scrollTop,mname=mo.label.split(" ")[0];
   const cards=[
-   {c:"s1",tone:"tone-g",ico:"dollar",ib:"#2BB567",lb:"Projected this week",v:wk.projected,dl:`${usd(wk.received)} in · ${usd(wk.upcoming)} still due`},
+   {c:"s1",tone:"tone-g",ico:"dollar",ib:"#2BB567",lb:"Projected this week",v:wk.projected,dl:`${usd(wk.received)} confirmed · ${usd(wk.upcoming)} not yet`},
    {c:"s2",tone:"tone-y",ico:"cal",ib:"#C9A400",lb:"Made in "+mname,v:mo.made,dl:`of ${usd(mo.total)} scheduled this month`},
-   {c:"s3",tone:"tone-g",ico:"check",ib:"#1FA64A",lb:"On the way",v:al.on_the_way,dl:"Scheduled, not received yet"},
+   al.unconfirmed>0?{c:"s3",tone:"tone-y",ico:"bell",ib:"#C9A400",lb:"Waiting for confirmation",v:al.unconfirmed,dl:`${num((al.to_confirm||[]).length)} payment${(al.to_confirm||[]).length===1?"":"s"} not confirmed yet`}
+    :{c:"s3",tone:"tone-g",ico:"check",ib:"#1FA64A",lb:"On the way",v:al.on_the_way,dl:"Scheduled, not received yet"},
    {c:"s4",tone:"tone-o",ico:"pct",ib:"#E8680C",lb:"Monthly recurring",v:al.mrr,dl:"Billing every month right now"}];
   const KIND={upfront:"Upfront",monthly:"Monthly"};
-  const plist=wk.payments.length?wk.payments.map(p=>`<div class="prow"><div style="min-width:0;flex:1"><b>${esc(p.client)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||p.kind}</span></div><b class="num">${usd(p.amount)}</b><span class="pill ${p.paid?"open":"unknown"}">${p.paid?"Received":"Due"}</span></div>`).join(""):
+  const payBtn=p=>p.paid?`<button class="cfm done" data-pay="${p.deal_id}|${esc(p.date)}|${esc(p.kind)}|0" title="Confirmed. Click to undo" aria-label="Payment received from ${esc(p.client)}. Click to undo">${ic("check")}Received</button>`
+    :(p.due===undefined?p.date<=m.today:p.due)?`<button class="cfm" data-pay="${p.deal_id}|${esc(p.date)}|${esc(p.kind)}|1" aria-label="Confirm ${usd(p.amount)} from ${esc(p.client)} was received">${ic("check")}Confirm</button>`
+    :`<span class="pill unknown">Upcoming</span>`;
+  const todo=al.to_confirm||[];
+  const plist=wk.payments.length?wk.payments.map(p=>`<div class="prow"><div style="min-width:0;flex:1"><b>${esc(p.client)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||p.kind}</span></div><b class="num">${usd(p.amount)}</b>${payBtn(p)}</div>`).join(""):
     `<div class="empty" style="padding:22px 10px"><div class="bub">${ic("dollar")}</div><b>Nothing due this week</b>Payments from your deals show up here.</div>`;
-  const rows=S.deals.map(d=>`<div class="dr" data-id="${d.id}" tabindex="0"><div style="min-width:0"><b>${esc(d.client)}</b>${d.notes?`<span class="sub">${esc(d.notes)}</span>`:""}</div><div>${esc(terms(d))}</div><div>${esc(dayFmt(d.closed_at))}</div><div class="num">${usd(d.collected)}</div><div class="num">${d.remaining===null?"Ongoing":usd(d.remaining)}</div><div>${d.next_date?`<b>${esc(dayFmt(d.next_date))}</b><span class="sub">${usd(d.next_amount)}</span>`:`<span class="muted">All paid</span>`}</div><div><button class="ib" data-edit aria-label="Edit ${esc(d.client)}" tabindex="-1">${ic("edit")}</button></div></div>`).join("");
+  const rows=S.deals.map(d=>`<div class="dr" data-id="${d.id}" tabindex="0"><div style="min-width:0"><b>${esc(d.client)}</b>${d.notes?`<span class="sub">${esc(d.notes)}</span>`:""}</div><div>${esc(terms(d))}</div><div>${esc(dayFmt(d.closed_at))}</div><div class="num">${usd(d.collected)}${d.unconfirmed_count?`<span class="sub" style="color:#FFE36B">${num(d.unconfirmed_count)} to confirm</span>`:""}</div><div class="num">${d.remaining===null?"Ongoing":usd(d.remaining)}</div><div>${d.next_date?`<b>${esc(dayFmt(d.next_date))}</b><span class="sub">${usd(d.next_amount)}</span>`:`<span class="muted">All paid</span>`}</div><div><button class="ib" data-edit aria-label="Edit ${esc(d.client)}" tabindex="-1">${ic("edit")}</button></div></div>`).join("");
   pg.innerHTML=`
-  <div class="pg-head pop"><div><h3 style="font-size:20px;font-weight:800">Money tracker</h3><div class="muted" style="font-size:13px;margin-top:2px;max-width:640px">Every number here comes from the deals you type in. A payment counts as received once its date has passed. Weeks run Monday to Sunday.</div></div><button class="btn pri" data-add>${ic("plus")}Add deal</button></div>
+  <div class="pg-head pop"><div><h3 style="font-size:20px;font-weight:800">Money tracker</h3><div class="muted" style="font-size:13px;margin-top:2px;max-width:640px">Every number here comes from the deals you type in. A payment only counts as made after you press <b>Confirm</b> on it, once the money is really in. Weeks run Monday to Sunday.</div></div><button class="btn pri" data-add>${ic("plus")}Add deal</button></div>
   <div class="stats">${cards.map(c=>`<div class="stat ${c.c} pop"><div class="ico ${c.tone||"tone-g"}"><i class="ic">${svg(c.ico)}</i></div><div class="lb">${c.lb}</div><div class="vl"><small style="font-size:.62em;margin-right:2px;color:#9CF2C3">$</small><span data-n="${c.v}" data-d="${Number.isInteger(c.v)?0:2}">0</span></div><div class="dl">${esc(c.dl)}</div></div>`).join("")}</div>
   <div class="two"><div class="card chart-c pop"><div class="hd"><h3>This week, day by day</h3><span class="muted" style="font-size:12.5px;font-weight:600">${esc(dayFmt(wk.start))} – ${esc(dayFmt(wk.end))} · ${num(wk.closed)} deal${wk.closed===1?"":"s"} closed</span></div>
     ${barChart({labels:wk.days.map(d=>d.label),hi:wk.days.findIndex(d=>d.date===m.today),money:true,future:wk.days.map(d=>d.future),aria:"Money scheduled for each day of this week",series:[{v:wk.days.map(d=>d.amount),c:"b0",name:"Scheduled"}],tips:wk.days.map(d=>`${dayFmt(d.date)}: ${usd(d.amount)}${d.future?" due":d.amount?" received":""}`)})}</div>
    <div class="card types pop"><div class="hd"><h3>Payments this week</h3><span class="muted" style="font-size:12.5px;font-weight:600">${usd(wk.projected)} total</span></div><div class="plist">${plist}</div></div></div>
+  ${todo.length?`<div class="card tocf pop"><div class="hd"><div><h3>Waiting for confirmation</h3><div class="muted" style="font-size:12.5px;margin-top:2px">These payment dates have passed. Confirm each one once the money is really in; until then it doesn't count as made.</div></div><span class="pill" style="background:rgba(255,214,10,.16);color:#FFE36B">${usd(al.unconfirmed)}</span></div>
+   <div class="plist">${todo.slice().reverse().map(p=>`<div class="prow"><div style="min-width:0;flex:1"><b>${esc(p.client)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||p.kind}</span></div><b class="num">${usd(p.amount)}</b>${payBtn(Object.assign({paid:false,due:true},p))}</div>`).join("")}</div></div>`:""}
   <div class="card pop" style="margin-top:16px;padding:18px 0 10px"><div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 10px"><h3>Deals</h3><span class="muted" style="font-size:12.5px;font-weight:600">${num(S.deals.length)} total${S.deals.length?" · click a deal to edit it":""}</span></div>
    ${S.deals.length?`<div class="dealtab"><div class="dr h"><div>Client</div><div>Terms</div><div>Closed</div><div>Collected</div><div>Still to come</div><div>Next payment</div><div></div></div>${rows}</div>`:
    `<div class="empty"><div class="bub">${ic("dollar")}</div><b>No deals yet</b>Add a closed deal and your projected profits show up here and on the Dashboard.<button class="btn pri" data-add style="margin-top:8px">${ic("plus")}Add your first deal</button></div>`}</div>`;
   hydrateIcons(pg);pg.scrollTop=sc;
   $$("[data-add]",pg).forEach(b=>b.onclick=()=>dealModal(null));
+  wirePay(pg);
   $$(".dr[data-id]",pg).forEach(r=>{r.onclick=()=>{const d=S.deals.find(x=>String(x.id)===r.dataset.id);d&&dealModal(d)};r.onkeydown=e=>{if(e.key==="Enter")r.click()}});
   const fire=()=>$$("[data-n]",pg).forEach(e=>{if(q)e.dataset.q=1;countTo(e,+e.dataset.n,+e.dataset.d,"")});
   if(q){quiet(pg);fire()}else setTimeout(fire,350);
 }
+/* Confirm payment: a payment only counts as money made once someone presses Confirm on it */
+async function confirmPay(id,day,kind,on,btn){
+  if(btn){btn.disabled=true}
+  try{const r=await api("confirm_payment",+id,day,kind,!!on);
+    if(!r||!r.ok){if(btn)btn.disabled=false;return toast((r&&r.error)||"Couldn't save that.",{bad:1})}
+    if(btn){btn.classList.add("pulse");const row=btn.closest(".tocf .prow");if(row&&on)row.classList.add("gone")}
+    toast(on?"Payment confirmed. It now counts as made.":"Confirmation removed",{action:{label:"Undo",fn:()=>confirmPay(id,day,kind,!on)}});
+    logNote((on?"Confirmed":"Un-confirmed")+" a "+kind+" payment ("+dayFmt(day)+")");
+    setTimeout(reload,on&&btn?380:0);
+  }catch(e){if(btn)btn.disabled=false;toast("Couldn't save: "+e.message,{bad:1})}
+}
+function wirePay(root){$$("[data-pay]",root).forEach(b=>b.onclick=e=>{e.stopPropagation();const [id,day,kind,on]=b.dataset.pay.split("|");confirmPay(id,day,kind,on==="1",b)})}
 function dealModal(d){
   const isNew=!d,t0=isoDay(new Date());d=d||{id:0,client:"",upfront:0,monthly:0,months:0,closed_at:t0,first_bill:"",notes:""};
   const val=v=>v?v:"";
@@ -1702,7 +1831,7 @@ const soonDay=s=>{const t=isoDay(new Date()),tm=new Date();tm.setDate(tm.getDate
 const calStyle=it=>it.src==="event"?{color:it.color,icon:it.icon}:CAL_SRC[it.src];
 function calSub(it){
   if(it.src==="meeting")return (it.time?fmtTime(it.time):"Time not set")+" · Meeting"+(it.owner?" with "+it.owner:"");
-  if(it.src==="payment")return (it.kind==="upfront"?"Upfront payment":"Monthly payment")+" · "+(it.paid?"Received":"Due");
+  if(it.src==="payment")return (it.kind==="upfront"?"Upfront payment":"Monthly payment")+" · "+(it.paid?"Received":(it.due===undefined?it.date<=isoDay(new Date()):it.due)?"Needs confirming":"Due");
   if(it.src==="closed")return "Deal closed";
   return (it.time?fmtTime(it.time):"All day")+(typeOf(it)?" · "+typeOf(it):"")+(it.repeat!=="none"?" · "+REPEAT_LBL[it.repeat]:"")+(it.lead_name?" · "+it.lead_name:"")+(it.assigned_name?" · For "+it.assigned_name:"")+(it.created_name?" · Added by "+it.created_name:"");
 }
@@ -1710,7 +1839,7 @@ const calChip=it=>it.src==="payment"?usd(it.amount)+" "+it.title:(it.time?shortT
 const calIsPast=it=>it.src==="payment"?it.paid:it.date<isoDay(new Date());
 function chipHTML(it){const st=calStyle(it);return `<div class="ce${calIsPast(it)?" past":""}" style="background:${esc(st.color)};color:${ink(st.color)}" title="${esc(it.title)}"><i class="ic">${svg(st.icon)}</i><span>${esc(calChip(it))}</span></div>`}
 function rowHTML(it){const st=calStyle(it),ev=it.src==="event";
-  return `<div class="crow${calIsPast(it)?" past":""}${ev&&it.done?" dn":""}" data-key="${esc(it.key)}" tabindex="0"><span class="cb" style="background:${esc(st.color)};color:${ink(st.color)}"><i class="ic">${svg(st.icon)}</i></span><div class="cm"><b>${esc(it.title)}</b><span class="sub">${esc(calSub(it))}</span></div>${it.src==="payment"?`<b class="num">${usd(it.amount)}</b>`:""}${ev&&it.repeat==="none"?`<button class="cdn${it.done?" on":""}" data-done="${it.id}" data-v="${it.done?0:1}" title="${it.done?"Mark as not done":"Mark as done"}" aria-label="${it.done?"Mark as not done":"Mark as done"}">✓</button>`:""}</div>`}
+  return `<div class="crow${calIsPast(it)?" past":""}${ev&&it.done?" dn":""}" data-key="${esc(it.key)}" tabindex="0"><span class="cb" style="background:${esc(st.color)};color:${ink(st.color)}"><i class="ic">${svg(st.icon)}</i></span><div class="cm"><b>${esc(it.title)}</b><span class="sub">${esc(calSub(it))}</span></div>${it.src==="payment"?`<b class="num">${usd(it.amount)}</b>${it.paid?`<button class="cdn on" data-pay="${it.deal_id}|${esc(it.date)}|${esc(it.kind)}|0" title="Received. Click to undo" aria-label="Payment received. Click to undo">✓</button>`:(it.due===undefined?it.date<=isoDay(new Date()):it.due)?`<button class="cfm" data-pay="${it.deal_id}|${esc(it.date)}|${esc(it.kind)}|1" aria-label="Confirm this payment was received">Confirm</button>`:""}`:""}${ev&&it.repeat==="none"?`<button class="cdn${it.done?" on":""}" data-done="${it.id}" data-v="${it.done?0:1}" title="${it.done?"Mark as not done":"Mark as done"}" aria-label="${it.done?"Mark as not done":"Mark as done"}">✓</button>`:""}</div>`}
 const EV_TYPES={meeting:["Meeting","users","#5C9DFF"],follow_up:["Follow-up","flag","#FF9F43"],call:["Scheduled call","phone","#4DD0E1"],task:["Task","check","#3DDC84"]};
 const typeOf=it=>{const e=Object.entries(EV_TYPES).find(([k,v])=>v[1]===it.icon);return e?e[1][0]:""};
 let calTok=0;
@@ -1741,7 +1870,7 @@ function drawCalendar(q){
     let cells="";
     for(let i=0;i<42;i++){
       const d=new Date(gs);d.setDate(gs.getDate()+i);const iso=isoDay(d),list=by[iso]||[];
-      cells+=`<div class="cc${d.getMonth()!==C.m?" om":""}${iso===today?" td":""}${iso===C.sel?" sel":""}" data-d="${iso}" tabindex="0" role="button" aria-label="${esc(longDay(iso))}, ${list.length} item${list.length===1?"":"s"}"><div class="cn"><span>${d.getDate()}</span></div>${list.slice(0,3).map(chipHTML).join("")}${list.length>3?`<div class="cmore">+${list.length-3} more</div>`:""}</div>`;
+      cells+=`<div class="cc${d.getMonth()!==C.m?" om":""}${iso===today?" td":""}${iso===C.sel?" sel":""}" data-d="${iso}" tabindex="0" role="button" aria-label="${esc(longDay(iso))}, ${list.length} item${list.length===1?"":"s"}"><div class="cn"><span>${d.getDate()}</span></div>${list.slice(0,3).map(chipHTML).join("")}${list.length>3?`<div class="cmore">+${list.length-3}<span class="cmw"> more</span></div>`:""}</div>`;
     }
     main=`<div class="card cal pop"><div class="cal-dow">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(x=>`<div>${x}</div>`).join("")}</div><div class="cal-grid">${cells}</div></div>`;
   }else if(C.view==="week"){
@@ -1779,6 +1908,7 @@ function drawCalendar(q){
   $$("[data-wd]",pg).forEach(h=>h.onclick=()=>{goSel(h.dataset.wd);C.view="day";renderCalendar(true)});
   $$(".cc",pg).forEach(c=>{c.onclick=()=>{C.sel=c.dataset.d;drawCalendar(true)};c.ondblclick=()=>eventModal(null,c.dataset.d);c.onkeydown=e=>{if(e.key==="Enter"){C.sel=c.dataset.d;drawCalendar(true)}}});
   $$(".crow",pg).forEach(r=>{r.onclick=()=>{const it=K[r.dataset.key];it&&calOpen(it)};r.onkeydown=e=>{if(e.key==="Enter")r.click()}});
+  wirePay(pg);
   $$("[data-done]",pg).forEach(b=>b.onclick=async e=>{e.stopPropagation();const r=await api("set_event_done",+b.dataset.done,b.dataset.v==="1");if(r.ok){toast(b.dataset.v==="1"?"Marked done":"Marked not done");await reload()}});
 }
 function calOpen(it){
@@ -2192,7 +2322,7 @@ async function renderCalls(soft){
   const pg=$("#pg-calls");
   if(!pg.dataset.built){
     pg.dataset.built=1;
-    pg.innerHTML=`<div class="cl"><div class="card cl-f">
+    pg.innerHTML=`<div class="cl"><div class="card cl-f pop">
       <div><label class="l" for="clWho">Employee</label><select id="clWho" style="min-width:150px"></select></div>
       <div><label class="l" for="clOut">Outcome</label><select id="clOut" style="min-width:150px"><option value="">Every outcome</option>${Object.keys(OUT).map(k=>`<option value="${k}">${OUT[k][0]}</option>`).join("")}</select></div>
       <div><label class="l" for="clFrom">From</label><input class="inp" type="date" id="clFrom"></div>
@@ -2201,7 +2331,7 @@ async function renderCalls(soft){
       <div style="display:flex;gap:6px;flex-direction:row" id="clRange"><button class="chip" data-r="today">Today</button><button class="chip" data-r="7">7 days</button><button class="chip" data-r="30">30 days</button><button class="chip" data-r="all">All time</button></div>
       <button class="btn pri" id="clLog">${ic("plus")}Log a call</button></div>
       <div class="cl-sum" id="clSum"></div>
-      <div class="card" style="padding:6px 8px;overflow:auto"><div id="clBody"></div></div></div>`;
+      <div class="card pop" style="padding:6px 8px;overflow:auto"><div id="clBody"><div class="cl-sk" aria-label="Loading calls"><i></i><i></i><i></i><i></i><i></i></div></div></div></div>`;
     hydrateIcons(pg);
     const upd=()=>{CF.employee=$("#clWho").value;CF.outcome=$("#clOut").value;CF.from=$("#clFrom").value;CF.to=$("#clTo").value;CF.range="";paintRange();renderCalls(true)};
     ["clWho","clOut","clFrom","clTo"].forEach(i=>$("#"+i).onchange=upd);
@@ -2214,15 +2344,23 @@ async function renderCalls(soft){
   if(who.dataset.sig!==opts){who.innerHTML=opts;who.dataset.sig=opts}
   who.value=CF.employee;$("#clOut").value=CF.outcome;$("#clFrom").value=CF.from;$("#clTo").value=CF.to;
   paintRange();
-  const my=++clTok;let r;
+  const my=++clTok;let r;$("#clBody").classList.add("busy");
   try{r=await api("get_calls",Object.fromEntries(Object.entries(CF).filter(([k,v])=>v&&k!=="range")))}catch(e){r={ok:false,error:"The app engine did not respond."}}
   if(my!==clTok||S.page!=="calls")return;
-  const body=$("#clBody"),sum=$("#clSum");
+  const body=$("#clBody"),sum=$("#clSum");body.classList.remove("busy");
   if(!r.ok){body.innerHTML=`<div class="empty" style="padding:40px 10px"><b>The call log isn't available</b>${esc(r.error||"")}</div>`;sum.innerHTML="";return}
   const rows=r.rows,cnt={};rows.forEach(x=>cnt[x.outcome]=(cnt[x.outcome]||0)+1);
-  sum.innerHTML=`<button class="${CF.outcome?"":"on"}" data-o=""><b>${rows.length}</b> ${rows.length===1?"call":"calls"}</button>`+Object.keys(OUT).filter(k=>cnt[k]).map(k=>`<button class="${CF.outcome===k?"on":""}" data-o="${k}">${opill(k)}<b>${cnt[k]}</b></button>`).join("")+(r.stale?`<span class="muted" style="align-self:center;font-size:12.5px">Offline: showing the last list loaded.</span>`:"")+(r.capped?`<span class="muted" style="align-self:center;font-size:12.5px">Showing the newest 1000. Narrow the dates to see others.</span>`:"");
+  /* a new filter (or opening the page) replays the whole cascade; the 20-second refresh only animates calls that just came in */
+  const fsig=JSON.stringify([CF.employee,CF.outcome,CF.from,CF.to,CF.q]),full=!soft||body.dataset.f!==fsig,rk=x=>[x.at,x.who,x.phone,x.outcome,x.business].join("|");
+  const seen=new Set((body.dataset.k||"").split("\n"));body.dataset.f=fsig;body.dataset.k=rows.slice(0,300).map(rk).join("\n");
+  const chipC=full?" cin":"",prevN=JSON.parse(sum.dataset.n||"{}"),nowN={_:rows.length,...cnt};sum.dataset.n=JSON.stringify(nowN);
+  let ci=0;const cn=(k,v)=>`<b data-cn="${v}" data-from="${full?0:(prevN[k]||0)}">${full?0:v}</b>`;
+  sum.innerHTML=`<button class="${CF.outcome?"":"on"}${chipC}" style="--i:${ci++}" data-o="">${cn("_",rows.length)} ${rows.length===1?"call":"calls"}</button>`+Object.keys(OUT).filter(k=>cnt[k]).map(k=>`<button class="${CF.outcome===k?"on":""}${chipC}" style="--i:${ci++}" data-o="${k}">${opill(k)}${cn(k,cnt[k])}</button>`).join("")+(r.stale?`<span class="muted" style="align-self:center;font-size:12.5px">Offline: showing the last list loaded.</span>`:"")+(r.capped?`<span class="muted" style="align-self:center;font-size:12.5px">Showing the newest 1000. Narrow the dates to see others.</span>`:"");
   $$("[data-o]",sum).forEach(b=>b.onclick=()=>{CF.outcome=b.dataset.o;$("#clOut").value=CF.outcome;renderCalls(true)});
-  body.innerHTML=rows.length?`<table class="tbl"><tr><th>When</th><th>Who</th><th>Business</th><th>Phone</th><th>Outcome</th><th>Notes</th></tr>${rows.map(x=>`<tr><td>${esc(clTime(x.at))}</td><td>${esc(x.who)}</td><td><b>${esc(x.business||"—")}</b>${x.legacy?`<br><span class="tag">From older records</span>`:""}${x.pending?`<br><span class="tag scr">Waiting to sync</span>`:""}</td><td>${esc(x.phone||"")}</td><td>${opill(x.outcome)}</td><td class="nt2">${esc(x.notes||"")}</td></tr>`).join("")}</table>`
+  $$("[data-cn]",sum).forEach(e=>{const to=+e.dataset.cn,fr=+e.dataset.from;if(fr===to){e.textContent=num(to);return}
+    if(REDUCE){e.textContent=num(to);return}const t0=performance.now(),ms=full?700:500;(function f(t){const k=Math.min(1,(t-t0)/ms),v=fr+(to-fr)*(1-Math.pow(1-k,3));e.textContent=num(Math.round(v));if(k<1)requestAnimationFrame(f)})(t0)});
+  const rowCls=(x,i)=>full?(i<40?` class="rin" style="--i:${i}"`:""):seen.has(rk(x))?"":` class="rin fresh"`;
+  body.innerHTML=rows.length?`<table class="tbl"><tr><th>When</th><th>Who</th><th>Business</th><th>Phone</th><th>Outcome</th><th>Notes</th></tr>${rows.map((x,i)=>`<tr${rowCls(x,i)}><td>${esc(clTime(x.at))}</td><td>${esc(x.who)}</td><td><b>${esc(x.business||"—")}</b>${x.legacy?`<br><span class="tag">From older records</span>`:""}${x.pending?`<br><span class="tag scr">Waiting to sync</span>`:""}</td><td>${esc(x.phone||"")}</td><td>${opill(x.outcome)}</td><td class="nt2">${esc(x.notes||"")}</td></tr>`).join("")}</table>`
     :`<div class="empty" style="padding:50px 10px"><b>No calls match</b>Change the filters, or press Log a call to add one.</div>`;
 }
 function paintRange(){$$("#clRange [data-r]").forEach(b=>b.classList.toggle("on",b.dataset.r===CF.range))}
@@ -2634,7 +2772,7 @@ function paintLgt(){
 const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["admin","shield","Admin"],["account","gear","Settings"]];
 function openSheet(){
   const sh=$("#msheet"),adm=S.me&&S.me.role==="admin";
-  $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}">${ic(i)}<span>${n}</span>${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
+  $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n}">${ic(i)}${n==="Announcements"?`<span class="lgl">${n}</span><span class="sht">News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
   sh.classList.add("on");sh.setAttribute("aria-hidden","false");paintLgt();requestAnimationFrame(()=>requestAnimationFrame(()=>{sh.classList.add("show");paintLgt()}));
 }
 function closeSheet(){const sh=$("#msheet");if(!sh.classList.contains("on"))return;sh.classList.remove("show");sh.setAttribute("aria-hidden","true");setTimeout(()=>{if(!sh.classList.contains("show"))sh.classList.remove("on")},460)}
@@ -2744,11 +2882,13 @@ async function ensureBoard(force){
 }
 function dealPays(d,upto){
   const out=[],up=+d.upfront||0,mo=+d.monthly||0,n=+d.months||0;
-  if(d.closed_at&&up>0&&d.closed_at<=upto)out.push([d.closed_at,up]);
+  /* with the 7th database update, only payments someone confirmed count as money made */
+  const cs="confirmed" in d?new Set(String(d.confirmed||"").split(",")):null,ok=(ds,k)=>!cs||cs.has(ds+":"+k);
+  if(d.closed_at&&up>0&&d.closed_at<=upto&&ok(d.closed_at,"upfront"))out.push([d.closed_at,up]);
   const f=d.first_bill||d.closed_at;
   if(f&&mo>0){const [y,m,dd]=f.split("-").map(Number);
     for(let k=0;n===0||k<n;k++){const t=y*12+(m-1)+k,yy=Math.floor(t/12),mm=t%12,dim=new Date(yy,mm+1,0).getDate();
-      const ds=`${yy}-${String(mm+1).padStart(2,"0")}-${String(Math.min(dd,dim)).padStart(2,"0")}`;if(ds>upto)break;out.push([ds,mo])}}
+      const ds=`${yy}-${String(mm+1).padStart(2,"0")}-${String(Math.min(dd,dim)).padStart(2,"0")}`;if(ds>upto)break;if(ok(ds,"monthly"))out.push([ds,mo])}}
   return out;
 }
 const dayShift=(iso,n)=>{const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return isoDay(d)};

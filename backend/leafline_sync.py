@@ -93,19 +93,20 @@ def lead_in(R):
             "called_at": from_iso(R["called_at"]) or None, "meeting_at": from_iso(R["meeting_at"])}
 
 
-DEAL_L = "id,client,upfront,monthly,months,closed_at,first_bill,notes,created_at"
+DEAL_L = "id,client,upfront,monthly,months,closed_at,first_bill,notes,created_at,confirmed"
 
 
 def deal_out(r):
     d = dict(zip(DEAL_L.split(","), r))
     return {"id": d["id"], "client": d["client"] or "", "upfront": num(d["upfront"]), "monthly": num(d["monthly"]),
             "months": int(d["months"] or 0), "closed_at": day_or_none(d["closed_at"]), "first_bill": day_or_none(d["first_bill"]),
-            "notes": d["notes"] or ""}
+            "notes": d["notes"] or "", "confirmed": d["confirmed"] or ""}
 
 
 def deal_in(R):
     return {"client": R["client"], "upfront": float(R["upfront"] or 0), "monthly": float(R["monthly"] or 0), "months": R["months"] or 0,
-            "closed_at": R["closed_at"] or "", "first_bill": R["first_bill"] or "", "notes": R["notes"] or ""}
+            "closed_at": R["closed_at"] or "", "first_bill": R["first_bill"] or "", "notes": R["notes"] or "",
+            **({"confirmed": R["confirmed"] or ""} if "confirmed" in R else {})}
 
 
 EVENT_L = "id,title,day,start_time,color,icon,repeat_kind,until,notes,lead_id,created_at,assigned_to,created_by,done,done_at"
@@ -143,11 +144,12 @@ def note_in(R):
 
 SPEC = {
     "leads": dict(cols=LEAD_L, out=lead_out, inn=lead_in, rank=0, keys=[k for k in lead_out((None,) * 17) if k != "id"]),
-    "deals": dict(cols=DEAL_L, out=deal_out, inn=deal_in, rank=1, keys=[k for k in deal_out((None,) * 9) if k != "id"]),
+    "deals": dict(cols=DEAL_L, out=deal_out, inn=deal_in, rank=1, keys=[k for k in deal_out((None,) * 10) if k != "id"]),
     "events": dict(cols=EVENT_L, out=event_out, inn=event_in, rank=2, keys=[k for k in event_out((None,) * 15) if k not in ("id", "created_by")]),
     "notes": dict(cols=NOTE_L, out=note_out, inn=note_in, rank=3, keys=[k for k in note_out((None,) * 8) if k not in ("id", "owner_id")]),
 }
-OPTIONAL = {"events": ("done", "done_at")}      # columns that exist only after the optional 2nd migration (probed at runtime)
+OPTIONAL = {"events": ("done", ("done", "done_at")),     # columns that exist only after an optional migration (probed at runtime):
+            "deals": ("paid", ("confirmed",))}             # table -> (capability, columns). done = 2nd migration, paid = 7th
 
 
 def same(a, b, k=None):
@@ -341,7 +343,7 @@ class Sync:
         self.status = {"state": "signed_out", "pending": 0, "blocked": 0, "conflicts": 0, "last_ok": None, "error": ""}
         self.stop, self.wake, self.push_lock = threading.Event(), threading.Event(), threading.Lock()
         self.first, self.last_beat, self.last_recon, self._t = True, 0.0, 0.0, None
-        self.caps = {"done": None, "avatar": None, "pext": None, "media": None}          # None = not probed yet
+        self.caps = {"done": None, "avatar": None, "pext": None, "media": None, "paid": None}          # None = not probed yet
         with self.lock: ensure_schema(self.db)
 
     # ---- lifecycle
@@ -364,7 +366,7 @@ class Sync:
 
     def keys(self, t):
         ks = SPEC[t]["keys"]
-        if t in OPTIONAL and not self.caps.get("done"): ks = [k for k in ks if k not in OPTIONAL[t]]
+        if t in OPTIONAL and not self.caps.get(OPTIONAL[t][0]): ks = [k for k in ks if k not in OPTIONAL[t][1]]
         return ks
 
     def probe_avatar(self):
@@ -442,7 +444,7 @@ class Sync:
             prof = self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active"), "order": "display_name.asc"})
             today = datetime.now(TZ).date().isoformat()
             stats = self.remote.call("POST", "/rest/v1/rpc/daily_stats", body={"p_from": "2020-01-01", "p_to": today})
-            deals = self.remote.all_pages("deals", {"select": "owner_id,upfront,monthly,months,closed_at,first_bill", "order": "closed_at.asc"})
+            deals = self.remote.all_pages("deals", {"select": "owner_id,upfront,monthly,months,closed_at,first_bill" + (",confirmed" if self.caps.get("paid") else ""), "order": "closed_at.asc"})
             out = dict(ok=True, stale=False, today=today, people=[self._pub(p) for p in prof if p.get("active")], stats=stats, deals=deals,
                        fetched=datetime.now().strftime("%H:%M"))
             self._kv("board", json.dumps(out))
@@ -568,6 +570,20 @@ class Sync:
             self.caps["done"] = True
         except Http as e:
             if e.status in (400, 404): self.caps["done"] = False
+            else: raise
+
+    def probe_paid(self):
+        """The 7th migration adds deals.confirmed (payments ticked as received). Before it is run, ticks stay on this computer."""
+        try:
+            self.remote.rest("GET", "deals", params={"select": "confirmed", "limit": 1})
+            if not self.caps.get("paid"):
+                with self.lock:
+                    self.db.execute("""INSERT OR IGNORE INTO outbox(tbl,local_id,op,actor,queued_at)
+                        SELECT 'deals', CAST(id AS TEXT), 'upsert', '', strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM deals WHERE confirmed!=''""")
+                    self.db.commit()
+            self.caps["paid"] = True
+        except Http as e:
+            if e.status in (400, 404): self.caps["paid"] = False
             else: raise
 
     def _kv(self, k, v=None):
@@ -910,6 +926,9 @@ class Sync:
         if self.caps["avatar"] is None:
             try: self.probe_avatar()
             except Http: pass
+        if self.caps["paid"] is None:
+            try: self.probe_paid()
+            except Http: pass
         if self.caps["pext"] is None:
             try: self.probe_pext()
             except Http: pass
@@ -935,6 +954,7 @@ class Sync:
             if self.caps["avatar"] is False: self.caps["avatar"] = None
             if self.caps["pext"] is False: self.caps["pext"] = None
             if self.caps["media"] is False: self.caps["media"] = None
+            if self.caps["paid"] is False: self.caps["paid"] = None
             try:
                 prev = dict(self.profile)
                 self.fetch_profile()

@@ -3,6 +3,7 @@ animated picture uploads, migration-not-run behaviour, themes, lead generation l
 import os, sys, tempfile, time, json, base64, io, uuid, threading, http.server, functools
 os.environ["NO_PROXY"] = "127.0.0.1,localhost"; os.environ["no_proxy"] = "127.0.0.1,localhost"
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path[:0] = [os.path.join(HERE, "..", "backend"), os.path.join(HERE, "..", "tools"), HERE]
+_BROWSER_HOME = os.environ.get("USERPROFILE", "")       # a Windows browser needs the real profile folder to start
 os.environ["HOME"] = tempfile.mkdtemp(); os.environ["USERPROFILE"] = os.environ["HOME"]
 from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo
@@ -131,7 +132,7 @@ def login(pg, u, pw):
     pg.fill("#lgUser", u); pg.fill("#lgPass", pw); pg.click("#lgGo"); pg.wait_for_selector("#login.on", state="detached", timeout=8000)
     pg.wait_for_function("document.querySelector('#syncTx').textContent==='Synced'", timeout=15000)
 with sync_playwright() as p:
-    br = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+    br = p.chromium.launch(executable_path=os.environ.get("LEAFLINE_CHROME", "/usr/bin/google-chrome"), args=["--no-sandbox"], env=dict(os.environ, USERPROFILE=_BROWSER_HOME) if _BROWSER_HOME else None)
     ctx = br.new_context(viewport={"width": 1440, "height": 900}); pg = ctx.new_page()
     pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("request", lambda r: reqs.append(r.url))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.wait_for_selector("#login.on")
