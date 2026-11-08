@@ -117,3 +117,10 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000009_us
   Reactions only change through `note_react`, which checks the note is shared and the person is an active teammate.
 - Nothing existing is changed. Until it is run, account details stay on the device where they were typed and
   the reaction bar stays hidden.
+
+## Tenth migration (Leafline 11.9: banners up to 100 MB)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_banner_limit.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.)
+- Raises the `media` bucket's size limit from 8 MB to 100 MB. The app keeps profile pictures at 8 MB; banners may be up to 100 MB.
+- Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
+  50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.

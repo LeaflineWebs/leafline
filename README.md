@@ -95,6 +95,17 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.9: banners, picture shapes, What's new
+- **Banners up to 100 MB** (profile pictures stay at 8 MB). Needs the 10th database update (RUN_IN_SUPABASE.sql).
+  Supabase also caps uploads project-wide: 50 MB on the Free plan (Storage > Settings), so banners over 50 MB need a
+  paid plan with that limit raised.
+- **Fixed: profile picture squashed into an oval** on shorter screens. The sidebar shrank its contents to fit; now
+  pictures, logos and round buttons keep their exact shape at every size, the sidebar tightens up on short windows
+  (and scrolls if needed), and the top bar fits on narrow windows.
+- **What's new window:** after each update, a short list of what changed appears once (all missed updates if you
+  skipped some). Reopen it any time from Settings > App & updates. Add each release's notes at the top of
+  PATCH_NOTES in backend/leafline_backend.py when you bump the version.
+
 ## What is new in 11.8.3: phone fixes
 - **Fix: the Find Leads list could be invisible on phones.** With hundreds of leads the list is very tall, and the
   fade-in only started once 4% of it was on screen, which a phone can never show. Long panels now appear as soon

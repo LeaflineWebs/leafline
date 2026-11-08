@@ -799,7 +799,8 @@ class Api:
         import base64 as _b64
         try: raw = _b64.b64decode(m.group(1), validate=True)
         except ValueError: return dict(ok=False, error="That picture is damaged.")
-        if len(raw) > 8 * 1024 * 1024: return dict(ok=False, error="That file is over 8 MB. Pick a smaller one.")
+        lim = 100 if kind == "banner" else 8          # MB: banners up to 100 MB (11.9), profile pictures up to 8 MB
+        if len(raw) > lim * 1024 * 1024: return dict(ok=False, error=f"That file is over {lim} MB. Pick a smaller one.")
         mime = self.sniff_image(raw)
         if not mime: return dict(ok=False, error="Use a GIF, WebP, PNG, JPEG or AVIF image.")
         t = str(thumb or "")
@@ -2903,7 +2904,32 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
    the sidebar and off the window. The sidebar already lists every page, so the bar keeps only the main shortcuts. */
 @media (min-width:861px) and (max-width:1365px){.fpill button.fx{display:none}}
 @media (min-width:861px) and (max-width:1745px){.main.hasdock .fpill button.fx{display:none}}
+/* Shapes never change with the window: pictures, logos and round buttons keep their exact proportions.
+   (On short windows the sidebar squeezed its contents, turning your picture into an oval.) */
+.ring,.in-av,.tav,.bmk,.mav,.mxav,.rb,.ths,.lcall,.chk,.av,.hz-dot,.gav,.cstat .ico,.stat .ico{flex-shrink:0;aspect-ratio:1/1}
+.side>*{flex-shrink:0}
+.side{overflow-y:auto;overflow-x:hidden;scrollbar-width:none}.side::-webkit-scrollbar{display:none}
+.srch{min-width:0}
+/* short windows: a smaller picture and tighter spacing, so the sidebar still fits without squashing anything */
+@media (min-width:861px) and (max-height:860px){.side .ring{width:64px;height:64px}.side .ring .in-av{font-size:21px}.side .ring .dot{width:16px;height:16px;right:2px;bottom:3px}
+  .brand{margin-bottom:12px}.hi{margin:8px 0 10px}.side .nv{height:36px}}
+/* narrow computer windows: a tighter top bar so its round buttons never get squeezed */
+@media (min-width:861px) and (max-width:1080px){.top{gap:10px;padding-left:20px;padding-right:20px}.top h1{min-width:0;font-size:22px;white-space:nowrap}.sync span{display:none}.sync{width:38px;padding:0;justify-content:center}}
+@media (min-width:861px) and (max-height:700px){.side{padding-top:14px;padding-bottom:12px}.side .nv{height:32px;font-size:13px}.side .foot{padding-top:6px}}
 .lcall{display:none}
+/* What's new */
+.pn-h{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.pn-ic{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:15px;background:var(--accent-soft);color:var(--accent-hi);box-shadow:0 0 0 1px var(--accent-line),0 0 24px var(--glow-soft)}
+.pn-ic .ic{width:22px;height:22px}
+.pn-k{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--accent-hi)}
+.pn h2{margin-top:2px}
+.pn ul{margin:12px 0 4px;padding-left:20px;display:grid;gap:8px;font-size:14px;line-height:1.5;color:var(--text2)}
+.pn li::marker{color:var(--accent)}
+.pn-more{margin-top:14px;display:grid;gap:8px}
+.pn details{border:1px solid var(--line);border-radius:16px;padding:10px 14px;background:rgba(0,0,0,.14)}
+.pn summary{cursor:pointer;font-size:13.5px;color:var(--text2)}.pn summary b{color:var(--text)}
+.pn details ul{margin-top:8px;font-size:13.5px}
+.pn-f{display:flex;justify-content:flex-end;margin-top:18px}
 .selbar{display:none}
 .mark.ask{animation:askPulse 1.2s var(--e-out) 2}
 @keyframes askPulse{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 2px var(--accent),0 0 30px var(--glow)}}
@@ -4398,7 +4424,7 @@ function renderAccount(){
     <div><label class="l" for="aMax">Max businesses per search (10 to 120)</label><input class="inp" id="aMax" type="number" min="10" max="120" value="${p.max_results}"></div></div>
    <div style="display:flex;align-items:center;gap:14px"><button class="btn pri" id="aSave">Save changes</button><span class="note" id="dbNote"></span></div></div>
   ${(()=>{const ex=(S.me&&S.me.ext)||{};return `<div class="card form pop" id="extCard"><h3>Your public profile</h3><div class="note">Everyone on the team can see this on the Team page.</div>
-   <div class="pbanw" style="margin-top:14px"><div class="pban has-img" id="bnPrev"></div><div class="avbtns"><button class="btn sm" id="bnUp">Upload banner</button><button class="btn sm" id="bnDel">Remove banner</button><input type="file" id="bnFile" accept="image/gif,image/webp,image/png,image/jpeg,image/avif" hidden></div></div>
+   <div class="pbanw" style="margin-top:14px"><div class="pban has-img" id="bnPrev"></div><div class="avbtns"><button class="btn sm" id="bnUp" title="GIF, WebP, PNG, JPEG or AVIF up to 100 MB">Upload banner</button><button class="btn sm" id="bnDel">Remove banner</button><input type="file" id="bnFile" accept="image/gif,image/webp,image/png,image/jpeg,image/avif" hidden></div></div>
    <div class="fg">
     <div><label class="l" for="xTitle">Job title</label><input class="inp" id="xTitle" maxlength="40" value="${esc(ex.title||"")}" placeholder="e.g. Sales rep"></div>
     <div><label class="l">Mood</label><div class="moods" id="xMoods">${MOODS.map(m=>`<button type="button" data-m="${m}" class="${ex.mood===m?"on":""}" aria-label="Mood ${m}">${m}</button>`).join("")}</div></div>
@@ -4410,7 +4436,8 @@ function renderAccount(){
    <div class="lgt big" data-lgt aria-label="Theme" role="radiogroup" style="margin-top:14px"></div></div>
   ${leadgenCard()}
   <div class="card form pop" id="updCard"><h3>App &amp; updates</h3>
-   <div class="upd"><div><b id="updVer">Version</b><div class="note" id="updNote"></div><div class="bar" id="updBar"><i></i></div></div><button class="btn" id="updBtn">Check for updates</button></div></div></div></div>`})()}`;
+   <div class="upd"><div><b id="updVer">Version</b><div class="note" id="updNote"></div><div class="bar" id="updBar"><i></i></div></div><button class="btn" id="updBtn">Check for updates</button></div>
+   <div class="upd" style="margin-top:12px"><div><b>What's new</b><div class="note">Everything that changed in recent updates.</div></div><button class="btn" id="pnBtn">${ic("spark")}What's new</button></div></div></div></div>`})()}`;
   hydrateIcons(pg);profileUI();
   const live=()=>{const n=$("#aName").value.trim(),r=$("#aRole").value.trim(),c=$("#aCo").value.trim();
     $("#accName").textContent=n||"Your name";$("#accRole").textContent=[r,c].filter(Boolean).join(" · ")||"Leafline Web Services";
@@ -4438,7 +4465,8 @@ function renderAccount(){
      const r=await api("set_profile_ext",d);if(!r.ok)return toast(r.error||"Couldn't save.",{bad:1});
      S.me.ext=r.ext;bn=undefined;bump($("#xSave"));toast("Profile saved");
      $("#xNote").textContent=r.shared?"The team can see your changes.":"Saved on this device. It will be shared once the database update (step 4 in the setup guide) is applied."};}
-  initUpdates().then(()=>{paintUpd();$("#updBtn").onclick=checkUpdatesNow;if(!UP){$("#updCard").style.display="none"}});
+  $("#pnBtn").onclick=()=>showPatchNotes(true);
+  initUpdates().then(()=>{paintUpd();$("#updBtn").onclick=checkUpdatesNow;if(!UP){const u=$("#updCard .upd");if(u)u.style.display="none"}});
 }
 /* ---------- account details: saved on this device AND to your private row in the shared database (update 9),
    so the website, the desktop app and other computers all show the same email, phone, etc. ---------- */
@@ -4709,7 +4737,7 @@ function renderSync(){
   b.className="sync "+s.state;$("#syncTx").textContent=t;
   b.title=s.state==="synced"?"Everything is saved to the shared database. Last sync "+(s.last_ok||""):s.state==="offline"?"No connection. Your changes are saved on this computer and will upload automatically.":(s.error||"");
 }
-async function afterLogin(){applyMe();B.data=null;B.badges={};loadNotes().then(()=>{applyDock()});if(S.me&&S.me.must_change_password)await needPw();ensureBoard(true);acctPull();setTimeout(pollPosts,1500)}
+async function afterLogin(){setTimeout(maybePatchNotes,2200);applyMe();B.data=null;B.badges={};loadNotes().then(()=>{applyDock()});if(S.me&&S.me.must_change_password)await needPw();ensureBoard(true);acctPull();setTimeout(pollPosts,1500)}
 $("#lgForm").addEventListener("submit",async e=>{
   e.preventDefault();const u=$("#lgUser").value.trim(),p=$("#lgPass").value,btn=$("#lgGo");
   if(!u||!p){$("#lgErr").textContent="Enter your username and password.";return}
@@ -5267,7 +5295,8 @@ function cropper(ov,img,box,zr,onMove){
 function mediaDialog(kind,file){
   if(!file)return;
   if(!MEDIA_TYPES.test(file.type))return toast("Use a GIF, WebP, PNG, JPEG or AVIF image.",{bad:1});
-  if(file.size>8*1024*1024)return toast(`That file is ${fmtSize(file.size)}. The limit is 8 MB.`,{bad:1});
+  const lim=kind==="banner"?100:8;      /* MB: banners up to 100 MB, profile pictures up to 8 MB */
+  if(file.size>lim*1024*1024)return toast(`That file is ${fmtSize(file.size)}. The limit is ${lim} MB.`,{bad:1});
   const url=URL.createObjectURL(file),av=kind==="avatar",anim=/gif|webp|png|avif/.test(file.type);
   let pos=(S.me&&S.me.media&&+S.me.media.banner_pos>=0)?+S.me.media.banner_pos:50;
   const metaTx=moved=>`${esc(file.type.replace("image/","").toUpperCase())} · ${fmtSize(file.size)}${anim?(moved?" · cropping makes it a still picture":" · animation is kept"):""}`;
@@ -5356,6 +5385,57 @@ function paintLeadgenFind(){
   c.innerHTML=`<span class="badge-i lg b-rising">${ic("spark")}Lead generation</span><div class="note" style="flex:1">${esc(s.text)}</div><button class="btn sm" data-go="account">Settings</button>`;
 }
 
+/* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
+const PATCH_NOTES=[
+ {v:"11.9.0",t:"Banners, a rounder you, and these notes",items:[
+  "Profile banners can now be up to 100 MB (profile pictures stay at 8 MB).",
+  "Fixed: on shorter screens your profile picture in the sidebar got squashed into an oval. Pictures, logos and round buttons now keep their exact shape at every window size.",
+  "On short windows the sidebar tightens up, and scrolls if it still doesn't fit, instead of squeezing things.",
+  "This “What's new” window: it appears once after each update. Open it again any time from Settings › App & updates."]},
+ {v:"11.8.3",t:"Phone fixes",items:[
+  "Fixed: with hundreds of leads, the Find Leads list could be invisible on phones.",
+  "Called Leads on phones: the four results are tabs, and each list shows full width.",
+  "Phones say “News” instead of Announcements."]},
+ {v:"11.8.2",t:"Find Leads built for phones",items:[
+  "Call works from the website on iPhone, with a Call button on every lead.",
+  "After a call, the business opens ready for you to mark the result.",
+  "Tick several businesses to mark them all at once.",
+  "The bottom bar sits on the bottom edge of the screen; the chat no longer slides sideways."]},
+ {v:"11.8.1",t:"Calling from your phone",items:[
+  "Tap a business on your phone to see its details full-screen.",
+  "Phone numbers are tap-to-call links."]},
+ {v:"11.8.0",t:"Dashboard, profiles and speed",items:[
+  "Dashboard: your call streak and an “Up next” list of call-backs.",
+  "Email and phone in Settings now follow you to every device.",
+  "Crop and zoom your profile picture when you add it.",
+  "Notes and scripts: a dark page option, and reactions on shared ones.",
+  "Chats open faster and use less data."]},
+ {v:"11.7.0",t:"Polish",items:["The Leafline logo sits in the top-left corner for everyone.","Smoother animations across the app."]},
+ {v:"11.6.0",t:"Themes",items:["Eight new colour themes, including a darker Obsidian."]},
+ {v:"11.5.0",t:"Call streaks",items:["Call streaks with colour tiers on every Team card. Daily goal: 25 calls."]},
+ {v:"11.4.0",t:"Messages",items:["Team chat: direct messages, groups, files, reactions, replies and mentions."]}];
+const verNum=v=>String(v||"0").split(".").map(n=>+n||0).reduce((a,n)=>a*1000+n,0);
+const NOTES_KEY="lf_notes_seen";
+function notesSeen(){try{return localStorage.getItem(NOTES_KEY)||""}catch(e){return ""}}
+function notesMark(){try{localStorage.setItem(NOTES_KEY,PATCH_NOTES[0].v)}catch(e){}}
+/* all=true: the full history (from Settings). Otherwise: everything newer than what this device has seen. */
+function showPatchNotes(all){
+  const seen=notesSeen(),fresh=all||!seen?PATCH_NOTES.slice(0,all?PATCH_NOTES.length:1):PATCH_NOTES.filter(n=>verNum(n.v)>verNum(seen));
+  if(!fresh.length)return;
+  const [head,...rest]=fresh,li=n=>`<ul>${n.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`;
+  openModal(`<div class="pn"><div class="pn-h"><span class="pn-ic">${ic("spark")}</span><div><div class="pn-k">What's new in Leafline ${esc(head.v)}</div><h2>${esc(head.t)}</h2></div></div>
+    ${li(head)}
+    ${rest.length?`<div class="pn-more">${rest.map(n=>`<details${all?"":" open"}><summary><b>${esc(n.v)}</b> · ${esc(n.t)}</summary>${li(n)}</details>`).join("")}</div>`:""}
+    <div class="pn-f"><button class="btn pri" data-x>Got it</button></div></div>`,(ov,close)=>{$("[data-x]",ov).onclick=close});
+  notesMark();
+}
+/* once per update, a moment after the app is ready (and never on top of another window) */
+function maybePatchNotes(tries=0){
+  if(navigator.webdriver&&!/[?&]notes(&|$)/.test(location.search))return;     /* automated tests: only when asked for */
+  if(!S.ready||!S.me||S.me.must_change_password||notesSeen()===PATCH_NOTES[0].v)return;
+  if($(".ov.on")||$("#login.on")||$("#intro")||document.hidden){if(tries<20)setTimeout(()=>maybePatchNotes(tries+1),3000);return}
+  showPatchNotes(false);
+}
 /* ---------------- boot ---------------- */
 async function boot(){
   hydrateIcons();$$(".pop").forEach(e=>io.observe(e));renderBell();paintLgt();introProgress(.08);
@@ -5375,7 +5455,7 @@ async function boot(){
   introProgress(.6);
   S.dockOpen=!!getP("dockOpen",false);S.dockId=getP("dockId",0);applyPaper();
   if(S.me){try{await loadNotes()}catch(e){}acctPull()}
-  S.ready=true;initUpdates().then(()=>{if(UP&&UP.platform!=="web"&&UPS.state==="ready")paintUpd()});
+  S.ready=true;setTimeout(maybePatchNotes,1800);initUpdates().then(()=>{if(UP&&UP.platform!=="web"&&UPS.state==="ready")paintUpd()});
   if(window.LF_API){const sl=$("#sText");if(sl)sl.textContent="New businesses are found in the Leafline desktop app and show up here automatically."}
   const start=TITLES[pageFromHash]?pageFromHash:"dash";S.page="__";$("#title").textContent=pageTitle(start);
   await go(start,true);renderAll(true);applyDock();if(S.page!=="find")renderFind();

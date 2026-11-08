@@ -904,7 +904,8 @@
       const m = /^data:[\w/+.-]*;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ""));
       if (!m) return fail("That doesn't look like a picture.");
       let raw; try { raw = Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0)); } catch (e) { return fail("That picture is damaged."); }
-      if (raw.length > 8 * 1024 * 1024) return fail("That file is over 8 MB. Pick a smaller one.");
+      const lim = kind === "banner" ? 100 : 8;   // MB: banners up to 100 MB (11.9), profile pictures up to 8 MB
+      if (raw.length > lim * 1024 * 1024) return fail(`That file is over ${lim} MB. Pick a smaller one.`);
       const mime = sniffImage(raw); if (!mime) return fail("Use a GIF, WebP, PNG, JPEG or AVIF image.");
       let t = String(thumb || ""); if (t && (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(t) || t.length > (kind === "avatar" ? 60000 : 150000))) t = "";
       return guardNet(async () => {
