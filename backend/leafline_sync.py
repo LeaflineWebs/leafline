@@ -586,6 +586,68 @@ class Sync:
             if e.status in (400, 404): self.caps["paid"] = False
             else: raise
 
+    # ---- Messages (11.4): the page calls the msg_* database functions and the private file bucket through here.
+    #      Only those: nothing else in the database can be reached this way. All rules are enforced by the database.
+    MSG_FN = re.compile(r"^msg_[a-z_]{2,40}$")
+    MSG_PATH = re.compile(r"^[0-9a-f-]{36}/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,180}$")
+
+    @staticmethod
+    def _err(e):
+        if isinstance(e, Offline): return dict(ok=False, offline=True, error="You're offline.")
+        if isinstance(e, (AuthLost, AuthFail)): return dict(ok=False, error="Signed out.")
+        if isinstance(e, Http):
+            b = e.body if isinstance(e.body, dict) else {}
+            if e.status == 404 and (b.get("code") in ("PGRST202", "42883") or "Could not find" in str(b)):
+                return dict(ok=False, missing=True, error="Messages need the 8th database update. Ask an admin to run it (see SETUP_SUPABASE.md).")
+            return dict(ok=False, status=e.status, error=str(b.get("message") or b.get("error") or e.body)[:300])
+        return dict(ok=False, error=str(e)[:300])
+
+    def msg_rpc(self, fn, args):
+        if not isinstance(fn, str) or not self.MSG_FN.match(fn) or not isinstance(args, dict):
+            return dict(ok=False, error="Not allowed.")
+        try: return dict(ok=True, data=self.remote.call("POST", "/rest/v1/rpc/" + fn, body=args))
+        except Exception as e: return self._err(e)
+
+    def msg_storage(self, op, paths, opts=None):
+        paths = paths if isinstance(paths, list) else [paths]
+        if not paths or len(paths) > 100 or not all(isinstance(x, str) and self.MSG_PATH.match(x) for x in paths):
+            return dict(ok=False, error="Not allowed.")
+        base = SUPABASE_URL + "/storage/v1"
+        try:
+            if op == "sign_upload":
+                r = self.remote.call("POST", "/storage/v1/object/upload/sign/message-files/" + paths[0], body={})
+                return dict(ok=True, url=base + r["url"])
+            if op == "sign":
+                exp = max(60, min(int((opts or {}).get("expires") or 3600), 86400))
+                r = self.remote.call("POST", "/storage/v1/object/sign/message-files", body={"expiresIn": exp, "paths": paths})
+                return dict(ok=True, urls={x.get("path"): (base + x["signedURL"]) if x.get("signedURL") else None for x in (r or [])})
+            if op == "remove":
+                self.remote.call("DELETE", "/storage/v1/object/message-files", body={"prefixes": paths})
+                return dict(ok=True)
+        except Exception as e:
+            return self._err(e)
+        return dict(ok=False, error="Not allowed.")
+
+    def msg_group_picture(self, data_url):
+        """A group chat picture: a small image in the public 'media' bucket, in the uploader's own folder."""
+        m = re.match(r"^data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$", str(data_url or ""))
+        if not m: return dict(ok=False, error="Pick a JPG, PNG or WebP picture.")
+        import base64
+        raw = base64.b64decode(m.group(2))
+        if len(raw) > 400_000: return dict(ok=False, error="That picture is too big.")
+        try:
+            url = self.remote.upload(f"media/{self.auth.uid()}/group-{uuid.uuid4().hex[:12]}.{'jpg' if m.group(1) == 'jpeg' else m.group(1)}", raw, "image/" + m.group(1))
+            return dict(ok=True, url=url)
+        except Exception as e:
+            return self._err(e)
+
+    def session_info(self):
+        """For the page's own live connection (Supabase Realtime). Uses this person's own sign-in, never a secret key."""
+        try: tok = self.auth.token()
+        except Exception as e: return self._err(e)
+        rt = os.environ.get("LEAFLINE_REALTIME_URL") or (SUPABASE_URL.replace("https://", "wss://").replace("http://", "ws://") + "/realtime/v1/websocket")
+        return dict(ok=True, url=SUPABASE_URL, key=PUBLISHABLE_KEY, token=tok, uid=self.auth.uid(), realtime=rt)
+
     def _kv(self, k, v=None):
         with self.lock:
             if v is None:

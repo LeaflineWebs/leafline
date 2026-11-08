@@ -1,0 +1,10 @@
+{
+  "name": "leafline-sql-tests",
+  "private": true,
+  "description": "Runs the real Supabase migrations on PGlite (Postgres in WebAssembly) to test row level security. Setup once: npm install (in this folder).",
+  "type": "module",
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.15",
+    "ws": "8.22.0"
+  }
+}

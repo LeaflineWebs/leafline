@@ -909,6 +909,19 @@ class Api:
     def get_team(self):
         return self._sync.team()
 
+    # ----- Messages: database functions, private files, and the live connection (rules live in the database)
+    def sb_rpc(self, fn, args=None):
+        return self._sync.msg_rpc(fn, args if args is not None else {})
+
+    def sb_storage(self, op, paths, opts=None):
+        return self._sync.msg_storage(op, paths, opts)
+
+    def sb_session(self):
+        return self._sync.session_info()
+
+    def sb_group_picture(self, data_url):
+        return self._sync.msg_group_picture(data_url)
+
     def set_event_done(self, id, done):
         try:
             eid = int(id)
@@ -2667,6 +2680,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
       <button class="nv" data-go="team"><i class="ic" data-ic="users"></i>Team</button>
       <button class="nv" data-go="board"><i class="ic" data-ic="trophy"></i>Leaderboard</button>
       <button class="nv" data-go="posts"><i class="ic" data-ic="mega"></i>Announcements<span class="badge" id="postsBadge" style="display:none">0</span></button>
+      <button class="nv" data-go="msgs"><i class="ic" data-ic="chat"></i>Messages<span class="badge" id="msgBadge" style="display:none">0</span></button>
       <button class="nv" data-go="find"><i class="ic" data-ic="search"></i>Find Leads</button>
       <button class="nv" data-go="called"><i class="ic" data-ic="phone"></i>Called Leads<span class="badge" id="calledBadge">0</span></button>
       <button class="nv" data-go="calendar"><i class="ic" data-ic="cal"></i>Calendar</button>
@@ -2739,6 +2753,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
       <!-- LEADERBOARD + ANNOUNCEMENTS -->
       <div class="page" id="pg-board"></div>
       <div class="page" id="pg-posts"></div>
+      <div class="page" id="pg-msgs"></div>
 
       <!-- CALENDAR -->
       <div class="page" id="pg-calendar"></div>
@@ -2761,7 +2776,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 
     <div class="fnav pop" id="fnav">
       <div class="fpill" id="fpill"><div class="flamp" id="flamp"></div><div class="fbg" id="fbg"></div><div class="fthumb" id="fthumb"></div>
-        <button data-go="dash"><i class="ic" data-ic="home"></i><span>Home</span></button><button data-go="team" class="fx"><i class="ic" data-ic="users"></i><span>Team</span></button><button data-go="board" class="fx"><i class="ic" data-ic="trophy"></i><span>Ranks</span></button><button data-go="posts" class="fx"><i class="ic" data-ic="mega"></i><span>News</span></button><button data-go="find"><i class="ic" data-ic="search"></i><span>Leads</span></button><button data-go="called"><i class="ic" data-ic="phone"></i><span>Called</span></button><button data-go="calendar"><i class="ic" data-ic="cal"></i><span>Calendar</span></button><button data-go="calls" class="fx"><i class="ic" data-ic="log"></i><span>Calls</span></button><button data-go="notes" class="fx"><i class="ic" data-ic="note"></i><span>Notes</span></button><button data-go="profits" class="fx"><i class="ic" data-ic="dollar"></i><span>Profits</span></button><button data-go="admin" class="fx" id="fnAdmin" style="display:none"><i class="ic" data-ic="shield"></i><span>Admin</span></button><button data-go="account" class="fx"><i class="ic" data-ic="gear"></i><span>Settings</span></button><button class="fmore" id="fmore" aria-label="More pages"><i class="ic" data-ic="grid"></i><span>More</span><i class="ndot" id="moreDot"></i></button>
+        <button data-go="dash"><i class="ic" data-ic="home"></i><span>Home</span></button><button data-go="team" class="fx"><i class="ic" data-ic="users"></i><span>Team</span></button><button data-go="board" class="fx"><i class="ic" data-ic="trophy"></i><span>Ranks</span></button><button data-go="posts" class="fx"><i class="ic" data-ic="mega"></i><span>News</span></button><button data-go="msgs" class="fmsg"><i class="ic" data-ic="chat"></i><span>Messages</span><i class="ndot" id="fnMsgDot"></i></button><button data-go="find"><i class="ic" data-ic="search"></i><span>Leads</span></button><button data-go="called"><i class="ic" data-ic="phone"></i><span>Called</span></button><button data-go="calendar"><i class="ic" data-ic="cal"></i><span>Calendar</span></button><button data-go="calls" class="fx"><i class="ic" data-ic="log"></i><span>Calls</span></button><button data-go="notes" class="fx"><i class="ic" data-ic="note"></i><span>Notes</span></button><button data-go="profits" class="fx"><i class="ic" data-ic="dollar"></i><span>Profits</span></button><button data-go="admin" class="fx" id="fnAdmin" style="display:none"><i class="ic" data-ic="shield"></i><span>Admin</span></button><button data-go="account" class="fx"><i class="ic" data-ic="gear"></i><span>Settings</span></button><button class="fmore" id="fmore" aria-label="More pages"><i class="ic" data-ic="grid"></i><span>More</span><i class="ndot" id="moreDot"></i></button>
       </div>
       <button class="fplus" id="fplus" aria-label="New search"><i class="ic" data-ic="plus"></i></button>
     </div>
@@ -2993,7 +3008,7 @@ function movePills(){
     const t=$("#fthumb");if(t){t.style.left=(fb.offsetLeft+fb.offsetWidth*.3)+"px";t.style.width=(fb.offsetWidth*.4)+"px"}
     const fp=$("#fpill");if(fp.scrollWidth>fp.clientWidth+2)fp.scrollTo({left:Math.max(0,fb.offsetLeft-(fp.clientWidth-fb.offsetWidth)/2),behavior:"smooth"})}
 }
-const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",find:"Find Leads",called:"Called Leads",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",admin:"Admin",account:"Settings"};
+const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",admin:"Admin",account:"Settings"};
 let navToken=0;
 async function go(p,force){
   if(p===S.page&&!force)return;
@@ -3007,7 +3022,7 @@ async function go(p,force){
   if(my!==navToken)return;
   if(old){old.getAnimations().forEach(a=>a.cancel());old.classList.remove("on")}
   S.lastSig={};
-  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find"){renderFind();paintLeadgenFind()}if(p==="board")renderRanks(false);if(p==="posts")renderPosts();
+  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find"){renderFind();paintLeadgenFind()}if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
   arm(next);next.classList.add("on");applyDock();
   if(!REDUCE)next.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:480,easing:EASE.out});
   history.replaceState(null,"","#"+p);
@@ -4283,7 +4298,7 @@ function paintLgt(){
 }
 
 /* ---------- phone: "More" sheet ---------- */
-const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["admin","shield","Admin"],["account","gear","Settings"]];
+const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["admin","shield","Admin"],["account","gear","Settings"]];
 function openSheet(){
   const sh=$("#msheet"),adm=S.me&&S.me.role==="admin";
   $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n}">${ic(i)}${n==="Announcements"?`<span class="lgl">${n}</span><span class="sht">News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
@@ -4834,9 +4849,12 @@ boot();
 </html>
 '''
 
+import leafline_messages_ui as _msgui
+UI_HTML = _msgui.inject(UI_HTML)          # Messages (team chat): styles + page code live in leafline_messages_ui.py
+
 
 API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",
-               "open_site", "export_csv", "search", "stop", "get_deals", "save_deal", "delete_deal", "confirm_payment", "get_calendar", "save_event", "delete_event", "set_meeting",
+               "open_site", "export_csv", "search", "stop", "get_deals", "save_deal", "delete_deal", "confirm_payment", "sb_rpc", "sb_storage", "sb_session", "sb_group_picture", "get_calendar", "save_event", "delete_event", "set_meeting",
                "sign_in", "sign_out", "change_password", "sync_status", "sync_retry", "sync_details", "get_team", "get_people",
                "set_event_done", "get_notes", "save_note", "delete_note", "get_calls", "log_call",
                "admin_people", "admin_update", "admin_targets", "admin_export", "get_prefs", "set_pref", "set_avatar", "set_profile_ext", "get_person",

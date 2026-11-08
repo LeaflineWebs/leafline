@@ -67,3 +67,20 @@ See **WEBSITE_AND_UPDATES.md**. The website is generated from the same interface
 - **Called Leads groups fold away**: click a group header (for example "Home renovation" under Meeting set up) to hide it; it stays hidden until you open it again. The arrow next to each column's count folds or opens every group in that column.
 - **Phone layout pass**: every text box is 16px so iPhones no longer zoom in, bigger tap targets, call-log filters in two columns, the Settings save row and data-folder path no longer run off the screen, the lead pop-up gives the owner box a full row and the results a 2 x 2 grid, the Team page's Online label no longer sits in a stray box, and the calendar header and More menu fit on 320px phones.
 - Browser tests can run on Windows: set `LEAFLINE_CHROME` to Chrome or Edge (for example `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`). New test: `python tests/test_payments.py`.
+
+## What is new in 11.4: Messages
+Team chat inside Leafline (sidebar > **Messages**, also on phones and the website):
+- Direct messages with anyone on the team, and group chats (name, description, picture, add/remove people, leave).
+- @mentions with a picker (stored as real references, so renaming someone never breaks them), and @everyone for
+  group owners/admins. Mentions get highlighted, counted, notified and listed under the **Mentions** tab.
+- Reactions, replies (click the preview to jump to the original), edit, delete, pinned messages, formatting
+  (**bold**, *italic*, ~~strike~~, `code`, lists, links), a searchable emoji picker with recently used emoji.
+- Files and screenshots: drag and drop, paste, or the + button; upload progress, picture previews, downloads.
+- Read receipts, typing indicators, online status, unread and mention badges, a notifications list, mute,
+  pin and archive per chat, search across chats, people and messages.
+- Live: new messages arrive within about a second (Supabase Realtime), with automatic fallback to checking every
+  few seconds. Messages written without a connection wait on the device and send themselves once it is back.
+- **Setup:** run `supabase/migrations/20261108000008_messaging.sql` once (it is also in `RUN_IN_SUPABASE.sql`).
+  Details in SETUP_SUPABASE.md.
+- **Tests:** `cd tests/pg && npm install` once, then `node test_messaging_sql.mjs` (security rules on a real
+  Postgres) and `python tests/test_messages.py` (three people chatting at once in the app and on the website).

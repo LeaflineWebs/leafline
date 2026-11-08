@@ -541,6 +541,16 @@
         days: wdays.map((a, i) => ({ label: SHORT[i], date: dayStr(addDays(w0, i)), amount: money(a), future: addDays(w0, i) > today })) },
       all: { collected: money(collected), on_the_way: money(onWay), mrr: money(mrr), deals: deals.length, unconfirmed: money(waiting), to_confirm: todo.slice(-200) } };
   }
+  function msgErr(e) {
+    if (e instanceof Offline) return { ok: false, offline: true, error: "You're offline." };
+    if (e instanceof AuthLost) return fail("Signed out.");
+    if (e instanceof Http) {
+      const b = e.body && typeof e.body === "object" ? e.body : {};
+      if (e.status === 404 && (["PGRST202", "42883"].includes(b.code) || /Could not find/.test(JSON.stringify(b)))) return { ok: false, missing: true, error: "Messages need the 8th database update. Ask an admin to run it (see SETUP_SUPABASE.md)." };
+      return { ok: false, status: e.status, error: String(b.message || b.error || e.message).slice(0, 300) };
+    }
+    return fail(String(e.message || e).slice(0, 300));
+  }
   const guardNet = async (f) => { try { return await f(); } catch (e) { return fail(netErr(e)); } };
 
   const API = {
@@ -618,6 +628,40 @@
     sync_retry() { LS.set("lf_outbox", LS.get("lf_outbox", []).map((o) => ({ ...o, blocked: false }))); flush(); return { ok: true }; },
     sync_details() { const q = LS.get("lf_outbox", []); return { pending: q.filter((o) => !o.blocked), blocked: q.filter((o) => o.blocked), conflicts: [] }; },
     get_people() { return st.people; },
+    // ----- Messages (11.4): only the msg_* database functions and the private file bucket; the database enforces every rule
+    async sb_rpc(fn, args) {
+      if (!/^msg_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
+      try { return { ok: true, data: await call("POST", "/rest/v1/rpc/" + fn, { body: args }) }; } catch (e) { return msgErr(e); }
+    },
+    async sb_storage(op, paths, opts) {
+      paths = Array.isArray(paths) ? paths : [paths];
+      if (!paths.length || paths.length > 100 || !paths.every((x) => /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[A-Za-z0-9._-]{1,180}$/.test(String(x)))) return fail("Not allowed.");
+      try {
+        if (op === "sign_upload") { const r = await call("POST", "/storage/v1/object/upload/sign/message-files/" + paths[0], { body: {} }); return { ok: true, url: SB + "/storage/v1" + r.url }; }
+        if (op === "sign") {
+          const exp = Math.max(60, Math.min(parseInt((opts || {}).expires || 3600, 10) || 3600, 86400));
+          const r = await call("POST", "/storage/v1/object/sign/message-files", { body: { expiresIn: exp, paths } });
+          return { ok: true, urls: Object.fromEntries((r || []).map((x) => [x.path, x.signedURL ? SB + "/storage/v1" + x.signedURL : null])) };
+        }
+        if (op === "remove") { await call("DELETE", "/storage/v1/object/message-files", { body: { prefixes: paths } }); return { ok: true }; }
+      } catch (e) { return msgErr(e); }
+      return fail("Not allowed.");
+    },
+    async sb_group_picture(dataUrl) {
+      const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || "")); if (!m) return fail("Pick a JPG, PNG or WebP picture.");
+      let raw; try { raw = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0)); } catch (e) { return fail("That picture is damaged."); }
+      if (raw.length > 400000) return fail("That picture is too big.");
+      const name = `${uid()}/group-${uuid4().replace(/-/g, "").slice(0, 12)}.${m[1] === "jpeg" ? "jpg" : m[1]}`;
+      try {
+        const r = await fetch(SB + "/storage/v1/object/media/" + name, { method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + (await token()), "Content-Type": "image/" + m[1], "x-upsert": "false" }, body: raw });
+        if (!r.ok) return fail("Couldn't upload the picture (" + r.status + ").");
+        return { ok: true, url: SB + "/storage/v1/object/public/media/" + name };
+      } catch (e) { return msgErr(e); }
+    },
+    async sb_session() {
+      try { const t = await token(); return { ok: true, url: SB, key: KEY, token: t, uid: uid(), realtime: (C.realtime || SB.replace(/^http/, "ws") + "/realtime/v1/websocket") }; }
+      catch (e) { return msgErr(e); }
+    },
     get_prefs() { return st.prefs; },
     set_pref(k, v) { k = String(k).replace(/[^A-Za-z0-9_]/g, "").slice(0, 30); const val = JSON.stringify(v); if (!k || val.length > 2000) return { ok: false }; st.prefs[k] = v; LS.set("lf_prefs", st.prefs); return { ok: true }; },
 

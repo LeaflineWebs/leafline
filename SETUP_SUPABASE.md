@@ -88,3 +88,20 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000007_co
   A payment whose date passed without a confirmation shows under **Waiting for confirmation** on the Profits page.
 - Until it is run, confirmations stay on the computer that made them and upload by themselves afterwards.
   On the website, Confirm asks for this update first.
+
+## Eighth migration (Leafline 11.4: Messages)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000008_messaging.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.) Run migrations 1 to 7 first.
+- **Tables:** `conversations`, `conversation_members`, `messages`, `message_mentions`, `message_reactions`,
+  `message_attachments`, `message_notifications`, `pinned_messages`. Nothing existing is changed or deleted.
+- **Security:** row level security on every table. People only read conversations they belong to. Nobody writes
+  to these tables directly: every change goes through a `msg_*` database function that checks who is calling,
+  that they are an active teammate and that they belong to the conversation. The sender is always the caller.
+- **Files:** a new PRIVATE Storage bucket `message-files` (25 MB per file; images, PDF, Office files, text, CSV,
+  zip, audio and video). Files sit under `<conversation id>/<uploader id>/` and only that conversation's members
+  can upload or read them, through links that expire after an hour.
+- **Live updates:** the migration adds the messaging tables to Supabase Realtime (`supabase_realtime` publication).
+  If Realtime is switched off for the project, Messages still works and checks for new messages every few seconds.
+- No new environment variables or keys. The app keeps using the publishable key and each person's own sign-in.
+- Group pictures go into the existing public `media` bucket (from migration 5), in the uploader's own folder.
+- Until it is run, the Messages page explains that this update is needed; everything else keeps working.

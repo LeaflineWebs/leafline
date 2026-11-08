@@ -14,6 +14,7 @@ class Fake:
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
         self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions")}
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
+        self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
         self.down = False; self.done_cap = True; self.avatar_cap = True; self.pext_cap = True; self.drop_next_write = False; self.expire_tokens = False; self.n = 0
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
         self.url = f"http://127.0.0.1:{self.httpd.server_address[1]}"
@@ -57,6 +58,7 @@ class Fake:
                 if F.down: s.hang_up(); return
                 u = urlparse(s.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
                 n = int(s.headers.get("Content-Length") or 0); raw = s.rfile.read(n) if n else b""
+                if F.msg_url and s.msg(method, u, q, raw): return
                 if u.path.startswith("/storage/v1/object/"): return s.storage(method, u.path, raw)
                 body = json.loads(raw) if raw else None
                 with F.lock:
@@ -73,6 +75,40 @@ class Fake:
                     if F.drop_next_write and method in ("POST", "PATCH"):
                         F.drop_next_write = False; s.hang_up(); return
                     return r
+
+            def msg(s, method, u, q, raw):
+                """Messages: msg_* functions and the private 'message-files' bucket go to the real-Postgres test server."""
+                import urllib.request, urllib.error
+                p = u.path; fwd = None; send_uid = True
+                if p.startswith("/rest/v1/rpc/msg_") and method == "POST": fwd = ("POST", "/rpc/" + p.rsplit("/", 1)[1], raw)
+                elif p.startswith("/storage/v1/object/upload/sign/message-files/"):
+                    key = p.split("/message-files/", 1)[1]
+                    if method == "POST": fwd = ("POST", "/storage/upload-sign", json.dumps({"path": key}).encode())
+                    elif method == "PUT": fwd = ("PUT", "/storage/upload?token=" + q.get("token", ""), raw); send_uid = False
+                elif p == "/storage/v1/object/sign/message-files" and method == "POST":
+                    b = json.loads(raw or b"{}"); fwd = ("POST", "/storage/sign", json.dumps({"paths": b.get("paths", []), "expiresIn": b.get("expiresIn", 60)}).encode())
+                elif p.startswith("/storage/v1/object/sign/message-files/") and method == "GET": fwd = ("GET", "/storage/get?token=" + q.get("token", ""), b""); send_uid = False
+                elif p == "/storage/v1/object/message-files" and method == "DELETE": fwd = ("POST", "/storage/remove", raw)
+                if not fwd: return False
+                h = {"Content-Type": s.headers.get("Content-Type") or "application/json"}
+                with F.lock:
+                    if send_uid:
+                        uid = F.tokens.get((s.headers.get("Authorization") or "")[7:])
+                        if not uid or F.expire_tokens: s.reply(401, {"message": "JWT expired"}); return True
+                        h["X-Uid"] = uid
+                    sig = json.dumps([[(x["id"], x["username"], x["display_name"], x["role"], x["active"]) for x in F.t["profiles"]], F.tokens], sort_keys=True)
+                    if sig != F._msg_sig:
+                        body = json.dumps({"profiles": [{k: x[k] for k in ("id", "username", "display_name", "role", "active")} for x in F.t["profiles"]], "tokens": F.tokens}).encode()
+                        urllib.request.urlopen(urllib.request.Request(F.msg_url + "/sync", data=body, method="POST", headers={"Content-Type": "application/json"}), timeout=30).read()
+                        F._msg_sig = sig
+                req = urllib.request.Request(F.msg_url + fwd[1], data=fwd[2] if fwd[0] != "GET" else None, method=fwd[0], headers=h)
+                try:
+                    r = urllib.request.urlopen(req, timeout=60); code, out, ct = r.status, r.read(), r.headers.get("Content-Type")
+                except urllib.error.HTTPError as e:
+                    code, out, ct = e.code, e.read(), e.headers.get("Content-Type")
+                s.send_response(code); s.send_header("Content-Type", ct or "application/json"); s.send_header("Content-Length", str(len(out)))
+                s.send_header("Access-Control-Allow-Origin", "*"); s.end_headers(); s.wfile.write(out)
+                return True
 
             def storage(s, method, path, raw):
                 if method == "GET" and path.startswith("/storage/v1/object/public/"):
@@ -103,6 +139,8 @@ class Fake:
                 s.reply(200, {"access_token": at, "refresh_token": rt, "expires_in": 3600, "user": {"id": uid}})
 
             def rest(s, method, tbl, q, body, uid):
+                if tbl.startswith("rpc/msg_"):           # Messages (migration 8) not run here: answer like Supabase does
+                    return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                 if tbl == "rpc/reassign_credit":        # mirrors public.reassign_credit() (migration 6)
                     if not F.credit_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function"})
                     me = uid; to = body["p_to"]; prof = {p["id"]: p for p in F.t["profiles"]}

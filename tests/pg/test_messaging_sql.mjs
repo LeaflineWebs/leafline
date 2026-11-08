@@ -1,0 +1,204 @@
+// Messaging: database rules and row level security, tested on a real Postgres with the real migrations.
+// Run:  cd tests/pg && npm install && node test_messaging_sql.mjs
+import { freshDb, addUser, as } from "./db.mjs";
+import { randomUUID as uuid } from "crypto";
+
+let ok = 0, fail = 0;
+const check = (label, cond, extra) => { if (cond) { ok++; console.log("  PASS", label); } else { fail++; console.log("  FAIL", label, extra !== undefined ? JSON.stringify(extra).slice(0, 300) : ""); } };
+const U = {}; for (const n of ["gio", "james", "akbar", "omar", "jaylen", "tim", "gone"]) U[n] = uuid();
+
+console.log("1. migrations");
+const db = await freshDb({ twice: true });
+check("all migrations run, and run again safely", true);
+await addUser(db, U.james, "james", { role: "admin" });
+for (const n of ["gio", "akbar", "omar", "jaylen", "tim"]) await addUser(db, U[n], n);
+await addUser(db, U.gone, "gone", { active: false });
+
+const rpc = async (who, fn, args = {}) => {
+  const keys = Object.keys(args);
+  const r = await as(db, who && U[who], `select public.${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as v`, keys.map((k) => args[k]));
+  return r.ok ? { ok: true, v: r.rows[0].v } : r;
+};
+const sel = async (who, sql, p = []) => { const r = await as(db, who && U[who], sql, p); return r.ok ? r.rows : r; };
+
+console.log("2. direct messages");
+let r = await rpc("gio", "msg_start_direct", { p_other: U.tim }); const dm = r.v;
+check("start a direct chat", r.ok && dm, r);
+check("starting it again (from either side) gives the same chat", (await rpc("gio", "msg_start_direct", { p_other: U.tim })).v === dm && (await rpc("tim", "msg_start_direct", { p_other: U.gio })).v === dm);
+check("can't start a chat with yourself", !(await rpc("gio", "msg_start_direct", { p_other: U.gio })).ok);
+check("can't start a chat with a deactivated person", !(await rpc("gio", "msg_start_direct", { p_other: U.gone })).ok);
+const op1 = uuid();
+r = await rpc("gio", "msg_send", { p_conv: dm, p_client_op_id: op1, p_content: "Hey Tim, the **Maple** quote is in" });
+check("send a message", r.ok && r.v.duplicate === false, r);
+const m1 = r.v.id;
+r = await rpc("gio", "msg_send", { p_conv: dm, p_client_op_id: op1, p_content: "Hey Tim, the **Maple** quote is in" });
+check("a retried send (same id) never makes a second copy", r.ok && r.v.duplicate === true && r.v.id === m1);
+check("empty messages are refused", !(await rpc("gio", "msg_send", { p_conv: dm, p_client_op_id: uuid(), p_content: "   " })).ok);
+let h = (await rpc("tim", "msg_history", { p_conv: dm })).v;
+check("the other person reads it, sender is the real sender", h.length === 1 && h[0].sender_id === U.gio && h[0].content.includes("Maple"));
+check("Omar can't read a chat he isn't in (function)", (await rpc("omar", "msg_history", { p_conv: dm })).v.length === 0);
+check("Omar can't read it (table)", (await sel("omar", "select * from public.messages where conversation_id = $1", [dm])).length === 0);
+check("Omar can't even see the chat exists", (await sel("omar", "select * from public.conversations where id = $1", [dm])).length === 0);
+r = await rpc("omar", "msg_send", { p_conv: dm, p_client_op_id: uuid(), p_content: "sneaky" });
+check("Omar can't post into it", !r.ok && /not in this conversation/.test(r.error), r);
+r = await sel("gio", "insert into public.messages (conversation_id, sender_id, content) values ($1, $2, 'fake')", [dm, U.tim]);
+check("nobody can insert a message as someone else", r.ok === false, r);
+r = await sel("gio", "update public.messages set content = 'changed' where id = $1", [m1]);
+check("messages can't be changed directly (only through msg_edit)", r.ok === false, r);
+check("signed-out visitors can't call anything", !(await rpc(null, "msg_overview")).ok);
+check("the internal system-message helper is not callable", !(await sel("gio", "select public.msg_system($1, 'added', '{}')", [dm])).ok);
+check("a deactivated account can't send", !(await rpc("gone", "msg_send", { p_conv: dm, p_client_op_id: uuid(), p_content: "x" })).ok);
+
+console.log("3. unread, typing, read receipts, notifications");
+let ov = (await rpc("tim", "msg_overview")).v;
+let c = ov.find((x) => x.id === dm);
+check("Tim sees 1 unread in the chat", c && c.unread === 1 && c.last.content.includes("Maple"), c);
+let n = (await rpc("tim", "msg_notifications")).v;
+check("Tim got a direct-message notification", n.length === 1 && n[0].type === "direct" && n[0].actor_id === U.gio);
+check("Gio gets no notification for his own message", (await rpc("gio", "msg_notifications")).v.length === 0);
+await rpc("tim", "msg_typing", { p_conv: dm });
+c = (await rpc("gio", "msg_overview")).v.find((x) => x.id === dm);
+check("Gio sees Tim typing", c.members.find((m) => m.user_id === U.tim).typing === true);
+await rpc("tim", "msg_mark_read", { p_conv: dm });
+c = (await rpc("tim", "msg_overview")).v.find((x) => x.id === dm);
+check("reading clears the unread count", c.unread === 0);
+check("...and the notification", (await rpc("tim", "msg_notifications")).v.every((x) => x.is_read));
+c = (await rpc("gio", "msg_overview")).v.find((x) => x.id === dm);
+check("Gio can see Tim read it (read receipt)", c.members.find((m) => m.user_id === U.tim).last_read_at >= h[0].created_at);
+const timNote = (await rpc("tim", "msg_notifications")).v[0].id;
+r = await sel("omar", "update public.message_notifications set is_read = false where id = $1 returning id", [timNote]);
+check("nobody can touch someone else's notifications", Array.isArray(r) && r.length === 0, r);
+r = await sel("tim", "update public.message_notifications set user_id = $2 where id = $1", [timNote, U.omar]);
+check("notifications can only be marked read, nothing else", r.ok === false, r);
+
+console.log("4. groups");
+r = await rpc("gio", "msg_create_group", { p_name: "  Sales floor ", p_description: "Daily wins", p_members: [U.tim, U.james, U.akbar, U.gone] });
+const g = r.v; check("create a group", r.ok && g, r);
+c = (await rpc("gio", "msg_overview")).v.find((x) => x.id === g);
+check("group has the right name, owner and members (deactivated people skipped)", c.name === "Sales floor" && c.role === "owner" && c.members.length === 4 && !c.members.some((m) => m.user_id === U.gone), c);
+h = (await rpc("tim", "msg_history", { p_conv: g })).v;
+check("a 'created the group' system message is there", h[0].message_type === "system" && h[0].meta.action === "created");
+check("new members get a notification", (await rpc("akbar", "msg_notifications")).v.some((x) => x.type === "member" && x.conversation_id === g));
+check("Jaylen can't see the group yet", (await rpc("jaylen", "msg_history", { p_conv: g })).v.length === 0);
+check("group needs a name", !(await rpc("gio", "msg_create_group", { p_name: " ", p_members: [] })).ok);
+r = await rpc("tim", "msg_add_members", { p_conv: g, p_users: [U.jaylen] });
+check("a member adds Jaylen", r.ok && r.v === 1, r);
+check("Jaylen now sees the group's history", (await rpc("jaylen", "msg_history", { p_conv: g })).v.length >= 2);
+check("...but still not Gio and Tim's private chat", (await rpc("jaylen", "msg_history", { p_conv: dm })).v.length === 0);
+check("you can't add people to a direct chat", !(await rpc("gio", "msg_add_members", { p_conv: dm, p_users: [U.omar] })).ok);
+await rpc("tim", "msg_update_group", { p_conv: g, p_name: "Sales team" });
+c = (await rpc("akbar", "msg_overview")).v.find((x) => x.id === g);
+check("rename shows for everyone, with a system message", c.name === "Sales team" && c.last.meta.action === "renamed");
+check("only https picture links are accepted", !(await rpc("tim", "msg_update_group", { p_conv: g, p_avatar_url: "javascript:alert(1)" })).ok);
+check("Omar (not a member) can't rename it", !(await rpc("omar", "msg_update_group", { p_conv: g, p_name: "Hacked" })).ok);
+
+console.log("5. mentions, @everyone, replies, mute");
+await rpc("akbar", "msg_set_prefs", { p_conv: g, p_muted: true });
+r = await rpc("gio", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: `<@${U.tim}> and <@${U.omar}> check this`, p_mentions: [U.tim, U.omar] });
+const mm = r.v.id;
+h = (await rpc("tim", "msg_get", { p_ids: [mm] })).v[0];
+check("mentions are stored as structured references (members only)", JSON.stringify(h.mentions) === JSON.stringify([U.tim]), h.mentions);
+check("Tim got a mention notification", (await rpc("tim", "msg_notifications")).v.some((x) => x.message_id === mm && x.type === "mention"));
+check("Omar (not in the group) got nothing, so the group stays private", (await rpc("omar", "msg_notifications")).v.length === 0);
+check("plain group messages don't notify muted Akbar", !(await rpc("akbar", "msg_notifications")).v.some((x) => x.message_id === mm));
+c = (await rpc("tim", "msg_overview")).v.find((x) => x.id === g);
+check("Tim's mention counter", c.mentions === 1 && c.unread >= 1, c);
+check("the Mentions list finds it", (await rpc("tim", "msg_mentions")).v.some((x) => x.id === mm));
+r = await rpc("tim", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "<@everyone> standup!", p_everyone: true });
+check("@everyone is for the group owner/admins (Tim is a member)", !r.ok && /everyone/.test(r.error), r);
+r = await rpc("gio", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "<@everyone> standup in 5", p_everyone: true });
+const ev = r.v.id;
+check("the owner can use @everyone", r.ok);
+check("@everyone reaches members", (await rpc("james", "msg_notifications")).v.some((x) => x.message_id === ev && x.type === "everyone"));
+check("...but a muted member isn't pinged", !(await rpc("akbar", "msg_notifications")).v.some((x) => x.message_id === ev));
+r = await rpc("akbar", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "on my way" }); const am = r.v.id;
+r = await rpc("james", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "great", p_reply_to: am, p_mentions: [U.akbar] });
+check("a direct mention still reaches a muted person", (await rpc("akbar", "msg_notifications")).v.some((x) => x.message_id === r.v.id && x.type === "mention"));
+r = await rpc("tim", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "agreed", p_reply_to: ev });
+check("replying notifies the original sender", (await rpc("gio", "msg_notifications")).v.some((x) => x.message_id === r.v.id && x.type === "reply"));
+h = (await rpc("gio", "msg_get", { p_ids: [r.v.id] })).v[0];
+check("a reply carries a preview of the original", h.reply && h.reply.id === ev && h.reply.content.includes("standup"));
+check("you can't reply to a message from another chat", !(await rpc("tim", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "x", p_reply_to: m1 })).ok);
+
+console.log("6. reactions, edit, delete, pins");
+check("react", (await rpc("tim", "msg_react", { p_id: mm, p_emoji: "👍" })).ok && (await rpc("akbar", "msg_react", { p_id: mm, p_emoji: "👍" })).ok && (await rpc("tim", "msg_react", { p_id: mm, p_emoji: "🔥" })).ok);
+h = (await rpc("gio", "msg_get", { p_ids: [mm] })).v[0];
+check("two people on 👍, one on 🔥", h.reactions.filter((x) => x.emoji === "👍").length === 2 && h.reactions.filter((x) => x.emoji === "🔥").length === 1);
+await rpc("tim", "msg_react", { p_id: mm, p_emoji: "👍", p_on: false });
+h = (await rpc("gio", "msg_get", { p_ids: [mm] })).v[0];
+check("pressing it again removes only your own reaction", h.reactions.filter((x) => x.emoji === "👍").length === 1 && h.reactions.find((x) => x.emoji === "👍").user_id === U.akbar);
+check("Omar can't react in a group he isn't in", !(await rpc("omar", "msg_react", { p_id: mm, p_emoji: "👍" })).ok);
+check("nobody can add a reaction as someone else", (await sel("tim", "insert into public.message_reactions (message_id, user_id, emoji, conversation_id) values ($1, $2, '😂', $3)", [mm, U.akbar, g])).ok === false);
+check("emoji with markup is refused", !(await rpc("tim", "msg_react", { p_id: mm, p_emoji: "<b>" })).ok);
+check("Tim can't edit Gio's message", !(await rpc("tim", "msg_edit", { p_id: mm, p_content: "lol" })).ok);
+check("Gio edits his own", (await rpc("gio", "msg_edit", { p_id: mm, p_content: `<@${U.tim}> check this (updated)`, p_mentions: [U.tim] })).ok);
+h = (await rpc("tim", "msg_get", { p_ids: [mm] })).v[0];
+check("edited text and 'edited' mark", h.content.endsWith("(updated)") && h.edited_at);
+check("pin", (await rpc("tim", "msg_pin", { p_id: mm })).ok);
+check("pins list", (await rpc("akbar", "msg_pins", { p_conv: g })).v[0].id === mm);
+check("Omar can't pin in a group he isn't in", !(await rpc("omar", "msg_pin", { p_id: mm })).ok);
+check("Tim can't delete Gio's message", !(await rpc("tim", "msg_delete", { p_id: mm })).ok);
+r = await rpc("james", "msg_delete", { p_id: mm });
+check("a Leafline admin can remove any message", r.ok);
+h = (await rpc("tim", "msg_get", { p_ids: [mm] })).v[0];
+check("deleted: text, reactions and pin are gone, the line stays", h.deleted_at && h.content === "" && h.reactions.length === 0 && !h.pinned);
+
+console.log("7. files (private bucket)");
+const own = `${g}/${U.tim}/${uuid()}-quote.pdf`;
+r = await sel("tim", "insert into storage.objects (bucket_id, name, owner) values ('message-files', $1, $2)", [own, U.tim]);
+check("a member uploads into the group's folder", Array.isArray(r), r);
+check("...but not into someone else's folder", (await sel("tim", "insert into storage.objects (bucket_id, name) values ('message-files', $1)", [`${g}/${U.gio}/x.pdf`])).ok === false);
+check("...and not into a chat he isn't in", (await sel("omar", "insert into storage.objects (bucket_id, name) values ('message-files', $1)", [`${g}/${U.omar}/x.pdf`])).ok === false);
+check("folder name that isn't a chat id is refused", (await sel("tim", "insert into storage.objects (bucket_id, name) values ('message-files', $1)", [`nope/${U.tim}/x.pdf`])).ok === false);
+r = await rpc("tim", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "", p_attachments: JSON.stringify([{ path: own, name: "quote.pdf", type: "application/pdf", size: 12345 }]) });
+const fm = r.v && r.v.id; check("send a file on its own", r.ok, r);
+check("members can open it", (await sel("akbar", "select name from storage.objects where name = $1", [own])).length === 1);
+check("Omar can't", (await sel("omar", "select name from storage.objects where name = $1", [own])).length === 0);
+check("shared files list", (await rpc("jaylen", "msg_files", { p_conv: g })).v.some((f) => f.name === "quote.pdf" && f.size === 12345));
+check("you can't attach a file from another chat's folder", !(await rpc("gio", "msg_send", { p_conv: dm, p_client_op_id: uuid(), p_content: "x", p_attachments: JSON.stringify([{ path: own, name: "a" }]) })).ok);
+check("you can't attach a file that was never uploaded", !(await rpc("tim", "msg_send", { p_conv: g, p_client_op_id: uuid(), p_content: "x", p_attachments: JSON.stringify([{ path: `${g}/${U.tim}/ghost.pdf`, name: "a" }]) })).ok);
+r = await rpc("tim", "msg_delete", { p_id: fm });
+check("deleting the message hands back its files to remove", r.ok && r.v.files[0] === own);
+check("...and nobody can read the file any more", (await sel("akbar", "select name from storage.objects where name = $1", [own])).length === 0);
+
+console.log("8. membership changes");
+check("a member can't remove someone", !(await rpc("tim", "msg_remove_member", { p_conv: g, p_user: U.akbar })).ok);
+check("the owner removes Akbar", (await rpc("gio", "msg_remove_member", { p_conv: g, p_user: U.akbar })).ok);
+check("Akbar can no longer read the group", (await rpc("akbar", "msg_history", { p_conv: g })).v.length === 0 && !(await rpc("akbar", "msg_overview")).v.some((x) => x.id === g));
+check("...and his notifications from it are gone", !(await rpc("akbar", "msg_notifications")).v.some((x) => x.conversation_id === g));
+check("Tim leaves", (await rpc("tim", "msg_remove_member", { p_conv: g, p_user: U.tim })).ok);
+h = (await rpc("gio", "msg_history", { p_conv: g, p_limit: 3 })).v;
+check("'left' and 'removed' show as system messages", h[0].meta.action === "left" && h.some((x) => x.meta.action === "removed"));
+check("the owner leaving hands the group to the longest member", (await rpc("gio", "msg_remove_member", { p_conv: g, p_user: U.gio })).ok
+  && (await rpc("james", "msg_overview")).v.find((x) => x.id === g).role === "owner");
+check("you can't leave a direct chat (archive it instead)", !(await rpc("gio", "msg_remove_member", { p_conv: dm, p_user: U.gio })).ok);
+check("archive / pin / mute your own view", (await rpc("gio", "msg_set_prefs", { p_conv: dm, p_pinned: true, p_archived: true })).ok
+  && (await rpc("gio", "msg_overview")).v.find((x) => x.id === dm).archived === true);
+check("a new message brings an archived chat back", (await rpc("tim", "msg_send", { p_conv: dm, p_client_op_id: uuid(), p_content: "ping" })).ok
+  && (await rpc("gio", "msg_overview")).v.find((x) => x.id === dm).archived === false);
+
+console.log("9. search and paging");
+await rpc("gio", "msg_start_direct", { p_other: U.omar });
+const go = (await rpc("gio", "msg_overview")).v.find((x) => x.type === "direct" && x.members.some((m) => m.user_id === U.omar)).id;
+await rpc("gio", "msg_send", { p_conv: go, p_client_op_id: uuid(), p_content: "secret pricing for omar" });
+await rpc("gio", "msg_send", { p_conv: dm, p_client_op_id: uuid(), p_content: "pricing sheet for tim" });
+let s = (await rpc("tim", "msg_search", { p_q: "pricing" })).v;
+check("search finds matches in your own chats only", s.length === 1 && s[0].content.includes("tim"), s.map((x) => x.content));
+check("search treats % and _ literally", (await rpc("tim", "msg_search", { p_q: "%%" })).v.length === 0);
+for (let i = 0; i < 55; i++) await rpc("gio", "msg_send", { p_conv: go, p_client_op_id: uuid(), p_content: "line " + i });
+const p1 = (await rpc("omar", "msg_history", { p_conv: go, p_limit: 40 })).v;
+const last = p1[p1.length - 1];
+const p2 = (await rpc("omar", "msg_history", { p_conv: go, p_before: last.created_at, p_before_id: last.id, p_limit: 40 })).v;
+check("paging: 40 newest, then the older rest, no overlap", p1.length === 40 && p2.length === 16 && !p2.some((x) => p1.some((y) => y.id === x.id)), [p1.length, p2.length]);
+const a = (await rpc("omar", "msg_around", { p_id: p1[20].id, p_each: 5 })).v;
+check("jump to a message loads the messages around it", a.some((x) => x.id === p1[20].id) && a.length >= 9);
+
+console.log("10. online status (database clock)");
+await db.query("update public.profiles set last_seen = now() where id = $1", [U.tim]);
+await db.query("update public.profiles set last_seen = now() - interval '10 minutes' where id = $1", [U.omar]);
+const pres = Object.fromEntries((await rpc("gio", "msg_presence")).v.map((x) => [x.id, x.online]));
+check("online = seen in the last 2 minutes by the database's own clock", pres[U.tim] === true && pres[U.omar] === false && !(U.gone in pres));
+check("signed-out visitors can't list who is online", !(await rpc(null, "msg_presence")).ok);
+
+console.log(`\n${ok} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

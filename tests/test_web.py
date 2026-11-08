@@ -38,7 +38,7 @@ def wait(pg, js, t=8000): pg.wait_for_function(js, timeout=t)
 with sync_playwright() as p:
     br = p.chromium.launch(executable_path=os.environ.get("LEAFLINE_CHROME", "/usr/bin/google-chrome"), args=["--no-sandbox"])
     ctx = br.new_context(viewport={"width": 1440, "height": 900}); pg = ctx.new_page()
-    pg.on("console", lambda m: errs.append(m.text) if m.type == "error" and "ERR_EMPTY_RESPONSE" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text and "Failed to fetch" not in m.text and "fonts/" not in m.text and "403" not in m.text and "401" not in m.text and "favicon" not in m.text else None)
+    pg.on("console", lambda m: errs.append(m.text) if m.type == "error" and "ERR_EMPTY_RESPONSE" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text and "Failed to fetch" not in m.text and "fonts/" not in m.text and "403" not in m.text and "status of 404" not in m.text and "401" not in m.text and "favicon" not in m.text else None)
     pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("dialog", lambda d: d.accept())
     pg.on("response", lambda r: print("   HTTP", r.status, r.url[:140]) if r.status in (400, 404) and "favicon" not in r.url else None)
     print("1. sign in")
