@@ -12,7 +12,7 @@ from urllib.parse import urlparse, parse_qs
 class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
-        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions")}
+        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings")}
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
         self.down = False; self.done_cap = True; self.avatar_cap = True; self.pext_cap = True; self.drop_next_write = False; self.expire_tokens = False; self.n = 0
@@ -141,6 +141,17 @@ class Fake:
             def rest(s, method, tbl, q, body, uid):
                 if tbl.startswith("rpc/msg_"):           # Messages (migration 8) not run here: answer like Supabase does
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                if tbl.startswith("rpc/note_"):          # note reactions are tested on real Postgres (tests/pg)
+                    return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                if tbl in ("rpc/me_settings_get", "rpc/me_settings_set"):   # mirrors migration 9: own row only
+                    if not getattr(F, "settings_cap", True): return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                    if not uid: return s.reply(401, {"message": "JWT"})
+                    row = next((r for r in F.t["user_settings"] if r["user_id"] == uid), None)
+                    if tbl.endswith("_set"):
+                        if not isinstance(body.get("p_data"), dict): return s.reply(400, {"code": "P0001", "message": "Settings must be an object"})
+                        if not row: row = dict(user_id=uid, data={}); F.t["user_settings"].append(row)
+                        row["data"] = {**row["data"], **body["p_data"]}; row["updated_at"] = F.now()
+                    return s.reply(200, {"data": row["data"], "updated_at": row["updated_at"]} if row else {})
                 if tbl == "rpc/reassign_credit":        # mirrors public.reassign_credit() (migration 6)
                     if not F.credit_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function"})
                     me = uid; to = body["p_to"]; prof = {p["id"]: p for p in F.t["profiles"]}

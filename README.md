@@ -95,6 +95,24 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.8: dashboard, profiles and speed
+- **Dashboard banner:** the small pictures are gone. It keeps your greeting and the Find new leads / Start calling
+  button, and adds your call streak and an **Up next** list: your businesses waiting for a call back (interested first,
+  then no answer, longest-waiting first). Tap one to open it, or the phone button to call / copy the number.
+  The Made in ... box is wider.
+- **Email and phone now save everywhere.** They used to be kept only on the device where you typed them, so the
+  website, the desktop app and other computers each looked empty. Needs the 9th database update (RUN_IN_SUPABASE.sql).
+  Either Save button on Settings now saves both cards.
+- **Crop your profile picture** when you add it: drag to move, zoom with the slider, mouse wheel or a pinch.
+- **Notes and scripts:** a Dark page / Light page switch (like dark mode in Google Docs), and reactions on notes and
+  scripts shared with the whole team (9th database update).
+- **Faster chats:** the chat list and recent messages show at once from a copy on your device while news loads;
+  chat pictures keep their links for 3 hours so they come from the browser's cache; off-screen pictures wait until
+  you scroll to them; profile pictures are no longer copied into every message, card and row.
+- **Fixes:** leaderboard positions read 1, 2, 3... instead of everyone on the same total showing "#2"; the theme
+  buttons are centred; Team cards no longer cut off "Online/Offline" or long bios; the call notes box has room to
+  write; the chat box no longer draws a second outline; a little more glow around the app.
+
 ## What is new in 11.7: polish pass
 - The Leafline logo now sits in the top-left corner for everyone (sidebar on computers, top bar on phones). Your own
   picture stays where your account lives: under the logo in the sidebar, and at the right end of the phone's top bar.

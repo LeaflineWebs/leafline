@@ -630,7 +630,7 @@
     get_people() { return st.people; },
     // ----- Messages (11.4): only the msg_* database functions and the private file bucket; the database enforces every rule
     async sb_rpc(fn, args) {
-      if (!/^msg_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
+      if (!/^(msg|me|note)_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
       try { return { ok: true, data: await call("POST", "/rest/v1/rpc/" + fn, { body: args }) }; } catch (e) { return msgErr(e); }
     },
     async sb_storage(op, paths, opts) {
@@ -791,7 +791,7 @@
       const me = uid(), nm = names();
       return [...st.notes.values()].filter((n) => n.scope === "shared" || n.owner_id === me || !n.owner_id).sort((a, b) => cmpName(a.title, b.title)).map((n) => ({
         id: n.id, kind: n.kind, scope: n.scope, title: n.title || "Untitled", folder: n.folder, body: n.body, owner_id: n.owner_id || me, owner: nm[n.owner_id || me] || "You", mine: (n.owner_id || me) === me,
-        created: isoToLocal(n.created_at), unsynced: LS.get("lf_outbox", []).some((o) => o.table === "notes" && String(o.id) === n.uuid) }));
+        created: isoToLocal(n.created_at), rid: n.uuid || "", unsynced: LS.get("lf_outbox", []).some((o) => o.table === "notes" && String(o.id) === n.uuid) }));
     },
     save_note(d) {
       if (!d || typeof d !== "object") return fail("Nothing to save.");

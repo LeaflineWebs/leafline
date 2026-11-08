@@ -134,7 +134,9 @@ MSG_CSS = r'''
 .mx-new{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);padding:7px 14px;border-radius:16px;background:var(--accent);color:var(--accent-text);font-size:12.5px;font-weight:800;box-shadow:0 8px 20px var(--glow-soft);z-index:4;animation:fadeup .3s var(--e-out)}
 /* composer */
 .mx-comp{margin:2px 10px 0 14px;border-radius:18px;background:var(--card);border:1px solid var(--line2);box-shadow:0 10px 30px rgba(0,0,0,.25);transition:border-color var(--d-hover) var(--e-out)}
-.mx-comp:focus-within{border-color:var(--accent-line)}
+.mx-comp:focus-within{border-color:var(--accent-line);box-shadow:0 10px 30px rgba(0,0,0,.25),0 0 0 3px var(--accent-soft),0 0 24px var(--glow-soft)}
+/* the box itself shows focus; the text area inside must not draw a second outline */
+.mx-ta:focus,.mx-ta:focus-visible{outline:none;box-shadow:none;border:0;transform:none}
 .mx-comp.drag{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .mx-rpl{display:flex;align-items:center;gap:8px;padding:8px 12px 0;font-size:12.5px;color:var(--muted)}
 .mx-rpl .ic{width:15px;height:15px;color:var(--accent-hi)}.mx-rpl span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mx-rpl b{color:var(--text2)}
@@ -382,7 +384,7 @@ async function mxOverview(force){
   if(!force&&Date.now()-MX.lastOv<700)return;MX.lastOv=Date.now();
   const r=await mxRpc("msg_overview");
   if(!r.ok){MX.err=r.missing?"":r.error||"";if(S.page==="msgs")mxPaintList();mxBadges();return}
-  MX.err="";MX.missing=false;MX.convs=r.data||[];MX.byId={};MX.convs.forEach(c=>{MX.byId[c.id]=c;
+  MX.err="";MX.missing=false;MX.convs=r.data||[];MXC.save();MX.byId={};MX.convs.forEach(c=>{MX.byId[c.id]=c;
     (c.members||[]).forEach(m=>{if(m.typing&&m.user_id!==mxMe()){MX.typing[c.id]=MX.typing[c.id]||{};MX.typing[c.id][m.user_id]=Date.now()+6000}})});
   if(MX.cur&&!MX.byId[MX.cur]&&!String(MX.cur).startsWith("new:")){MX.cur=null;if(S.page==="msgs")mxRender()}
   mxBadges();if(S.page==="msgs"){mxPaintList();mxPaintHead();mxPaintTyping();if(MX.info)mxPaintInfo();mxPaintReceipts()}
@@ -454,9 +456,9 @@ function mxChange(d){
   else mxOvSoon(300);
 }
 function mxTick(){
-  if(!MX.started){if(S.ready&&S.me){MX.started=true;MX.noteIds=null;MX.missing=false;
+  if(!MX.started){if(S.ready&&S.me){MX.started=true;MX.noteIds=null;MX.missing=false;MX.uid=mxMe();MXC.restore();
       mxOverview(true).then(()=>{if(MX.missing)return;mxPresence();mxNotes();mxConnect();mxFlushOut()})}return}
-  if(!S.me){mxStop();return}
+  if(!S.me){if(MX.uid)MXC.clear(MX.uid);MX.uid=null;mxStop();return}
   const now=Date.now(),here=S.page==="msgs"&&!document.hidden;
   if(MX.missing){if(now-MX.lastOv>300000)mxOverview(true).then(()=>{if(!MX.missing){mxPresence();mxNotes();mxConnect()}});return}   /* 8th update not run: stay quiet, re-check now and then */
   if(!MX.live){if(here&&now-MX.lastOv>4000){mxOverview(true);if(MX.cur)mxNewer(MX.cur)}else if(!here&&now-MX.lastOv>(document.hidden?60000:20000))mxOverview(true);
@@ -474,8 +476,23 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&MX.starte
 
 /* ---------- threads ---------- */
 const mxT=cid=>MX.threads[cid]||(MX.threads[cid]={list:[],more:true,loaded:false,loading:false,gap:false});
+/* ---------- local copy of your chats (this device only, cleared when you sign out) ----------
+   The chat list and the latest messages of recent chats show instantly from here while the server is asked for news. */
+const MXC={key:()=>"lf_mxc_"+mxMe(),skey:()=>"lf_mxs_"+mxMe(),t:0,st:0,
+  get(){try{return JSON.parse(localStorage.getItem(this.key())||"null")}catch(e){return null}},
+  save(){clearTimeout(this.t);this.t=setTimeout(()=>{if(!S.me||MX.missing)return;
+    const th={};Object.entries(MX.threads).filter(([c,t])=>t.loaded&&t.list.length).sort((a,b)=>(b[1].at||0)-(a[1].at||0)).slice(0,12)
+      .forEach(([c,t])=>th[c]=t.list.slice(-30));
+    let v=JSON.stringify({ov:MX.convs,th});if(v.length>1500000)v=JSON.stringify({ov:MX.convs,th:{}});
+    try{localStorage.setItem(this.key(),v)}catch(e){try{localStorage.removeItem(this.key())}catch(x){}}},1200)},
+  saveSigned(){clearTimeout(this.st);this.st=setTimeout(()=>{const now=Date.now(),o={};Object.entries(MX.signed).forEach(([p,v])=>{if(v.exp>now)o[p]=v});
+    try{localStorage.setItem(this.skey(),JSON.stringify(o))}catch(e){}},800)},
+  restore(){const c=this.get();if(c&&Array.isArray(c.ov)&&!MX.convs.length){MX.convs=c.ov;MX.byId={};MX.convs.forEach(x=>MX.byId[x.id]=x);MX.cache=c.th||{};mxBadges();if(S.page==="msgs")mxRender()}
+    try{const s=JSON.parse(localStorage.getItem(this.skey())||"{}"),now=Date.now();Object.entries(s).forEach(([p,v])=>{if(v&&v.exp>now&&v.url)MX.signed[p]=v})}catch(e){}},
+  thread(cid){const l=MX.cache&&MX.cache[cid];return Array.isArray(l)&&l.length?l:null},
+  clear(uid){try{localStorage.removeItem("lf_mxc_"+uid);localStorage.removeItem("lf_mxs_"+uid)}catch(e){}}};
 function mxMerge(cid,msgs){const t=mxT(cid),by=new Map(t.list.map(m=>[m.id,m]));msgs.forEach(m=>by.set(m.id,m));
-  t.list=[...by.values()].sort((a,b)=>a.created_at<b.created_at?-1:a.created_at>b.created_at?1:a.id<b.id?-1:1);
+  t.list=[...by.values()].sort((a,b)=>a.created_at<b.created_at?-1:a.created_at>b.created_at?1:a.id<b.id?-1:1);t.at=Date.now();MXC.save();
   const ops=new Set(msgs.map(m=>m.client_op_id).filter(Boolean));if(ops.size)mxOutSet(mxOut().filter(x=>!ops.has(x.op)))}
 async function mxFetch(cid,ids){const r=await mxRpc("msg_get",{p_ids:ids});if(!r.ok)return;
   const fresh=(r.data||[]).filter(m=>!mxT(cid).list.some(x=>x.id===m.id));mxMerge(cid,r.data||[]);
@@ -640,7 +657,7 @@ function mxMsgHTML(m,prev,c){
   const del=!!m.deleted_at,pend=m._pend;
   const body=del?`<div class="mb"><span>This message was deleted</span></div>`
     :(m.content.trim()?`<div class="mb${mxOnlyEmoji(m.content)&&!(m.attachments||[]).length?" only-emoji":""}">${mxFmt(m.content)}${m.edited_at?`<span class="ed" title="Edited ${esc(new Date(m.edited_at).toLocaleString())}">(edited)</span>`:""}</div>`:"");
-  const files=del?"":(m.attachments||[]).map(a=>mxIsImg(a.type)?`<button class="mm-img" data-img="${esc(a.path)}" data-name="${esc(a.name)}" aria-label="Open ${esc(a.name)}"><img data-sp="${esc(a.path)}" alt="${esc(a.name)}"${MX.signed[a.path]?` src="${esc(MX.signed[a.path].url)}"`:""}></button>`
+  const files=del?"":(m.attachments||[]).map(a=>mxIsImg(a.type)?`<button class="mm-img" data-img="${esc(a.path)}" data-name="${esc(a.name)}" aria-label="Open ${esc(a.name)}"><img data-sp="${esc(a.path)}" alt="${esc(a.name)}" loading="lazy" decoding="async"${MX.signed[a.path]?` src="${esc(MX.signed[a.path].url)}"`:""}></button>`
     :`<button class="mm-file" data-dl="${esc(a.path)}" data-name="${esc(a.name)}" title="Download ${esc(a.name)}"><span class="fi">${esc(mxExt(a.name))}</span><span class="fn"><b>${esc(a.name)}</b><span>${esc(mxSize(a.size||0))}${a._prog!==undefined?" · uploading":""}</span></span>${ic("down")}</button>`).join("");
   const rx={};(m.reactions||[]).forEach(r=>{(rx[r.emoji]=rx[r.emoji]||[]).push(r.user_id)});
   const rxh=Object.keys(rx).length?`<div class="mm-rx">${Object.entries(rx).map(([e,us])=>`<button data-rx="${esc(e)}" class="${us.includes(mxMe())?"on":""}" title="${esc(us.map(mxName).join(", "))} reacted with ${esc(e)}" aria-label="${esc(e)} ${us.length}">${esc(e)}<b>${us.length}</b></button>`).join("")}<button data-rxp aria-label="Add reaction" title="Add reaction">${ic("plus")}</button></div>`:"";
@@ -661,7 +678,8 @@ function mxPendingFor(cid){return mxOut().filter(x=>x.conv===cid).map(x=>({id:"p
 function mxPaintMsgs(o={}){
   const sc=$("#mxScroll"),c=MX.byId[MX.cur];if(!sc||!c)return;const t=mxT(c.id);
   if(o.error&&!t.list.length){sc.innerHTML=`<div class="mx-empty"><b>Couldn't load this chat</b>${esc(o.error)}<button class="btn" data-again style="margin-top:6px">Try again</button></div>`;$("[data-again]",sc).onclick=()=>mxLoad(c.id);return}
-  if(!t.loaded){sc.innerHTML=`<div class="mx-sk">${"<i></i>".repeat(6)}</div>`;return}
+  if(!t.loaded&&!t.list.length){const c0=MXC.thread(c.id);if(c0){t.list=c0.slice();t.more=c0.length>=30}}
+  if(!t.loaded&&!t.list.length){sc.innerHTML=`<div class="mx-sk">${"<i></i>".repeat(6)}</div>`;return}
   const atBottom=o.bottom||sc.scrollHeight-sc.scrollTop-sc.clientHeight<80,keepTop=sc.scrollTop;
   const all=[...t.list,...mxPendingFor(c.id).filter(p=>!t.list.some(m=>m.client_op_id===p.client_op_id))];
   let html=t.more?`<button class="mx-more" data-older>${t.loading?"Loading…":"Load earlier messages"}</button>`:`<div class="mx-sys" style="margin:4px 0 14px">${c.type==="group"?`This is the start of <b>${esc(c.name)}</b>.`:`This is the start of your conversation with <b>${esc(mxTitle(c))}</b>.`}</div>`;
@@ -684,10 +702,11 @@ function mxPaintReceipts(){
   el.innerHTML=c.type==="direct"?`<div class="mm-st">${seen.length?"Read "+esc(mxTime(seen[0].last_read_at)):"Delivered"}</div>`
     :`<div class="mm-st">${seen.length?`<span class="rd">${seen.slice(0,5).map(m=>mxPAv(m.user_id,"xs")).join("")}</span>Seen by ${seen.length===others.length?"everyone":seen.length}`:"Delivered"}</div>`}
 
-/* signed links for pictures and files: private bucket, short-lived links, cached a little under their lifetime */
+/* signed links for pictures and files: private bucket, links valid 3 hours, cached a little under that and kept across
+   restarts. Reusing the same link lets the browser serve the picture from its own cache instead of downloading it again. */
 async function mxSign(paths){const need=paths.filter(p=>!MX.signed[p]||MX.signed[p].exp<Date.now());if(!need.length)return true;
-  for(let i=0;i<need.length;i+=50){const r=await api("sb_storage","sign",need.slice(i,i+50),{expires:3600}).catch(()=>null);if(!r||!r.ok)return false;
-    Object.entries(r.urls||{}).forEach(([p,u])=>{if(u)MX.signed[p]={url:u,exp:Date.now()+50*60e3}})}return true}
+  for(let i=0;i<need.length;i+=50){const r=await api("sb_storage","sign",need.slice(i,i+50),{expires:10800}).catch(()=>null);if(!r||!r.ok)return false;
+    Object.entries(r.urls||{}).forEach(([p,u])=>{if(u)MX.signed[p]={url:u,exp:Date.now()+170*60e3}})}MXC.saveSigned();return true}
 async function mxSignVisible(){const imgs=$$("#mxScroll img[data-sp]").filter(i=>!i.getAttribute("src"));if(!imgs.length)return;
   await mxSign([...new Set(imgs.map(i=>i.dataset.sp))]);imgs.forEach(i=>{const s=MX.signed[i.dataset.sp];if(s)i.src=s.url})}
 async function mxDownload(path,name){if(!(await mxSign([path]))||!MX.signed[path])return toast("Couldn't open that file. You may no longer have access to it.",{bad:1});

@@ -105,3 +105,15 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000008_me
 - No new environment variables or keys. The app keeps using the publishable key and each person's own sign-in.
 - Group pictures go into the existing public `media` bucket (from migration 5), in the uploader's own folder.
 - Until it is run, the Messages page explains that this update is needed; everything else keeps working.
+
+## Ninth migration (Leafline 11.8: account details on every device, reactions on shared notes)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000009_user_settings.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.)
+- Adds one private table, `user_settings`: each person can read and write only their own row (admins included).
+  It holds what you type in Settings > Account (name, email, phone, company, role, country, goals), so it shows
+  up on the website, the desktop app and any other computer you sign in on.
+- Two functions, `me_settings_get` and `me_settings_set`, run as the signed-in person, so the privacy rule always applies.
+- Also adds `note_reactions`: teammates can react (👍 🔥 💡 🎉 ❤️ 😂) to notes and scripts shared with the whole team.
+  Reactions only change through `note_react`, which checks the note is shared and the person is an active teammate.
+- Nothing existing is changed. Until it is run, account details stay on the device where they were typed and
+  the reaction bar stays hidden.

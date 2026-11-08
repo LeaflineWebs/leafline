@@ -944,9 +944,10 @@ class Api:
             rows = self._db.execute("SELECT id,kind,scope,title,folder,body,owner_id,created_at FROM notes "
                                     "WHERE scope='shared' OR owner_id=? OR owner_id='' ORDER BY title COLLATE NOCASE", (uid,)).fetchall()
             upd = {r[0]: r[1] for r in self._db.execute("SELECT local_id,queued_at FROM outbox WHERE tbl='notes'")}
+            rid = {r[0]: r[1] for r in self._db.execute("SELECT local_id,remote_id FROM sync_meta WHERE tbl='notes' AND remote_id!=''")}
         return [dict(id=r[0], kind=r[1], scope=r[2], title=r[3] or "Untitled", folder=r[4] or "", body=r[5] or "",
                      owner_id=r[6] or uid, owner=names.get(r[6] or uid, "You"), mine=(r[6] or uid) == uid, created=r[7] or "",
-                     unsynced=str(r[0]) in upd) for r in rows]
+                     unsynced=str(r[0]) in upd, rid=rid.get(str(r[0]), "")) for r in rows]
 
     def save_note(self, d):
         if not isinstance(d, dict):
@@ -1695,6 +1696,34 @@ label.l{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin
 .banner:before{content:"";position:absolute;right:-60px;top:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%)}
 .banner h2{font-size:25px;font-weight:800;letter-spacing:-.3px}
 .banner p{margin:8px 0 14px;font-size:15px;color:var(--text2);max-width:430px}
+/* dashboard hero (11.8): greeting + streak + button | callback queue | money made (wider) */
+.banner.hero{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(320px,400px);align-items:stretch;gap:22px;padding:26px 30px}
+.banner.hero>div:first-child{display:flex}
+.banner.hero:after{content:"";position:absolute;left:-120px;bottom:-160px;width:420px;height:320px;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--accent-rgb),.22),transparent);pointer-events:none}
+.hz-g{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.hz-g h2{text-shadow:0 0 28px var(--glow-soft)}
+.hz-g p{margin:6px 0 12px}
+.hz-stk{margin:0 0 16px;padding:12px 14px 10px;border:1px solid var(--line);border-radius:18px;background:rgba(0,0,0,.16);max-width:460px}
+.hz-g .btn.pri{align-self:flex-start;box-shadow:var(--hi),0 8px 22px var(--glow-soft),0 0 30px var(--glow-soft)}
+.hz-q{position:relative;z-index:1;display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px;border-radius:24px;background:rgba(0,0,0,.18);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.hz-qh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px 2px}
+.hz-qh h3{font-size:15px;font-weight:800}.hz-qh span{font-size:12px;font-weight:700;color:var(--muted)}
+.hz-qi{display:flex;align-items:center;gap:10px;min-width:0;padding:9px 10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:transform var(--d-card) var(--e-spring),border-color var(--d-hover) var(--e-out),box-shadow var(--d-hover) var(--e-out)}
+.hz-qi:hover{transform:translateY(-2px);border-color:var(--accent-line);box-shadow:0 8px 20px rgba(0,0,0,.25),0 0 22px var(--glow-soft)}
+.hz-qi:active{transform:scale(.985)}
+.hz-dot{flex:none;width:10px;height:10px;border-radius:50%}
+.hz-dot.yellow{background:#FFD60A;box-shadow:0 0 10px rgba(255,214,10,.7)}.hz-dot.orange{background:#FF9F1C;box-shadow:0 0 10px rgba(255,159,28,.6)}
+.hz-qt{flex:1;min-width:0;display:grid}
+.hz-qt b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hz-qt small{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hz-call{flex:none;height:32px;padding:0 10px;gap:6px;font-size:12px}.hz-call .ic{width:14px;height:14px;color:var(--accent-hi)}
+.hz-qe{flex:1;display:flex;align-items:center;gap:10px;padding:10px;font-size:13px;color:var(--muted)}.hz-qe .ic{width:20px;height:20px;color:var(--accent-hi);flex:none}
+.hz-more{align-self:flex-start;padding:2px 6px;font-size:12.5px;font-weight:700;color:var(--accent-hi);border-radius:8px;transition:color var(--d-hover) var(--e-out)}
+.hz-more:hover{color:var(--text)}
+.banner.hero .mtile{max-width:none;height:100%;display:flex;flex-direction:column;box-shadow:var(--hi),0 10px 24px rgba(0,0,0,.25),0 0 30px var(--glow-soft)}
+.banner.hero .mtile svg{margin-top:auto}
+@media (max-width:1400px){.hz-call span{display:none}.hz-call{width:34px;padding:0;justify-content:center}}
+@media (max-width:1280px){.banner.hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.banner.hero>div:first-child{display:flex}.banner.hero .hz-g{grid-column:1/-1}.hz-stk{max-width:560px}}
 .goal{display:flex;align-items:center;gap:12px;margin-bottom:16px;max-width:430px;font-size:13px;font-weight:600;color:var(--text2)}
 .goal .tr{flex:1;height:10px;border-radius:5px;background:rgba(0,0,0,.28);overflow:hidden}
 .goal .fl{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,var(--bar-mid),var(--bar));transition:width 1.1s var(--spring) .3s}
@@ -1777,6 +1806,8 @@ svg text{font-family:var(--font)}
 .fact .v{font-size:15px;font-weight:600;margin-top:5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;word-break:break-word}
 .fact.span{grid-column:1/-1}
 .fact .inp{height:34px;width:100%;margin-top:4px;background:var(--bg)}
+/* note boxes are text areas: give them room (the 34px input height squeezed them into one cramped line) */
+.fact textarea.inp{height:auto;min-height:108px;padding:10px 14px;line-height:1.5;resize:vertical}
 .mark{margin-top:18px;padding:16px 18px;border-radius:24px;background:rgba(0,0,0,.2)}
 .mark .t{font-size:13.5px;font-weight:700;margin-bottom:10px}
 .sb{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
@@ -2052,6 +2083,18 @@ button.grp[aria-expanded="false"]{color:var(--muted)}button.grp[aria-expanded="f
 .rte.read{line-height:1.7}
 .ntxt{flex:1;min-height:0;width:100%;resize:none;border-radius:18px;border:1px solid var(--line);background:#F7FAF8;color:#17251D;padding:22px 26px;font:inherit;font-size:16px;line-height:1.6}
 .ntxt:focus{outline:0;border-color:var(--accent)}
+.paper,.ntxt{transition:filter var(--d-card) var(--e-out)}
+body.paper-dark .paper,body.paper-dark .ntxt{filter:invert(.9) hue-rotate(180deg)}
+body.paper-dark .paper img,body.paper-dark .rte img{filter:invert(1) hue-rotate(180deg)}
+.nrx{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+.ed-zm{display:inline-flex;gap:inherit;flex:none}
+.nrx[hidden]{display:none}
+.nrx .l{font-size:12px;font-weight:700;color:var(--muted);margin-right:4px}
+.nrx button{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 10px;border-radius:16px;background:var(--panel);border:1px solid var(--line);font-size:15px;line-height:1;transition:transform var(--d-card) var(--e-spring),border-color var(--d-hover) var(--e-out),background-color var(--d-hover) var(--e-out),box-shadow var(--d-hover) var(--e-out)}
+.nrx button:hover{transform:translateY(-2px);border-color:var(--line2)}
+.nrx button.on{background:var(--accent-soft);border-color:var(--accent-line);box-shadow:0 0 14px var(--glow-soft)}
+.nrx button b{font-size:12px;color:var(--text2)}
+.nrx button.pulse{animation:rxp 420ms var(--e-bounce)}
 .nt-empty{display:grid;place-items:center;height:100%;color:var(--muted);text-align:center;padding:30px;line-height:1.6}
 body.focus .side,body.focus .top,body.focus .fnav,body.focus .nt-list{display:none}
 body.focus .app{grid-template-columns:1fr}body.focus .nt{grid-template-columns:1fr;padding-bottom:0}
@@ -2123,6 +2166,11 @@ mark.hit{background:#FFD60A;color:#111;border-radius:3px}
 .crow.dn .cm b{text-decoration:line-through;opacity:.6}
 .evt{display:flex;gap:6px;flex-wrap:wrap}
 .tm-p .tk{font-size:12px;color:var(--muted);margin-top:6px}
+/* Team cards never grow past their column: the name row wraps instead of pushing "Online/Offline" and the bio off the card */
+.tm-people>.tm-p{min-width:0}
+.tm-p h3{flex-wrap:wrap;row-gap:6px;min-width:0}
+.tm-p h3 .st{white-space:nowrap;flex:none}
+.tm-p .psub,.tm-p .pbio,.tm-p .pth,.tm-p .last{overflow-wrap:anywhere}
 
 /* ---- profile extras, updates ---- */
 .accr{display:grid;gap:18px;min-width:0}
@@ -2173,6 +2221,10 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.45;resize:vertical;font
   .fg{grid-template-columns:minmax(0,1fr)}.fg>*{grid-column:auto!important}
   .tm-2,.cal-wrap,.nt,.split{grid-template-columns:minmax(0,1fr)}
   .nt{height:auto;padding-bottom:96px}.nt-list{max-height:260px}
+  /* phone note editor: the card grows with its buttons (they used to spill out under it); title gets its own row */
+  .nt{flex:none;min-height:auto}.nt-ed{height:auto;min-height:0;overflow:visible}
+  .ed-head{flex-wrap:wrap}.ed-title{flex:1 1 100%}
+  .nt-ed .paper,.nt-ed .ntxt{flex:none;min-height:55dvh}
   .ad-t{grid-template-columns:1fr 1fr}
   .tm-tiles{grid-template-columns:1fr 1fr}.tm-people{grid-template-columns:minmax(0,1fr)}
   .ad-t,.stats,.cstats{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cl-f .inp,.cl-f select{width:100%}
@@ -2336,7 +2388,16 @@ img.fade{opacity:0;transition:opacity var(--d-card) var(--e-out)}img.fade.ok{opa
 .lgt .thb:active{transform:scale(.94)}.lgt .thb svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
 .ths{display:inline-block;width:18px;height:18px;border-radius:50%;flex:none;box-shadow:inset 0 1px 1px rgba(255,255,255,.45),0 0 0 1px rgba(0,0,0,.3)}
 .lgt .thb .ths{width:20px;height:20px}
-.top .lgt .thb span{display:none}.top .lgt .thb{padding:0 6px 0 5px;gap:4px}
+/* the theme button sizes to its contents (the shared 34px switcher width squeezed it and pushed it off-centre) */
+.lgt .thb{width:auto;min-width:30px;justify-content:center}
+/* extra glow (11.8): active page in the sidebar, stat cards and cards under the pointer, the logo */
+.nv.on{box-shadow:0 0 0 1px var(--accent-line),0 0 22px var(--glow-soft),0 0 40px var(--glow-soft)}
+@media (hover:hover){.stat:hover,.card:hover{box-shadow:var(--sh),0 0 0 1px var(--accent-line),0 0 34px var(--glow-soft)}}
+.bmk{transition:box-shadow var(--d-card) var(--e-out)}.brand:hover .bmk{box-shadow:0 0 0 1px var(--accent),0 6px 16px rgba(0,0,0,.28),0 0 30px var(--glow)}
+.mtile .fl{box-shadow:0 0 12px rgba(255,229,92,.45)}
+.side .foot .lgt .thb{padding:0 10px 0 5px}
+/* top bar: just the colour dot, centred in a round button */
+.top .lgt .thb span,.top .lgt .thb svg{display:none}.top .lgt .thb{width:30px;padding:0;gap:0}
 .thpop{position:fixed;z-index:200;width:min(372px,calc(100vw - 16px));padding:12px;border-radius:22px;background:var(--card);border:1px solid var(--line2);box-shadow:var(--sh-lg);animation:mpin .18s var(--e-out)}
 .thpop .thh{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);padding:2px 6px 8px}
 .thpop .thg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
@@ -2536,6 +2597,15 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 .mprev .pv-bn{width:100%;aspect-ratio:4/1;border-radius:18px;overflow:hidden;background:var(--av-bg);box-shadow:0 0 0 1px var(--line2)}
 .mprev img{width:100%;height:100%;object-fit:cover;display:block}
 .mprev .meta{font-size:12.5px;color:var(--muted)}
+/* profile picture cropper: drag to move, slider / wheel / pinch to zoom; the ring shows what the team will see */
+.crop{position:relative;width:240px;height:240px;border-radius:26px;overflow:hidden;background:#000;touch-action:none;cursor:grab;box-shadow:0 0 0 1px var(--line2),0 0 30px var(--glow-soft);outline:none}
+.crop:focus-visible{box-shadow:0 0 0 2px var(--accent),0 0 30px var(--glow)}
+.crop.drag{cursor:grabbing}
+.crop img{position:absolute;left:0;top:0;width:auto;height:auto;max-width:none;object-fit:none;transform-origin:0 0;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.crop:after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 400px rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.75);pointer-events:none}
+.cropz{display:flex;align-items:center;gap:10px;width:min(320px,100%)}
+.cropz input{flex:1}.cropz .ic{width:18px;height:18px;color:var(--muted);flex:none}
+.cropz .btn{flex:none}
 .rng{width:100%;accent-color:var(--accent)}
 .pban{background-position:center var(--bp,50%)}
 .pban.has-img{position:relative;overflow:hidden}.pban>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center var(--bp,50%)}
@@ -2601,7 +2671,8 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   .main{background:linear-gradient(180deg,var(--main1),var(--bg) 60%);box-shadow:none}
   .top{padding:12px 18px 8px;gap:10px;min-height:64px}
   .mbrand{display:grid}
-  .top h1{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* basis 0: on the wrapping phone bar a long title shortens (…) instead of pushing your picture onto a second row */
+  .top h1{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mav{order:8;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;padding:2px;flex:none;background:conic-gradient(from 200deg,var(--accent),var(--accent-hi),var(--accent));box-shadow:0 0 16px var(--glow-soft)}
   .mav .in-av{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--av-bg);color:#fff}
   .top h1{font-size:21px;letter-spacing:-.3px}
@@ -2625,6 +2696,8 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   /* dashboard */
   .banner{grid-template-columns:minmax(0,1fr);padding:20px;border-radius:26px;gap:16px}
   .banner h2{font-size:22px}
+  .banner.hero{grid-template-columns:minmax(0,1fr);padding:20px;gap:14px}.banner.hero .mtile{grid-column:auto}
+  .hz-stk{max-width:none}.hz-g .btn.pri{align-self:stretch}.hz-call span{display:none}.hz-call{width:38px;height:38px;padding:0;justify-content:center}
   .banner .btn.pri{width:100%}
   .mtile{max-width:none}
   .stats{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:16px 0}
@@ -2990,6 +3063,9 @@ const ICONS={
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
  bell:'<path d="M6 16V11a6 6 0 1112 0v5l2 2H4z"/><path d="M10 21h4"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
+ minus:'<path d="M5 12h14"/>',
+ moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
  copy:'<rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5 15V6a2 2 0 012-2h9"/>',
  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.5c2.5.6 4 2.3 4 5.5"/>',
@@ -3214,21 +3290,13 @@ function spark(vals,color){
   for(let i=1;i<n;i++){const [x0,y0]=pts[i-1],[x1,y1]=pts[i],cx=(x0+x1)/2;d+=` C${cx.toFixed(1)},${y0.toFixed(1)} ${cx.toFixed(1)},${y1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`}
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" pathLength="1" stroke="${color}"/></svg>`;
 }
-function illustration(){return `<svg class="ill" viewBox="0 0 520 170" aria-hidden="true">
- <rect x="30" y="16" width="250" height="138" rx="26" style="fill:var(--nav-pill)"/><rect x="30" y="16" width="250" height="34" rx="17" fill="#CDEBDA"/>
- <circle cx="56" cy="33" r="5" fill="#FF8A8F"/><circle cx="74" cy="33" r="5" fill="#FFD60A"/><circle cx="92" cy="33" r="5" style="fill:var(--bar)"/>
- <rect x="58" y="96" width="30" height="42" rx="9" fill="#7FB6FF"/><rect x="100" y="72" width="30" height="66" rx="9" fill="#FF9F43"/><rect x="142" y="84" width="30" height="54" rx="9" fill="#F2788A"/><rect x="184" y="62" width="30" height="76" rx="9" style="fill:var(--bar)"/>
- <circle cx="244" cy="100" r="26" fill="none" style="stroke:var(--bar)" stroke-width="12"/><path d="M244 74a26 26 0 0126 26" fill="none" stroke="#FFD60A" stroke-width="12"/>
- <ellipse cx="330" cy="142" rx="38" ry="10" fill="#0E2A1B" opacity=".5"/><circle cx="330" cy="126" r="18" fill="#FFD60A"/><circle cx="330" cy="126" r="11" fill="none" stroke="#C99F00" stroke-width="3"/>
- <path d="M440 150h64l-8 -50h-48z" fill="#E7C9A0"/><rect x="432" y="94" width="80" height="14" rx="7" fill="#D8B386"/>
- <path d="M472 94C440 80 436 50 452 30 470 46 478 70 472 94z" style="fill:var(--bar)"/><path d="M474 94C500 84 514 60 504 38 484 52 474 72 474 94z" style="fill:var(--bar-deep)"/><path d="M473 94C470 70 480 44 490 22 498 50 490 74 473 94z" style="fill:var(--bar-hi)"/></svg>`}
 const usd=n=>{n=+n||0;return "$"+n.toLocaleString("en-US",{minimumFractionDigits:Number.isInteger(n)?0:2,maximumFractionDigits:2})};
 const dayFmt=s=>{const d=new Date(s+"T00:00:00");return isNaN(d)?String(s||""):d.toLocaleDateString("en-US",{month:"short",day:"numeric"})};
 const isoDay=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const terms=d=>{const a=[];if(d.upfront>0)a.push(usd(d.upfront)+" upfront");if(d.monthly>0)a.push(usd(d.monthly)+"/mo"+(d.months?" × "+d.months:", ongoing"));return a.join(" + ")};
-function moneyTile(m){
+function moneyTile(m,w){
   if(!m)return "";
-  const mo=m.month,W=240,H=64,n=mo.days;let c=0,c2=0;const cum=mo.daily.map(v=>(c+=v)),cm=(mo.daily_made||mo.daily).map(v=>(c2+=v));
+  const mo=m.month,W=w||240,H=64,n=mo.days;let c=0,c2=0;const cum=mo.daily.map(v=>(c+=v)),cm=(mo.daily_made||mo.daily).map(v=>(c2+=v));
   const mx=Math.max(mo.total,1),X=i=>n>1?i*(W/(n-1)):0,Y=v=>H-5-(H-12)*v/mx,t=Math.min(Math.max(mo.today,1),n)-1;
   const made=cm.slice(0,t+1).map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
   const proj=[cm[t]].concat(cum.slice(t+1)).map((v,i)=>(i?"L":"M")+X(t+i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
@@ -3243,6 +3311,27 @@ function moneyTile(m){
     <path class="mline" pathLength="1" d="${made}" fill="none" style="stroke:var(--bar-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     <circle class="mdot" style="--i:4" cx="${X(t).toFixed(1)}" cy="${Y(cm[t]).toFixed(1)}" r="5" fill="#FFD60A" style="stroke:var(--mdot)" stroke-width="2"/></svg></button>`;
 }
+/* Callback queue: your businesses waiting for a call back (interested first, then no answer), longest-waiting first. */
+function callbackQueue(){
+  const me=S.me&&S.me.id,mine=(S.called||[]).filter(l=>(l.status==="yellow"||l.status==="orange")&&(!me||!l.called_by||l.called_by===me));
+  const rank=l=>(l.status==="yellow"?0:1);
+  const q=mine.sort((a,b)=>rank(a)-rank(b)||String(a.called_at||"").localeCompare(String(b.called_at||""))).slice(0,3);
+  const ago=iso=>{if(!iso)return "";const d=Math.floor((Date.now()-new Date(iso))/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
+  return `<div class="hz-q"><div class="hz-qh"><h3>Up next</h3><span>${mine.length?`${num(mine.length)} waiting`:""}</span></div>
+    ${q.length?q.map(l=>`<div class="hz-qi" data-lid="${esc(String(l.id))}" role="button" tabindex="0" aria-label="Open ${esc(l.name)}">
+      <i class="hz-dot ${l.status}" title="${l.status==="yellow"?"Interested":"No answer"}"></i>
+      <div class="hz-qt"><b>${esc(l.name)}</b><small>${l.status==="yellow"?"Interested":"No answer"} · called ${esc(ago(l.called_at))}</small></div>
+      <button type="button" class="btn sm hz-call" data-ph="${esc(l.phone||"")}" title="${window.LF_API?"Copy number":"Call"} ${esc(l.phone||"")}">${ic("phone")}<span>${esc(l.phone||"No number")}</span></button></div>`).join("")
+    :`<div class="hz-qe">${ic("check")}<span>No callbacks waiting. Interested and no-answer leads show up here.</span></div>`}
+    ${mine.length>3?`<button type="button" class="hz-more" data-go="called">See all ${num(mine.length)} in Called Leads</button>`:""}</div>`;
+}
+function wireQueue(pg){
+  $$(".hz-qi",pg).forEach(el=>{const l=(S.called||[]).find(x=>String(x.id)===el.dataset.lid);if(!l)return;
+    el.onclick=e=>{if(e.target.closest(".hz-call"))return;leadModal(l)};el.onkeydown=e=>{if(e.key==="Enter"&&e.target===el)leadModal(l)}});
+  $$(".hz-call",pg).forEach(b=>b.onclick=e=>{e.stopPropagation();const ph=b.dataset.ph;if(!ph)return;
+    if(matchMedia("(hover:none)").matches&&!window.LF_API)location.href="tel:"+ph.replace(/[^\d+]/g,"");else copyText(ph)});
+  $$(".hz-more",pg).forEach(b=>b.onclick=()=>go("called"));
+}
 function renderDash(q){
   const st=S.stats;if(!st)return;const p=S.profile,pg=$("#pg-dash"),sig=JSON.stringify([st,p.name,p.goal]);
   if(q&&S.lastSig.dash===sig)return;S.lastSig.dash=sig;
@@ -3254,17 +3343,18 @@ function renderDash(q){
    {c:"s3",tone:"tone-g",ico:"cal",ib:"#1FA64A",lb:"Meetings set up",v:st.meetings,dec:0,suf:"",dl:`+${num(w.meets)} this week`,sp:sg.meets,col:"var(--hi2)"},
    {c:"s4",tone:"tone-o",ico:"pct",ib:"#E8680C",lb:"Meeting rate",v:st.conversion,dec:1,suf:"%",dl:`${w.conv>=0?"+":""}${w.conv}% this week`,sp:sg.conv,col:"#FFB070"}];
   pg.innerHTML=`
-  <div class="banner pop"><div>${illustration()}</div><div>
+  <div class="banner hero pop"><div class="hz-g">
     <h2>${greet()}${p.name?", "+esc(p.name.split(" ")[0]):""}!</h2>
     <p>${st.uncalled?`You have <b>${num(st.uncalled)}</b> business${st.uncalled===1?"":"es"} ready to call`:"Nothing on your call list yet"}${st.meetings?` and <b>${num(st.meetings)}</b> meeting${st.meetings===1?"":"s"} set up`:""}.</p>
-    <div class="goal"><span>Today's calls: ${st.today_calls} of ${st.goal}</span><div class="tr"><div class="fl" data-w="${pct}"></div></div><span>${pct}%</span></div>
-    <button class="btn pri" data-go="find"><i class="ic">${svg(window.LF_API?"phone":"plus")}</i>${window.LF_API?"Start calling":"Find new leads"}</button></div>${moneyTile(st.money)}</div>
+    ${S.me?`<div class="hz-stk tm-stkc" data-stk="${esc(S.me.id)}"></div>`:`<div class="goal"><span>Today's calls: ${st.today_calls} of ${st.goal}</span><div class="tr"><div class="fl" data-w="${pct}"></div></div><span>${pct}%</span></div>`}
+    <button class="btn pri" data-go="find"><i class="ic">${svg(window.LF_API?"phone":"plus")}</i>${window.LF_API?"Start calling":"Find new leads"}</button></div>
+   ${callbackQueue()}${moneyTile(st.money,340)}</div>
   <div class="stats">${sCards.map(c=>`<div class="stat ${c.c} pop"><div class="ico ${c.tone||"tone-g"}"><i class="ic">${svg(c.ico)}</i></div>${spark(c.sp,c.col)}<div class="lb">${c.lb}</div><div class="vl" data-n="${c.v}" data-d="${c.dec}" data-s="${c.suf}">0</div><div class="dl">${c.dl}</div></div>`).join("")}</div>
   <div class="two"><div class="card chart-c pop"><div class="hd"><h3>Activity, last 7 days</h3><div class="legend"><span><i style="background:var(--accent)"></i>Calls</span><span><i style="background:#E9C15A"></i>Meetings set up</span></div></div>
     ${barChart({labels:st.labels,hi:6,aria:"Calls and meetings per day for the last 7 days",series:[{v:sg.calls,c:"b0",name:"Calls"},{v:sg.meets,c:"b1",name:"Meetings"}],tips:sg.calls.map((v,k)=>`${num(v)} call${v===1?"":"s"} · ${num(sg.meets[k])} meeting${sg.meets[k]===1?"":"s"}`)})}</div>
    <div class="card types pop"><div class="hd"><h3>Lead types</h3><span class="muted" style="font-size:12.5px;font-weight:600">${num(st.total)} total</span></div>
     ${st.types.length?st.types.map((t,i)=>`<div class="trow"><div class="tt"><span>${esc(t.name)}</span><span>${num(t.count)} · ${Math.round(100*t.count/totT)}%</span></div><div class="bt"><div class="bf" data-w="${Math.round(100*t.count/mxT)}" style="background:${hue(t.name)}"></div></div></div>`).join(""):`<div class="empty"><div class="bub">${ic("search")}</div><b>No leads yet</b>Run a search on Find Leads.</div>`}</div></div>`;
-  hydrateIcons(pg);
+  hydrateIcons(pg);wireQueue(pg);paintStreaks();ensureBoard().then(()=>{if(S.page==="dash")paintStreaks()});
   const fire=()=>{$$("[data-w]",pg).forEach(e=>e.style.width=e.dataset.w+"%");$$(".vl",pg).forEach(e=>{if(q)e.dataset.q=1;countTo(e,+e.dataset.n,+e.dataset.d,e.dataset.s)})};
   if(q){quiet(pg);fire()}else setTimeout(fire,350);
 }
@@ -3820,6 +3910,23 @@ async function newNote(kind){
   await loadNotes();drawNoteList();await openNote(r.id);const t=$("#edTitle");t&&(t.focus(),t.select());
 }
 function savedState(txt,bad){const s=$("#edSave");if(s){s.textContent=txt;s.classList.toggle("bad",!!bad)}}
+/* Page colour for notes and scripts: light (default) or dark, like dark mode in Google Docs. Dark inverts the page,
+   so text pasted with its own colours stays readable; pictures are flipped back. Remembered per person. */
+const paperDark=()=>getP("notePaper","light")==="dark";
+function applyPaper(){const d=paperDark();document.body.classList.toggle("paper-dark",d);const b=$("#edPaperT");
+  if(b){b.innerHTML=ic(d?"sun":"moon")+(d?"Light page":"Dark page");b.setAttribute("aria-pressed",String(d));b.title=d?"Switch to a light page":"Switch to a dark page, easier on the eyes"}}
+/* Reactions on notes and scripts shared with the whole team (9th database update). Hidden until it is run. */
+const NRX=["👍","🔥","💡","🎉","❤️","😂"];
+async function noteRx(n){
+  const box=$("#edRx");if(!box)return;if(n.scope!=="shared"||!n.rid||!S.me){box.hidden=true;return}
+  const r=await api("sb_rpc","note_reactions_for",{p_notes:[n.rid]}).catch(()=>null);
+  if(!N.cur||N.cur.id!==n.id)return;if(!r||!r.ok){box.hidden=true;return}
+  const by={};(r.data||[]).forEach(x=>by[x.emoji]=x);box.hidden=false;
+  box.innerHTML=`<span class="l">Reactions</span>`+NRX.map(e=>{const x=by[e];return `<button type="button" data-e="${e}" class="${x&&x.mine?"on":""}" aria-pressed="${!!(x&&x.mine)}" title="${x?esc(x.who.join(", ")):"React with "+e}">${e}${x?`<b>${x.n}</b>`:""}</button>`}).join("");
+  $$("button",box).forEach(b=>b.onclick=async()=>{if(b.disabled)return;b.disabled=true;b.classList.remove("pulse");void b.offsetWidth;b.classList.add("pulse");
+    const q=await api("sb_rpc","note_react",{p_note:n.rid,p_emoji:b.dataset.e}).catch(()=>null);
+    if(!q||!q.ok){b.disabled=false;return toast((q&&q.error)||"Couldn't add that reaction.",{bad:1})}noteRx(n)});
+}
 async function openNote(id){
   await flushNote();
   const n=N.list.find(x=>x.id===id);if(!n)return;
@@ -3828,11 +3935,12 @@ async function openNote(id){
   ed.innerHTML=`<div class="ed-head"><input class="ed-title" id="edTitle" maxlength="120" value="${esc(n.title)}" aria-label="Title" placeholder="Title">
     <div class="seg" id="edScope" title="${ownerOK?"Who can see this":"Only the owner can change this"}"><button data-s="personal"${ownerOK?"":" disabled"}>Only me</button><button data-s="shared"${ownerOK?"":" disabled"}>Whole team</button></div></div>
    <div class="ed-meta"><span>${n.scope==="shared"?"Shared · owner "+esc(n.owner):"Private to you"}</span><input class="inp" id="edFolder" maxlength="60" placeholder="Folder (optional)" value="${esc(n.folder)}" aria-label="Folder"><span class="sv" id="edSave">Saved</span><span class="sp"></span>
-    ${isS?`<button class="btn sm" id="edDock">${ic("pin")}Show beside my leads</button><button class="btn sm" id="edRead">Reading mode</button><button class="btn sm" id="edMinus" title="Smaller text">A−</button><button class="btn sm" id="edPlus" title="Bigger text">A+</button>`:""}
-    <button class="btn sm" id="edFocus">Focus</button>${canDel?`<button class="btn sm" id="edDel" style="color:#FF9AA0">${ic("trash")}Delete</button>`:""}</div>
+    ${isS?`<button class="btn sm" id="edDock">${ic("pin")}Show beside my leads</button><button class="btn sm" id="edRead">Reading mode</button><span class="ed-zm"><button class="btn sm" id="edMinus" title="Smaller text">A−</button><button class="btn sm" id="edPlus" title="Bigger text">A+</button></span>`:""}
+    <button class="btn sm" id="edPaperT" aria-pressed="false"></button><button class="btn sm" id="edFocus">Focus</button>${canDel?`<button class="btn sm" id="edDel" style="color:#FF9AA0">${ic("trash")}Delete</button>`:""}</div>
    ${isS?toolbarHTML():""}
    <div class="lnkbar" id="lnkBar"><input class="inp" id="lnkUrl" placeholder="https://…" aria-label="Link address"><button class="btn sm pri" id="lnkOk">Apply</button><button class="btn sm" id="lnkNo">Cancel</button></div>
-   ${isS?`<div class="paper" id="edPaper"><div class="rte" id="edBody" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Script"></div></div>`:`<textarea class="ntxt" id="edBody" spellcheck="true" aria-label="Note" placeholder="Start typing. It saves by itself."></textarea>`}`;
+   ${isS?`<div class="paper" id="edPaper"><div class="rte" id="edBody" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Script"></div></div>`:`<textarea class="ntxt" id="edBody" spellcheck="true" aria-label="Note" placeholder="Start typing. It saves by itself."></textarea>`}
+   <div class="nrx" id="edRx" hidden></div>`;
   hydrateIcons(ed);
   const body=$("#edBody");
   if(isS){body.innerHTML=sanHTML(n.body);body.style.zoom=zoomOf()/100;wireEditor(body)}else{body.value=n.body}
@@ -3842,6 +3950,8 @@ async function openNote(id){
   $("#edFolder").oninput=()=>{N.cur.folder=$("#edFolder").value;touch()};
   body.addEventListener("input",()=>{N.cur.body=isS?body.innerHTML:body.value;touch()});
   $("#edFocus").onclick=()=>toggleFocus();
+  $("#edPaperT").onclick=()=>{setP("notePaper",paperDark()?"light":"dark");applyPaper()};applyPaper();
+  noteRx(n);
   const del=$("#edDel");
   if(del){let armed=false,tm;del.onclick=async()=>{
     if(!armed){armed=true;del.style.background="#D62828";del.style.color="#fff";del.innerHTML=ic("trash")+"Click again to delete";tm=setTimeout(()=>{armed=false;del.style.cssText="color:#FF9AA0";del.innerHTML=ic("trash")+"Delete"},3500);return}
@@ -4184,11 +4294,7 @@ function renderAccount(){
   paintLgt();wireLeadgen(pg);
   ["aName","aRole","aCo"].forEach(i=>$("#"+i).oninput=live);
   $$(".sw button",pg).forEach(b=>b.onclick=()=>{$$(".sw button",pg).forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-checked",x===b)});S.profile.color=b.dataset.c;profileUI();bump(b)});
-  $("#aSave").onclick=async()=>{
-    const d={name:$("#aName").value,role:$("#aRole").value,email:$("#aEmail").value,phone:$("#aPhone").value,company:$("#aCo").value,country:$("#aCountry").value,
-      goal:$("#aGoal").value,max_results:$("#aMax").value,color:S.profile.color};
-    try{S.profile=await api("save_profile",d);profileUI();applyCountry(true);toast("Account saved");bump($("#aSave"));S.lastSig={};await reload()}catch(e){toast("Couldn't save: "+e.message,{bad:1})}
-  };
+  $("#aSave").onclick=()=>saveAccount(false);
   $("#dbNote").textContent=S.dbPath&&!window.LF_API?"Data folder: "+S.dbPath:"";
   /* public profile */
   {const ex0=(S.me&&S.me.ext)||{};let bn,mood=ex0.mood||"",acc=okAccent(ex0.accent)||ACCENTS[0];
@@ -4200,11 +4306,39 @@ function renderAccount(){
    $$("#xAcc button").forEach(b=>b.onclick=()=>{acc=b.dataset.a;$$("#xAcc button").forEach(x=>x.classList.toggle("on",x===b));bump(b)});
    const cnt=()=>{$("#xBioN").textContent=$("#xBio").value.length};cnt();$("#xBio").oninput=cnt;
    $("#xSave").onclick=async()=>{
+     if(acctDirty())await saveAccount(true);        /* one press saves both cards, so typed email/phone never get lost */
      const d={title:$("#xTitle").value,mood,bio:$("#xBio").value,thought:$("#xTh").value,accent:acc};
      const r=await api("set_profile_ext",d);if(!r.ok)return toast(r.error||"Couldn't save.",{bad:1});
      S.me.ext=r.ext;bn=undefined;bump($("#xSave"));toast("Profile saved");
      $("#xNote").textContent=r.shared?"The team can see your changes.":"Saved on this device. It will be shared once the database update (step 4 in the setup guide) is applied."};}
   initUpdates().then(()=>{paintUpd();$("#updBtn").onclick=checkUpdatesNow;if(!UP){$("#updCard").style.display="none"}});
+}
+/* ---------- account details: saved on this device AND to your private row in the shared database (update 9),
+   so the website, the desktop app and other computers all show the same email, phone, etc. ---------- */
+const ACCT_KEYS=["name","role","email","phone","company","country","goal","max_results","color"];
+function acctForm(){const v=id=>{const e=$("#"+id);return e?e.value:undefined};
+  return {name:v("aName"),role:v("aRole"),email:v("aEmail"),phone:v("aPhone"),company:v("aCo"),country:v("aCountry"),goal:v("aGoal"),max_results:v("aMax"),color:S.profile.color}}
+function acctDirty(){if(!$("#aName"))return false;const f=acctForm();return ACCT_KEYS.some(k=>f[k]!==undefined&&String(f[k]).trim()!==String(S.profile[k]??"").trim())}
+const acctStamp={get(){try{return localStorage.getItem("lf_acct_at:"+(S.me&&S.me.id))||""}catch(e){return ""}},set(v){try{localStorage.setItem("lf_acct_at:"+(S.me&&S.me.id),v)}catch(e){}}};
+async function saveAccount(quiet){
+  const d=acctForm(),email=String(d.email||"").trim();
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast("That email address doesn't look right.",{bad:1});$("#aEmail").focus();return false}
+  try{S.profile=await api("save_profile",d)}catch(e){toast("Couldn't save: "+e.message,{bad:1});return false}
+  profileUI();applyCountry(true);bump($("#aSave"));S.lastSig={};
+  let shared=false;
+  if(S.me){const acct={};ACCT_KEYS.forEach(k=>acct[k]=S.profile[k]);
+    try{const r=await api("sb_rpc","me_settings_set",{p_data:{account:acct}});if(r&&r.ok&&r.data){shared=true;acctStamp.set(r.data.updated_at||"")}}catch(e){}}
+  const n=$("#dbNote");if(n)n.textContent=shared?"Saved to your account: it shows on every device you sign in on.":"Saved on this device. It follows you to other devices once the 9th database update is run.";
+  if(!quiet)toast(shared?"Account saved":"Account saved on this device");
+  await reload();return true;
+}
+/* on start: bring in details saved from another device if they are newer than this device's copy */
+async function acctPull(){
+  if(!S.me)return;let r;try{r=await api("sb_rpc","me_settings_get",{})}catch(e){return}
+  const got=r&&r.ok&&r.data&&r.data.data&&r.data.data.account;if(!got)return;
+  const at=r.data.updated_at||"";if(at&&at<=acctStamp.get())return;
+  const next={};ACCT_KEYS.forEach(k=>{if(got[k]!==undefined&&got[k]!==null)next[k]=got[k]});
+  try{S.profile=await api("save_profile",next);acctStamp.set(at);profileUI();applyCountry(true);if(S.page==="account")renderAccount()}catch(e){}
 }
 function applyCountry(force){const c=$("#fCountry");if(force||!c.value)c.value=S.profile.country||""}
 
@@ -4388,14 +4522,14 @@ function streakBar(n){
 /* each Team card gets its own streak bar, right under the person's latest activity */
 const STK_SEEN=new Set();
 function paintStreaks(){
-  const pg=$("#pg-team");if(!pg)return;
+  ["#pg-team","#pg-dash"].map(s=>$(s)).filter(Boolean).forEach(pg=>{
   $$("[data-stk]",pg).forEach(el=>{const pid=el.dataset.stk,s=streakOf(pid);
     if(!s){el.innerHTML=`<div class="stk-cap"><span class="muted">Loading streak…</span></div>`;return}
     const t=STREAK[s.tier];
     el.innerHTML=`<div class="stk-cap"><span style="${t?`color:${t[1]};font-weight:800`:""}">${ic("flame")}</span><span class="${s.doneToday?"ok":""}">${s.n?`${s.n}-day streak${t?" · "+esc(t[2]):""}`:"No streak yet"} · ${s.doneToday?`today's ${s.goal} calls done ✓`:`${num(s.today)}/${s.goal} calls today`}</span><small>best ${s.best}</small></div>${streakBar(s.n)}`;
     el.title=`Reach ${s.goal} calls on a workday to keep the streak going. Weekends never break it; reaching it on a weekend is a bonus day.`;
     if(!STK_SEEN.has(pid)&&!REDUCE){STK_SEEN.add(pid);const i=$(".stk-track i",el);i.classList.add("go");requestAnimationFrame(()=>requestAnimationFrame(()=>i.classList.remove("go")))}else STK_SEEN.add(pid)});
-  hydrateIcons(pg);
+  hydrateIcons(pg)});
 }
 async function renderTeam(){
   const pg=$("#pg-team");let t;
@@ -4444,7 +4578,7 @@ function renderSync(){
   b.className="sync "+s.state;$("#syncTx").textContent=t;
   b.title=s.state==="synced"?"Everything is saved to the shared database. Last sync "+(s.last_ok||""):s.state==="offline"?"No connection. Your changes are saved on this computer and will upload automatically.":(s.error||"");
 }
-async function afterLogin(){applyMe();B.data=null;B.badges={};loadNotes().then(()=>{applyDock()});if(S.me&&S.me.must_change_password)await needPw();ensureBoard(true);setTimeout(pollPosts,1500)}
+async function afterLogin(){applyMe();B.data=null;B.badges={};loadNotes().then(()=>{applyDock()});if(S.me&&S.me.must_change_password)await needPw();ensureBoard(true);acctPull();setTimeout(pollPosts,1500)}
 $("#lgForm").addEventListener("submit",async e=>{
   e.preventDefault();const u=$("#lgUser").value.trim(),p=$("#lgPass").value,btn=$("#lgGo");
   if(!u||!p){$("#lgErr").textContent="Enter your username and password.";return}
@@ -4487,7 +4621,20 @@ const MEDIA_OK=/^https?:\/\/[A-Za-z0-9.:-]+\/storage\/v1\/object\/public\/media\
 const safeMedia=u=>(typeof u==="string"&&u.length<400&&MEDIA_OK.test(u))?u:"";
 function avSrc(img,media){const still=safeImg(img),anim=safeMedia(media&&media.avatar_url);return {src:(!REDUCE&&anim)||still||anim,still}}
 window.lfImgErr=function(im){const f=im.dataset.f;if(f&&im.getAttribute("src")!==f){im.dataset.f="";im.src=f}else im.remove()};
-function imgTag(src,still){return src?`<img class="fade" src="${esc(src)}" alt="" decoding="async" data-f="${still&&still!==src?esc(still):""}" onload="this.classList.add('ok')" onerror="lfImgErr(this)">`:""}
+/* Pictures saved as text (data: URLs, often tens of KB each) are turned into one small in-memory link per picture.
+   Before, every message, card and row carried its own full copy of the picture's text, so a chat of 40 messages
+   rebuilt megabytes of page each time it redrew. Same picture = same link, so the browser decodes it only once. */
+function lightSrc(src){
+  const LIGHT=lightSrc.m||(lightSrc.m=new Map());   /* created on first use, so it works however early a picture is drawn */
+  if(!src||src.length<200||!src.startsWith("data:image/"))return src;
+  const hit=LIGHT.get(src);if(hit)return hit;
+  try{const c=src.indexOf(","),mime=src.slice(5,src.indexOf(";")),bin=atob(src.slice(c+1)),a=new Uint8Array(bin.length);
+    for(let k=0;k<bin.length;k++)a[k]=bin.charCodeAt(k);
+    const u=URL.createObjectURL(new Blob([a],{type:mime}));
+    if(LIGHT.size>400){const [k0,u0]=LIGHT.entries().next().value;LIGHT.delete(k0);URL.revokeObjectURL(u0)}
+    LIGHT.set(src,u);return u}catch(e){return src}
+}
+function imgTag(src,still){src=lightSrc(src);still=lightSrc(still);return src?`<img class="fade" src="${esc(src)}" alt="" decoding="async" data-f="${still&&still!==src?esc(still):""}" onload="this.classList.add('ok')" onerror="lfImgErr(this)">`:""}
 function bannerOf(p){const m=(p&&p.media)||{},anim=safeMedia(m.banner_url),still=safeBanner(p&&p.ext&&p.ext.banner)||safeBanner(p&&p.banner);
   return {src:(!REDUCE&&anim)||still||anim,still,pos:Number.isFinite(+m.banner_pos)&&m.banner_pos!==""&&m.banner_pos!=null?Math.max(0,Math.min(100,+m.banner_pos)):50}}
 function bannerHTML(p,cls){const b=bannerOf(p);return b.src?`<div class="pban has-img ${cls||""}" style="--bp:${b.pos}%">${imgTag(b.src,b.still)}</div>`:""}
@@ -4729,7 +4876,8 @@ function drawRanks(anim){
   const body=$("#lbBody"),d=B.data;if(!body||!d)return;syncSegs();
   const metric=getP("lbMetric","calls"),per=getP("lbPeriod","week"),[f,t]=rangeOf(per,d.today),tl=tally(d,f,t),def=LBM.find(x=>x[0]===metric);
   const rows=d.people.map(p=>({p,v:tl[p.id][metric]})).sort((a,b)=>b.v-a.v||a.p.name.localeCompare(b.p.name));
-  rows.forEach((r,i)=>{r.rank=i&&rows[i-1].v===r.v?rows[i-1].rank:i+1});
+  /* plain positions 1, 2, 3...: ties are ordered by name above (shared ranks made everyone on $0 read "#2") */
+  rows.forEach((r,i)=>{r.rank=i+1});
   const sig=JSON.stringify([metric,per,rows.map(r=>[r.p.id,r.v]),B.badges,d.people.map(p=>[p.avatar.length,p.media])]);
   if(!anim&&body.dataset.sig===sig)return;body.dataset.sig=sig;
   const old={};if(!REDUCE)$$("[data-lbid]",body).forEach(e=>{old[e.dataset.lbid]=e.getBoundingClientRect()});
@@ -4958,21 +5106,53 @@ document.addEventListener("scroll",()=>{if(HC.el&&!TOUCH)hideHover()},true);
 const MEDIA_TYPES=/^image\/(gif|webp|png|jpeg|avif)$/;
 function readAsDataURL(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(new Error("Couldn't read that file."));r.readAsDataURL(f)})}
 const fmtSize=n=>n>1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";
+/* Crop box for profile pictures. Returns {moved(), reset(), export(file)}; export draws the chosen square at 512x512. */
+function cropper(ov,img,box,zr,onMove){
+  const V=240;let iw=0,ih=0,base=1,z=1,x=0,y=0,moved=false;const pts=new Map();let pinch=0;
+  const clamp=()=>{const s=base*z;x=Math.min(0,Math.max(V-iw*s,x));y=Math.min(0,Math.max(V-ih*s,y))};
+  const paint=()=>{clamp();img.style.transform=`translate(${x}px,${y}px) scale(${base*z})`;zr.value=Math.round(z*100)};
+  const touch=()=>{if(!moved){moved=true;onMove(true)}};
+  const fit=()=>{iw=img.naturalWidth;ih=img.naturalHeight;if(!iw||!ih)return;base=Math.max(V/iw,V/ih);z=1;x=(V-iw*base)/2;y=(V-ih*base)/2;paint()};
+  const zoomAt=(nz,cx=V/2,cy=V/2)=>{const s0=base*z;z=Math.max(1,Math.min(4,nz));const s1=base*z;x=cx-(cx-x)*s1/s0;y=cy-(cy-y)*s1/s0;touch();paint()};
+  if(img.complete&&img.naturalWidth)fit();else img.onload=fit;
+  zr.oninput=()=>zoomAt(+zr.value/100);
+  const at=e=>{const r=box.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]};
+  box.addEventListener("pointerdown",e=>{box.setPointerCapture(e.pointerId);pts.set(e.pointerId,at(e));box.classList.add("drag");
+    if(pts.size===2){const [a,b]=[...pts.values()];pinch=Math.hypot(a[0]-b[0],a[1]-b[1])}});
+  box.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId),now=at(e);pts.set(e.pointerId,now);
+    if(pts.size===1){x+=now[0]-prev[0];y+=now[1]-prev[1];touch();paint()}
+    else if(pts.size===2){const [a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)zoomAt(z*d/pinch,(a[0]+b[0])/2,(a[1]+b[1])/2);pinch=d}});
+  const up=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=0;if(!pts.size)box.classList.remove("drag")};
+  box.addEventListener("pointerup",up);box.addEventListener("pointercancel",up);
+  box.addEventListener("wheel",e=>{e.preventDefault();const [cx,cy]=at(e);zoomAt(z*(e.deltaY<0?1.1:1/1.1),cx,cy)},{passive:false});
+  box.addEventListener("keydown",e=>{const k=e.key,st=e.shiftKey?20:6;
+    if(k==="ArrowLeft")x+=st;else if(k==="ArrowRight")x-=st;else if(k==="ArrowUp")y+=st;else if(k==="ArrowDown")y-=st;
+    else if(k==="+"||k==="=")return zoomAt(z*1.1);else if(k==="-")return zoomAt(z/1.1);else return;e.preventDefault();touch();paint()});
+  return {moved:()=>moved,reset:()=>{fit();moved=false;onMove(false)},
+    export:file=>new Promise((res,rej)=>{const N=512,c=document.createElement("canvas");c.width=c.height=N;const g=c.getContext("2d");
+      g.imageSmoothingQuality="high";const s=base*z;g.drawImage(img,-x/s,-y/s,V/s,V/s,0,0,N,N);
+      c.toBlob(b=>{if(!b)return rej(new Error("Couldn't crop that picture."));const t=b.type||"image/png";res(new File([b],"avatar."+t.split("/")[1],{type:t}))},"image/webp",.92)})};
+}
 function mediaDialog(kind,file){
   if(!file)return;
   if(!MEDIA_TYPES.test(file.type))return toast("Use a GIF, WebP, PNG, JPEG or AVIF image.",{bad:1});
   if(file.size>8*1024*1024)return toast(`That file is ${fmtSize(file.size)}. The limit is 8 MB.`,{bad:1});
   const url=URL.createObjectURL(file),av=kind==="avatar",anim=/gif|webp|png|avif/.test(file.type);
   let pos=(S.me&&S.me.media&&+S.me.media.banner_pos>=0)?+S.me.media.banner_pos:50;
-  openModal(`<h2>${av?"New profile picture":"New banner"}</h2><div class="mprev"><div class="${av?"pv-av":"pv-bn"}"><img src="${url}" alt="Preview" id="mdImg" style="object-position:center ${pos}%"></div>
-    <div class="meta">${esc(file.type.replace("image/","").toUpperCase())} · ${fmtSize(file.size)}${anim?" · animation is kept":""}</div>
+  const metaTx=moved=>`${esc(file.type.replace("image/","").toUpperCase())} · ${fmtSize(file.size)}${anim?(moved?" · cropping makes it a still picture":" · animation is kept"):""}`;
+  openModal(`<h2>${av?"New profile picture":"New banner"}</h2><div class="mprev">${av?`<div class="crop" id="mdCrop" tabindex="0" role="application" aria-label="Crop: drag to move, plus and minus to zoom"><img src="${url}" alt="" id="mdImg" draggable="false"></div>
+    <div class="cropz"><i class="ic" data-ic="minus" aria-hidden="true"></i><input type="range" class="rng" id="mdZoom" min="100" max="400" value="100" aria-label="Zoom"><i class="ic" data-ic="plus" aria-hidden="true"></i><button type="button" class="btn sm" id="mdReset">Reset</button></div>`
+    :`<div class="pv-bn"><img src="${url}" alt="Preview" id="mdImg" style="object-position:center ${pos}%"></div>`}
+    <div class="meta" id="mdMeta">${metaTx(false)}</div>
     ${av?"":`<label class="l" for="mdPos" style="align-self:stretch;margin:6px 0 0">Banner position</label><input type="range" class="rng" id="mdPos" min="0" max="100" value="${pos}">`}</div>
     <div class="note" style="margin-top:12px">The team sees ${av?"this picture":"this banner"} on the Team page, the leaderboard and announcements. People who turn off animations on their device see a still copy.</div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px"><button class="btn" data-x>Cancel</button><button class="btn pri" data-ok>Save</button></div>`,(ov,close)=>{
     const done=()=>{URL.revokeObjectURL(url);close()};$("[data-x]",ov).onclick=done;
     const rg=$("#mdPos",ov);if(rg)rg.oninput=()=>{pos=+rg.value;$("#mdImg",ov).style.objectPosition=`center ${pos}%`};
+    const cr=av?cropper(ov,$("#mdImg",ov),$("#mdCrop",ov),$("#mdZoom",ov),m=>{$("#mdMeta",ov).innerHTML=metaTx(m)}):null;
+    if(cr)$("#mdReset",ov).onclick=()=>cr.reset();
     $("[data-ok]",ov).onclick=async()=>{const b=$("[data-ok]",ov);b.disabled=true;b.textContent="Uploading...";
-      try{await saveMedia(kind,file,pos);done()}catch(x){toast(x.message,{bad:1});b.disabled=false;b.textContent="Save"}};
+      try{const out=cr&&(cr.moved()||!anim)?await cr.export(file):file;await saveMedia(kind,out,pos);done()}catch(x){toast(x.message,{bad:1});b.disabled=false;b.textContent="Save"}};
   });
 }
 async function saveMedia(kind,file,pos){
@@ -5062,8 +5242,8 @@ async function boot(){
   try{S.prefs=await api("get_prefs")||{}}catch(e){S.prefs={}}
   if(getP("theme",""))setTheme(getP("theme","forest"),false,false);
   introProgress(.6);
-  S.dockOpen=!!getP("dockOpen",false);S.dockId=getP("dockId",0);
-  if(S.me){try{await loadNotes()}catch(e){}}
+  S.dockOpen=!!getP("dockOpen",false);S.dockId=getP("dockId",0);applyPaper();
+  if(S.me){try{await loadNotes()}catch(e){}acctPull()}
   S.ready=true;initUpdates().then(()=>{if(UP&&UP.platform!=="web"&&UPS.state==="ready")paintUpd()});
   if(window.LF_API){const sl=$("#sText");if(sl)sl.textContent="New businesses are found in the Leafline desktop app and show up here automatically."}
   const start=TITLES[pageFromHash]?pageFromHash:"dash";S.page="__";$("#title").textContent=TITLES[start];
