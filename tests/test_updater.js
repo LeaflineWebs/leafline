@@ -47,5 +47,12 @@ function setup(opts) {
   check("running from source: clear message, no network", (await t.U.updateOnLaunch(500)) === false && t.au.calls.length === 0);
   await t.handlers["update-check"](); check("source run explains why", /installed app/.test(t.U.state.error));
   t = setup({ noYml: true, script: () => {} }); await t.handlers["update-check"](); check("no update address built in: tells you what to do", /SETUP_GITHUB/.test(t.U.state.error) && t.au.calls.length === 0);
+  console.log("Mac");
+  const realPlatform = Object.getOwnPropertyDescriptor(process, "platform");
+  Object.defineProperty(process, "platform", { value: "darwin" });
+  t = setup({ script: (au) => au.emit("update-available", { version: "10.3.0" }) });
+  check("a Mac copy doesn't look online at launch (only Windows installers are published)", (await t.U.updateOnLaunch(500)) === false && t.au.calls.length === 0);
+  await t.handlers["update-check"](); check("...and Check for updates says why, pointing to the website", /Windows app only/.test(t.U.state.error) && /website/.test(t.U.state.error) && t.au.calls.length === 0);
+  Object.defineProperty(process, "platform", realPlatform);
   console.log(`\n${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);
 })();

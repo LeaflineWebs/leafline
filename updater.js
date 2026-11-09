@@ -60,7 +60,12 @@ function install() {
   setImmediate(() => { try { autoUpdater.quitAndInstall(true, true); } catch (e) { installing = false; set({ state: "error", error: "Couldn't restart to update: " + e.message }); } });
 }
 
+// Only a Windows installer is published, so a Mac copy would find nothing to download (and an unsigned Mac app
+// can't replace itself). Say so plainly instead of waiting for an update that never comes.
+const MAC_NOTE = "Automatic updates are for the Windows app only (no Mac version is published online). On a Mac, use the Leafline website, which is always up to date, or build the newest Mac app with build_mac.sh.";
+
 function check(onLaunch) {
+  if (process.platform === "darwin") { set({ state: "error", error: MAC_NOTE }); return Promise.resolve(); }
   if (!autoUpdater) { set({ state: "error", error: "Updates are not available in this copy of the app." }); return Promise.resolve(); }
   if (!app.isPackaged) { set({ state: "error", error: "Updates only work in the installed app, not when running from source." }); return Promise.resolve(); }
   if (!configured()) { set({ state: "error", error: "This build was made without an update address. Run SETUP_GITHUB.bat, then rebuild the installer once." }); return Promise.resolve(); }
@@ -69,7 +74,7 @@ function check(onLaunch) {
 
 // Launch-time update: resolves true when the app is about to restart into the new version.
 async function updateOnLaunch(timeoutMs = 20000) {
-  if (!autoUpdater || !app.isPackaged || !configured()) return false;
+  if (process.platform === "darwin" || !autoUpdater || !app.isPackaged || !configured()) return false;
   const g = readGuard();
   return new Promise((resolve) => {
     let done = false;

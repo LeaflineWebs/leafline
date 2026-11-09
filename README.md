@@ -95,6 +95,17 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.12: filter your leads
+- **Find Leads > Filter**: country, state/province, city and business type. Matches the start of words ("kitch" finds
+  Kitchener), knows province/state short forms (ON = Ontario, NY = New York), takes several values with commas, and
+  shows the business types in the chosen area as tap-to-add buttons with counts. It looks through all saved searches,
+  stays on (per person) until cleared, and Select all only ticks what it shows. Built for phones and PCs.
+- **Scrollbars** restyled everywhere: thin, rounded, theme-coloured, no arrow buttons.
+- **Mac**: the desktop app no longer waits for a Mac update that is never published (only the Windows installer is
+  built online); Check for updates says so and points to the website. Pop-up background blur now also works on older
+  iPhones (Safari prefix).
+- No database update needed.
+
 ## What is new in 11.11: find new leads on your phone
 - **Find Leads on phones** has a "Find new leads" button: area + business type, press Search, and new businesses are
   added for the whole team (one per phone number; businesses someone already called are left out).

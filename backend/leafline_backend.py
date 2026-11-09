@@ -1721,8 +1721,14 @@ button{cursor:pointer;border:0;background:none}
 .page{display:none;position:absolute;inset:0;overflow:auto;padding:14px 28px 96px}
 .page.on{display:block}
 .page.flex.on{display:flex;flex-direction:column}
-.page::-webkit-scrollbar,.scr::-webkit-scrollbar{width:10px;height:10px}
-.page::-webkit-scrollbar-thumb,.scr::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:2px solid transparent;background-clip:content-box}
+/* scrollbars everywhere: thin, rounded, tinted with the theme colour, no arrow buttons */
+::-webkit-scrollbar{width:10px;height:10px;background:transparent}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar-thumb{background-color:rgba(var(--accent-rgb),.22);border:3px solid transparent;border-radius:10px;background-clip:padding-box;min-height:36px}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(var(--accent-rgb),.42)}
+::-webkit-scrollbar-thumb:active{background-color:rgba(var(--accent-rgb),.58)}
+@supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:rgba(var(--accent-rgb),.32) transparent}}
 /* generic */
 .card{background:linear-gradient(180deg,var(--card),var(--card-end));border-radius:26px;box-shadow:var(--sh),var(--hi);border:1px solid rgba(255,255,255,.03)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:20px;background:var(--card2);color:var(--text);font-weight:600;font-size:13.5px;box-shadow:var(--hi),0 4px 10px rgba(0,0,0,.2);transition:transform .45s var(--spring),background .25s,box-shadow .3s,filter .25s}
@@ -1837,6 +1843,16 @@ svg text{font-family:var(--font)}
 .ph .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
 .tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
 .tools select{height:34px;font-size:13px;border-radius:17px}
+.fltn{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:800;display:inline-grid;place-items:center}.fltn:empty{display:none}
+.flt{margin-top:12px;padding:14px;border-radius:18px;background:rgba(0,0,0,.16);border:1px solid var(--line)}
+.flt[hidden],.fltchips[hidden]{display:none}
+.fltrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.fltrow .inp{width:100%}
+.fltniche{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.fltniche:empty{display:none}
+.fltniche .chip{height:30px;padding:0 12px;font-size:12.5px}.fltniche .chip small{opacity:.7;font-weight:700}
+.fltfoot{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}.fltfoot .note{flex:1 1 200px;font-size:12px}
+.fltchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fltchips .chip{height:30px;padding:0 10px 0 12px;font-size:12.5px;max-width:100%}.fltchips .chip .ic{width:13px;height:13px;flex:none}
+.empty .btn[data-fclear]{margin-top:10px}
 .all{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);margin-left:auto;cursor:pointer}
 .list{flex:1;overflow:auto;padding:4px 10px 12px}
 .li{position:relative;display:flex;gap:11px;align-items:center;padding:11px 12px;border-radius:20px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:background .3s,transform .45s var(--spring),border-color .3s,box-shadow .3s}
@@ -1948,7 +1964,7 @@ button.grp[aria-expanded="false"]{color:var(--muted)}button.grp[aria-expanded="f
 .fplus{width:48px;height:48px;border-radius:50%;background:linear-gradient(160deg,var(--btn1),var(--bar-deep));color:var(--accent-text);display:grid;place-items:center;box-shadow:0 12px 24px rgba(0,0,0,.4);transition:transform .5s var(--spring)}
 .fplus:hover{transform:rotate(90deg) scale(1.1)}.fplus:active{transform:scale(.88)}
 /* overlay, toast, bell menu */
-.ov{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(6,14,10,.62);backdrop-filter:blur(5px);opacity:0;transition:opacity .28s}
+.ov{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(6,14,10,.62);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);opacity:0;transition:opacity .28s}
 .ov.on{opacity:1}
 .dlg{width:min(640px,92vw);max-height:90vh;overflow:auto;border-radius:30px;padding:24px 26px;background:linear-gradient(180deg,var(--card2),var(--card));box-shadow:0 30px 70px rgba(0,0,0,.55),var(--hi);transform:translateY(22px) scale(.9);transition:transform .55s var(--spring)}
 .ov.on .dlg{transform:none}
@@ -3024,7 +3040,13 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   #pg-find .frow>#goBtn{grid-column:1/-1;height:50px;justify-content:center}
   #pg-find .fcard{padding:12px}
   #pg-find .ph{padding:14px 14px 8px}#pg-find .ph h3{font-size:17px}
-  #pg-find .tools{margin-top:10px}#fExport{display:none}
+  #pg-find .tools{margin-top:10px;gap:8px 6px}#fExport{display:none}
+  /* both dropdowns share the first row; Filter, Open now only and Select all share the second */
+  #pg-find .tools select{flex:1 1 calc(50% - 3px);width:0;min-width:0;padding-left:12px;text-overflow:ellipsis}
+  #pg-find .tools .chip{padding:0 12px;gap:6px}
+  #pg-find .tools .all{gap:6px}
+  .fltniche .chip,.fltchips .chip{height:38px;padding:0 14px}
+  .fltfoot .btn{flex:1 1 120px;height:44px}
   #pg-find .li{gap:10px;padding:10px 8px 10px 10px;margin-bottom:6px;background:rgba(255,255,255,.025);border-color:var(--line)}
   #pg-find .li .av{display:none}
   #pg-find .li .lt b{font-size:15px}
@@ -3135,8 +3157,14 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
               <div class="tools">
                 <select id="scope" aria-label="Which searches"><option value="current">Current search</option><option value="all">All saved searches</option></select>
                 <select id="sort" aria-label="Sort"><option value="reviews">Most reviews</option><option value="open">Open now first</option><option value="name">Name A-Z</option></select>
-                <button class="chip" id="openOnly">Open now only</button><button class="chip" id="fExport" title="Save these businesses as a CSV file">Export CSV</button>
+                <button class="chip" id="fltBtn" aria-expanded="false" aria-controls="fltBox"><i class="ic" data-ic="filter"></i><span>Filter</span><b class="fltn" id="fltN"></b></button><button class="chip" id="openOnly">Open now only</button><button class="chip" id="fExport" title="Save these businesses as a CSV file">Export CSV</button>
                 <label class="all"><span>Select all</span><button class="chk" id="allChk" aria-label="Select all"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg></button></label>
+              </div>
+              <div class="fltchips" id="fltChips" hidden></div>
+              <div class="flt" id="fltBox" hidden role="region" aria-label="Filter businesses">
+                <div class="fltrow"><div><label class="l" for="ff_country">Country</label><input class="inp" id="ff_country" list="ffl_country" placeholder="Any country" autocomplete="off" spellcheck="false" maxlength="200"><datalist id="ffl_country"></datalist></div><div><label class="l" for="ff_state">State / Province</label><input class="inp" id="ff_state" list="ffl_state" placeholder="Any" autocomplete="off" spellcheck="false" maxlength="200"><datalist id="ffl_state"></datalist></div><div><label class="l" for="ff_city">City</label><input class="inp" id="ff_city" list="ffl_city" placeholder="Any city" autocomplete="off" spellcheck="false" maxlength="200"><datalist id="ffl_city"></datalist></div><div><label class="l" for="ff_type">Business type</label><input class="inp" id="ff_type" list="ffl_type" placeholder="Any type, e.g. Roofing" autocomplete="off" spellcheck="false" maxlength="200"><datalist id="ffl_type"></datalist></div></div>
+                <div class="fltniche" id="fltNiche"></div>
+                <div class="fltfoot"><span class="note">Several at once? Separate them with commas. The filter looks through all your saved searches.</span><button type="button" class="btn sm" id="fltClearB">Clear</button><button type="button" class="btn sm pri" id="fltDone">Done</button></div>
               </div>
             </div>
             <div class="list" id="list" role="listbox" aria-label="Businesses"></div>
@@ -3219,6 +3247,8 @@ const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
    final state. CSS animations are switched off by the stylesheet rule. */
 if(REDUCE&&Element.prototype.animate){const A=Element.prototype.animate;Element.prototype.animate=function(k,o){const opt=typeof o==="number"?{}:Object.assign({},o);opt.duration=1;opt.delay=0;opt.endDelay=0;if(!isFinite(opt.iterations))opt.iterations=1;return A.call(this,k,opt)}}
 const ICONS={
+ filter:'<path d="M4 6h16M7 12h10M10 18h4"/>',
+ x:'<path d="M6 6l12 12M18 6L6 18"/>',
  mega:'<path d="M4 10v4a1 1 0 001 1h2l5 4V5L7 9H5a1 1 0 00-1 1z"/><path d="M16 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>',
  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
@@ -3407,8 +3437,94 @@ const openPill=l=>`<span class="pill ${l.open}">${l.open==="open"?"Open now":l.o
 const reviewTxt=l=>l.reviews===NA?"No reviews yet":"★ "+(l.rating===NA?"":l.rating+" · ")+num(l.reviews)+" review"+(+l.reviews===1?"":"s");
 const hoursShort=l=>l.hours&&l.hours!==NA?(l.hours==="Closed"?"Closed today":l.hours):"Hours N/A";
 const hoursTxt=l=>l.hours&&l.hours!==NA?(l.hours==="Closed"?"Closed today":"Today "+l.hours)+(l.open_note?" · "+l.open_note:""):"Hours N/A";
+/* ---------------- Find Leads filter: country, state/province, city, business type (11.12) ----------------
+   Each box can hold several values separated by commas (any of them matches); the boxes together must all match.
+   It looks at the area typed for the search that found the lead and at the lead's address. Kept per person (prefs). */
+const FLT_KEYS=["country","state","city","type"];
+const FLT_LABEL={country:"Country",state:"State / Province",city:"City",type:"Business type"};
+const fltNorm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
+const FLT_ABBR=(()=>{const m={},src="on ontario|qc quebec|bc british columbia|ab alberta|mb manitoba|sk saskatchewan|ns nova scotia|nb new brunswick|nl newfoundland and labrador|pe prince edward island|yt yukon|nt northwest territories|nu nunavut|al alabama|ak alaska|az arizona|ar arkansas|ca california|co colorado|ct connecticut|de delaware|fl florida|ga georgia|hi hawaii|id idaho|il illinois|in indiana|ia iowa|ks kansas|ky kentucky|la louisiana|me maine|md maryland|ma massachusetts|mi michigan|mn minnesota|ms mississippi|mo missouri|mt montana|ne nebraska|nv nevada|nh new hampshire|nj new jersey|nm new mexico|ny new york|nc north carolina|nd north dakota|oh ohio|ok oklahoma|or oregon|pa pennsylvania|ri rhode island|sc south carolina|sd south dakota|tn tennessee|tx texas|ut utah|vt vermont|va virginia|wa washington|wv west virginia|wi wisconsin|wy wyoming|dc district of columbia|us united states|usa united states|uk united kingdom";
+  src.split("|").forEach(x=>{const i=x.indexOf(" "),a=x.slice(0,i),n=x.slice(i+1);(m[a]=m[a]||[]).push(n);(m[n]=m[n]||[]).push(a)});return m})();
+const fltEmpty=()=>({country:"",state:"",city:"",type:""});
+const fltTerms=v=>String(v||"").split(",").map(fltNorm).filter(Boolean);
+const fltOn=f=>!!f&&FLT_KEYS.some(k=>fltTerms(f[k]).length);
+const fltCache=new WeakMap();
+function leadWords(l){
+  let c=fltCache.get(l);if(c)return c;
+  const s=String(l.search||""),i=s.indexOf(" | "),stype=i>=0?s.slice(0,i):"",area=i>=0?s.slice(i+3):"";
+  const addr=l.address&&l.address!==NA?l.address:"";
+  c={type:" "+fltNorm((l.btype||"")+" "+stype)+" ",place:" "+fltNorm(area+" "+addr)+" ",area};fltCache.set(l,c);return c;
+}
+// a term matches at the start of a word ("kitch" finds Kitchener); 1 to 2 letters must be a whole word ("ON" never finds "London")
+function fltHit(hay,term){
+  const forms=[term,...(FLT_ABBR[term]||[])];
+  return forms.some(t=>t.length<=2?hay.includes(" "+t+" "):hay.includes(" "+t));
+}
+function fltMatch(l,f){
+  if(!f)return true;const w=leadWords(l);
+  for(const k of FLT_KEYS){const t=fltTerms(f[k]);if(t.length&&!t.some(x=>fltHit(k==="type"?w.type:w.place,x)))return false}
+  return true;
+}
+function loadFlt(){
+  const p=getP("findFilter",null),f=fltEmpty();
+  if(p&&typeof p==="object")FLT_KEYS.forEach(k=>{f[k]=String(p[k]||"").slice(0,200)});
+  S.flt=f;paintFlt(true);
+  if(fltOn(f)&&S.scope!=="all"){S.scope="all";$("#scope").value="all";reload()}
+}
+let fltSaveT=0;
+function setFlt(k,v,fromBox){
+  S.flt=S.flt||fltEmpty();S.flt[k]=String(v||"").slice(0,200);
+  if(fltOn(S.flt)&&S.scope!=="all"){S.scope="all";$("#scope").value="all";S.active=null;S.sel.clear();lastDetail=null;reload()}   // a filter looks through every saved search
+  S.sel.clear();clearTimeout(fltSaveT);fltSaveT=setTimeout(()=>setP("findFilter",S.flt),500);
+  paintFlt(!fromBox);renderFind();
+}
+function fltSuggest(){
+  const out={country:new Map(),state:new Map(),city:new Map(),type:new Map()},add=(k,v)=>{v=String(v||"").trim();if(v&&v!==NA)out[k].set(v,(out[k].get(v)||0)+1)};
+  for(const l of S.find){
+    add("type",l.btype);
+    const p=leadWords(l).area.split(",").map(x=>x.trim()).filter(Boolean);
+    if(p.length>=3){add("city",p[0]);add("state",p[p.length-2]);add("country",p[p.length-1])}
+    else if(p.length===2){add("city",p[0]);add("state",p[0]);add("state",p[1]);add("country",p[1])}
+    else if(p.length===1){add("city",p[0]);add("state",p[0]);add("country",p[0])}
+  }
+  const top=m=>[...m.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(e=>e[0]);
+  return {country:top(out.country).slice(0,60),state:top(out.state).slice(0,80),city:top(out.city).slice(0,150),type:top(out.type).slice(0,150),typeCount:out.type};
+}
+function paintFlt(fill){
+  const f=S.flt||fltEmpty(),on=fltOn(f),n=FLT_KEYS.filter(k=>fltTerms(f[k]).length).length,box=$("#fltBox"),btn=$("#fltBtn");if(!box||!btn)return;
+  btn.classList.toggle("on",on||!box.hidden);btn.setAttribute("aria-expanded",String(!box.hidden));$("#fltN").textContent=n?String(n):"";
+  if(fill)FLT_KEYS.forEach(k=>{const i=$("#ff_"+k);if(i&&i.value!==f[k])i.value=f[k]});
+  if(!box.hidden){
+    const sg=fltSuggest();FLT_KEYS.forEach(k=>{const dl=$("#ffl_"+k);if(dl)dl.innerHTML=sg[k].map(v=>`<option value="${esc(v)}"></option>`).join("")});
+    // business types in the chosen area, most leads first: tap to add or remove
+    const loc={...f,type:""},cnt=new Map();S.find.forEach(l=>{if(fltMatch(l,loc)&&l.btype)cnt.set(l.btype,(cnt.get(l.btype)||0)+1)});
+    const picked=fltTerms(f.type),types=[...cnt.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,14);
+    $("#fltNiche").innerHTML=types.length?types.map(([t,c])=>`<button type="button" class="chip${picked.includes(fltNorm(t))?" on":""}" data-niche="${esc(t)}">${esc(t)}<small>${num(c)}</small></button>`).join(""):"";
+  }
+  const chips=$("#fltChips");
+  chips.innerHTML=on?FLT_KEYS.flatMap(k=>String(f[k]||"").split(",").map(x=>x.trim()).filter(Boolean).map(v=>`<button type="button" class="chip on" data-fk="${k}" data-fv="${esc(v)}" aria-label="Remove ${esc(FLT_LABEL[k])} ${esc(v)}">${esc(v)}${ic("x")}</button>`)).join("")+`<button type="button" class="chip" data-fclear>Clear filter</button>`:"";
+  chips.hidden=!on;hydrateIcons(chips);
+}
+function toggleNiche(t){
+  const cur=String((S.flt||{}).type||"").split(",").map(x=>x.trim()).filter(Boolean),i=cur.findIndex(x=>fltNorm(x)===fltNorm(t));
+  if(i>=0)cur.splice(i,1);else cur.push(t);setFlt("type",cur.join(", "));
+}
+function wireFlt(){
+  const box=$("#fltBox");
+  $("#fltBtn").onclick=()=>{box.hidden=!box.hidden;paintFlt(true);if(!box.hidden&&matchMedia("(hover:hover)").matches)$("#ff_city").focus()};
+  FLT_KEYS.forEach(k=>{const i=$("#ff_"+k);let t=0;i.addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>setFlt(k,i.value,true),140)});
+    i.addEventListener("keydown",e=>{if(e.key==="Enter"){clearTimeout(t);setFlt(k,i.value,true);i.blur()}})});
+  $("#fltNiche").onclick=e=>{const b=e.target.closest("[data-niche]");if(b)toggleNiche(b.dataset.niche)};
+  $("#fltClearB").onclick=()=>{S.flt=fltEmpty();FLT_KEYS.forEach(k=>$("#ff_"+k).value="");setFlt("type","")};
+  $("#fltDone").onclick=()=>{box.hidden=true;paintFlt(false);$("#fltBtn").focus()};
+  $("#fltChips").onclick=e=>{
+    if(e.target.closest("[data-fclear]")){S.flt=fltEmpty();setFlt("type","");return}
+    const b=e.target.closest("[data-fk]");if(!b)return;
+    const k=b.dataset.fk,rest=String(S.flt[k]||"").split(",").map(x=>x.trim()).filter(x=>x&&x!==b.dataset.fv);setFlt(k,rest.join(", "))};
+}
+
 function visibleFind(){
-  let a=S.find.filter(match);if(S.openOnly)a=a.filter(l=>l.open==="open");
+  const fl=fltOn(S.flt)?S.flt:null;let a=S.find.filter(l=>match(l)&&fltMatch(l,fl));if(S.openOnly)a=a.filter(l=>l.open==="open");
   const rv=l=>parseInt(l.reviews)||0,rank={open:0,unknown:1,closed:2};
   if(S.sort==="name")a.sort((x,y)=>x.name.localeCompare(y.name));
   else if(S.sort==="open")a.sort((x,y)=>(rank[x.open]-rank[y.open])||(rv(y)-rv(x))||x.name.localeCompare(y.name));
@@ -3422,7 +3538,7 @@ async function reload(){
     const [f,c,s,dl]=await Promise.all([api("get_find",S.scope),api("get_called"),api("stats"),api("get_deals")]);
     if(my!==reloadTok)return;     // a newer reload is already running; never let an older answer overwrite it
     S.find=f;S.called=c;S.stats=s;S.deals=dl;S.q=$("#gq").value.trim();
-    renderAll(true);
+    renderAll(true);paintFlt(false);
   }catch(e){}
 }
 
@@ -3596,6 +3712,7 @@ function renderFind(){
   if(!arr.length){
     const e=document.createElement("div");e.className="empty pop";
     e.innerHTML=S.running?`<div class="spin"></div><b>Searching Google Maps...</b>Businesses appear here as they are found.`:
+      S.find.length&&fltOn(S.flt)?`<div class="bub">${ic("filter")}</div><b>Nothing matches your filter</b>Try another spelling, fewer boxes, or <button type="button" class="btn sm" data-fclear>Clear filter</button>`:
       S.find.length?`<div class="bub">${ic("search")}</div><b>Nothing matches</b>Try clearing the search box or the "Open now only" filter.`:
       `<div class="bub">${ic("search")}</div><b>No businesses to call yet</b>Enter an area and a business type above, then press Search.`;
     list.appendChild(e);
@@ -3603,7 +3720,7 @@ function renderFind(){
   if(S.active&&!keep.has(S.active)){S.active=arr[0]?arr[0].id:null}
   if(!S.active&&arr[0])S.active=arr[0].id;
   const total=S.find.length,openN=S.find.filter(l=>l.open==="open").length;
-  $("#fSub").textContent=`${num(total)} business${total===1?"":"es"} to call · ${num(openN)} open now`;
+  $("#fSub").textContent=fltOn(S.flt)?`${num(arr.length)} of ${num(total)} match your filter · ${num(arr.filter(l=>l.open==="open").length)} open now`:`${num(total)} business${total===1?"":"es"} to call · ${num(openN)} open now`;
   S.sel.forEach(id=>{if(!S.find.some(l=>l.id===id))S.sel.delete(id)});
   paintSelBar();
   const allOn=arr.length&&arr.every(l=>S.sel.has(l.id));$("#allChk").style.cssText=allOn?"background:var(--accent);border-color:var(--accent);color:var(--accent-text)":"";
@@ -4768,6 +4885,7 @@ $("#goBtn").onclick=startSearch;$("#fOpen").onclick=()=>openFindForm(true);
 $("#scope").onchange=async e=>{S.scope=e.target.value;S.active=null;S.sel.clear();lastDetail=null;await reload()};
 $("#sort").onchange=e=>{S.sort=e.target.value;renderFind()};
 $("#fExport").onclick=()=>exportCsv(false);
+wireFlt();$("#list").addEventListener("click",e=>{if(e.target.closest("[data-fclear]")){S.flt=fltEmpty();setFlt("type","")}});
 $("#openOnly").onclick=e=>{S.openOnly=!S.openOnly;e.currentTarget.classList.toggle("on",S.openOnly);renderFind()};
 $("#allChk").onclick=()=>{const a=visibleFind(),all=a.length&&a.every(l=>S.sel.has(l.id));a.forEach(l=>all?S.sel.delete(l.id):S.sel.add(l.id));renderFind()};
 $("#list").addEventListener("click",e=>{
@@ -5558,6 +5676,13 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.12.0",t:"Filter your leads",items:[
+  "Find Leads has a Filter button: pick a country, state or province, city and business type, and the list shows only those businesses. Great for building up lots of leads and then calling one niche at a time from your phone.",
+  "Type part of a name (\"kitch\" finds Kitchener), use short forms (ON or Ontario, NY or New York), or put several in one box with commas (Roofing, HVAC).",
+  "Business types in the area you picked show as buttons with how many leads each has: tap to add or remove them.",
+  "Your filter stays on until you clear it, even after closing the app, and Select all only ticks what the filter shows.",
+  "Cleaner scrollbars everywhere: thin, rounded and in your theme colour.",
+  "Mac app: Check for updates now explains that automatic updates are for Windows (use the website on a Mac) instead of waiting forever."]},
  {v:"11.11.0",t:"Find new leads on your phone",items:[
   "Find Leads on a phone has a “Find new leads” button: type the area and business type, press Search, and new businesses are added for the whole team, just like on the PC.",
   "Phones search Google Places once an admin adds a free Google key in Settings › Finding leads on phones. Leafline counts every request and stops at the monthly limit you set, so it stays inside Google's free 1,000 a month.",
@@ -5633,6 +5758,7 @@ async function boot(){
     if(!S.me)await needLogin();else await needPw()}
   else applyMe();
   try{S.prefs=await api("get_prefs")||{}}catch(e){S.prefs={}}
+  loadFlt();
   if(getP("theme",""))setTheme(getP("theme","forest"),false,false);
   introProgress(.6);
   S.dockOpen=!!getP("dockOpen",false);S.dockId=getP("dockId",0);applyPaper();
