@@ -12,7 +12,8 @@ from urllib.parse import urlparse, parse_qs
 class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
-        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses")}
+        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests")}
+        self.lead = dict(key="", cap=900, used=0); self.lead_cap = True; self.google_calls = 0
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
         self.down = False; self.done_cap = True; self.avatar_cap = True; self.pext_cap = True; self.drop_next_write = False; self.expire_tokens = False; self.n = 0
@@ -157,6 +158,58 @@ class Fake:
                     if tbl == "rpc/exp_delete":
                         n = len(F.t["expenses"]); F.t["expenses"][:] = [e for e in F.t["expenses"] if e["id"] != body.get("p_id")]
                         return s.reply(200, {"ok": True}) if len(F.t["expenses"]) < n else s.reply(400, {"code": "P0001", "message": "That cost was already removed"})
+                if tbl.startswith("rpc/lead_"):          # mirrors migration 12 (phone search); the real rules are tested in tests/pg
+                    if not F.lead_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                    if not F.role(uid): return s.reply(400, {"code": "P0001", "message": "Sign in first"})
+                    fn, L, R = tbl[4:], F.lead, F.t["lead_requests"]
+                    cfg = lambda: dict(key=L["key"], cap=L["cap"], used=L["used"], month=F.now()[:8] + "01", admin=F.role(uid) == "admin")
+                    if fn == "lead_cfg": return s.reply(200, cfg())
+                    if fn == "lead_cfg_set":
+                        if F.role(uid) != "admin": return s.reply(400, {"code": "P0001", "message": "Only an administrator can change phone search settings"})
+                        k = body.get("p_key")
+                        if k is not None and k.strip() and not re.match(r"^[A-Za-z0-9_-]{20,100}$", k.strip()): return s.reply(400, {"code": "P0001", "message": "That does not look like a Google API key"})
+                        if k is not None: L["key"] = k.strip()
+                        L["cap"] = int(body.get("p_cap") or 0); return s.reply(200, cfg())
+                    if fn == "lead_quota_take":
+                        if L["used"] + 1 > L["cap"]: return s.reply(400, {"code": "P0001", "message": f"This month's limit of {L['cap']} Google searches is used up"})
+                        L["used"] += 1; return s.reply(200, dict(used=L["used"], cap=L["cap"]))
+                    if fn == "lead_add_found":
+                        added = moved = skipped = 0; ids = []
+                        for r in body.get("p_rows") or []:
+                            pk = re.sub(r"\D", "", r.get("phone", ""))[-10:]
+                            ex = next((x for x in F.t["leads"] if x["id"] == r["id"]), None) or next((x for x in F.t["leads"] if pk and x.get("phone_key") == pk), None)
+                            if len(pk) < 7: skipped += 1; continue
+                            if ex:
+                                if ex["status"] != "none" or ex["id"] in ids: skipped += 1; continue
+                                ex.update(search=body["p_search"], btype=body["p_btype"], version=ex.get("version", 0) + 1, updated_at=F.now()); moved += 1; ids.append(ex["id"]); continue
+                            F.t["leads"].append(dict(id=r["id"], name=r["name"], phone=r["phone"], phone_key=pk, owner_name="N/A", email="N/A", rating=r.get("rating") or "N/A",
+                                reviews=r.get("reviews") or "N/A", website=r.get("website") or "N/A", address=r.get("address") or "N/A", search=body["p_search"], btype=body["p_btype"],
+                                hours=r.get("hours") or "", status="none", notes="", enriched=False, added_at=F.now(), called_at=None, meeting_at=None, added_by=uid, called_by=None,
+                                source="google_places", version=1, updated_at=F.now(), created_at=F.now()))
+                            added += 1; ids.append(r["id"])
+                        return s.reply(200, dict(added=added, moved=moved, skipped=skipped, rows=[dict(x) for x in F.t["leads"] if x["id"] in ids]))
+                    if fn == "lead_req_add":
+                        if not (body.get("p_btype") or "").strip(): return s.reply(400, {"code": "P0001", "message": "Enter a business type"})
+                        r = dict(id=str(uuid.uuid4()), owner_id=uid, country=body.get("p_country") or "", state=body.get("p_state") or "", city=body.get("p_city") or "",
+                                 btype=body["p_btype"].strip(), q="", status="pending", found=0, skipped=0, message="", created_at=F.now(), claimed_at=None, age_s=0)
+                        R.append(r); return s.reply(200, dict(r))
+                    mine = [r for r in R if r["owner_id"] == uid]
+                    if fn == "lead_req_claim":
+                        r = next((r for r in mine if r["status"] == "pending"), None)
+                        if not r: return s.reply(200, None)
+                        r.update(status="running", claimed_at=F.now(), message="Your PC is starting the search..."); return s.reply(200, dict(r))
+                    r = next((r for r in mine if r["id"] == body.get("p_id")), None)
+                    if not r: return s.reply(400, {"code": "P0001", "message": "That search was not found"})
+                    if fn == "lead_req_get": return s.reply(200, dict(r))
+                    if fn == "lead_req_cancel":
+                        okc = r["status"] in ("pending", "running")
+                        if okc: r.update(status="cancelled", message="Stopped from your phone.")
+                        return s.reply(200, dict(ok=okc))
+                    if fn == "lead_req_update":
+                        if r["status"] != "running": return s.reply(200, dict(ok=False, cancelled=r["status"] == "cancelled", status=r["status"]))
+                        r.update(status=body["p_status"], found=body.get("p_found") or 0, skipped=body.get("p_skipped") or 0, message=body.get("p_text") or "", q=body.get("p_q") or r["q"])
+                        return s.reply(200, dict(ok=True, cancelled=False, status=r["status"]))
+                    return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + fn})
                 if tbl.startswith("rpc/note_"):          # note reactions are tested on real Postgres (tests/pg)
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                 if tbl in ("rpc/me_settings_get", "rpc/me_settings_set"):   # mirrors migration 9: own row only

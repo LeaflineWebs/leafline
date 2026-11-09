@@ -125,6 +125,21 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
 
+## Twelfth migration (Leafline 11.11: finding new leads on phones)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261109000012_phone_search.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.)
+- `lead_settings` (one row): the team's Google Places API key and a monthly request limit (default 900). Only admins
+  change it (`lead_cfg_set`); every active teammate can read it through `lead_cfg`, because the phone sends the key to
+  Google directly. Restrict the key to your website's address in Google Cloud (Settings > Finding leads on phones >
+  How to get a free key shows the steps).
+- `lead_usage`: Google requests counted per month. `lead_quota_take` adds one before every request and refuses once the
+  limit is reached, for the whole team together.
+- `lead_add_found`: saves what a phone found. One lead per phone number; businesses someone already called are left out.
+- `lead_requests`: searches a phone hands to the same person's Leafline app on their PC (when no key is saved, or the
+  limit is used up). Only the owner can see or stop them, and only their own PC picks them up; unclaimed ones expire
+  after 30 minutes.
+- No table has write rules: all changes go through those functions, which check the caller is signed in and active.
+
 ## Eleventh migration (Leafline 11.10: company costs)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000011_company_costs.sql` > Run. Safe to run twice.
 (`RUN_IN_SUPABASE.sql` already contains it.)

@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.10.0"></script>
-<script src="engine.js?v=11.10.0"></script>
+<script src="config.js?v=11.11.0"></script>
+<script src="engine.js?v=11.11.0"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -229,6 +229,9 @@ svg text{font-family:var(--font)}
 .trow .bf{height:100%;width:0;border-radius:5px;transition:width 1s var(--spring) .35s}
 /* find */
 .fcard{padding:16px 18px 14px;margin-bottom:14px}
+.fopen{display:none;align-items:center;justify-content:center;gap:8px}
+.kh{margin:12px 0 0;padding-left:22px;display:grid;gap:10px;font-size:14px;line-height:1.55;color:var(--text2)}.kh code{font-size:12.5px;overflow-wrap:anywhere}
+.lgbtns{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
 .frow{display:grid;grid-template-columns:1fr 1fr 1fr 1.9fr auto;gap:12px;align-items:end}
 .frow .inp{width:100%}
 .sline{display:flex;align-items:center;gap:12px;margin-top:12px;min-height:22px;font-size:13px;color:var(--muted)}
@@ -734,8 +737,6 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.45;resize:vertical;font
   .toast{bottom:calc(84px + env(safe-area-inset-bottom))}
   input,select,textarea{font-size:16px}
 }
-.web .frow,.web #fplus{display:none}
-.web #goBtn{display:none}
 
 /* ---- bottom navbar: outline + sliding indicator ---- */
 .fpill{box-shadow:0 0 0 1.5px rgba(124,240,176,.5),0 0 24px rgba(var(--accent-rgb),.22),0 14px 30px rgba(0,0,0,.45);transition:box-shadow .5s}
@@ -1427,7 +1428,11 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   #pg-find .split{display:block;min-height:0}
   #pg-find .pane:not(.dpane){overflow:visible;border-radius:24px}
   #pg-find .list{overflow:visible;flex:none;padding:2px 6px 8px}
-  .web #pg-find .fcard{display:none}
+  .fopen{display:flex;width:100%;height:50px;font-size:16px}
+  .fcard:not(.open) .frow,.fcard:not(.open) .pbar,.fcard:not(.open) .sline{display:none}
+  .fcard.open .fopen{display:none}
+  #pg-find .frow>#goBtn{grid-column:1/-1;height:50px;justify-content:center}
+  #pg-find .fcard{padding:12px}
   #pg-find .ph{padding:14px 14px 8px}#pg-find .ph h3{font-size:17px}
   #pg-find .tools{margin-top:10px}#fExport{display:none}
   #pg-find .li{gap:10px;padding:10px 8px 10px 10px;margin-bottom:6px;background:rgba(255,255,255,.025);border-color:var(--line)}
@@ -1802,6 +1807,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
       <!-- FIND -->
       <div class="page flex" id="pg-find">
         <div class="card fcard pop">
+          <button class="btn pri fopen" id="fOpen"><i class="ic" data-ic="search"></i><span>Find new leads</span></button>
           <div class="frow">
             <div><label class="l" for="fCountry">Country</label><input class="inp" id="fCountry" placeholder="Canada"></div>
             <div><label class="l" for="fState">State / Province</label><input class="inp" id="fState" placeholder="Ontario"></div>
@@ -2168,7 +2174,7 @@ async function go(p,force){
   if(my!==navToken)return;
   if(old){old.getAnimations().forEach(a=>a.cancel());old.classList.remove("on")}
   S.lastSig={};
-  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find"){renderFind();paintLeadgenFind()}if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
+  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
   arm(next);next.classList.add("on");applyDock();
   if(!REDUCE)next.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:480,easing:EASE.out});
   history.replaceState(null,"","#"+p);
@@ -3366,7 +3372,7 @@ const ACCENTS=["#3DDC84","#4DD0E1","#5C9DFF","#B388FF","#FF7EB6","#FF5C5C","#FF9
 const MOODS=["😀","😎","🔥","💪","🚀","☕","🎯","🤝","🎧","😴"];
 const okAccent=a=>/^#[0-9A-Fa-f]{6}$/.test(a||"")?a:"";
 const safeBanner=u=>(typeof u==="string"&&u.length<160000&&IMG_OK.test(u))?u:"";
-const freshThought=x=>!!(x&&x.thought&&x.thought_at&&Date.now()-new Date(x.thought_at).getTime()<36*3600e3);
+const freshThought=x=>!!(x&&x.thought&&x.thought_at&&Date.now()-new Date(x.thought_at).getTime()<24*3600e3);
 function bannerFromFile(file){
   return new Promise((res,rej)=>{
     if(!file||!/^image\//.test(file.type))return rej(new Error("Pick an image file (JPG, PNG or WebP)."));
@@ -3394,7 +3400,7 @@ function personModal(p){
 }
 /* ---------------- search ---------------- */
 function setRunning(b){
-  S.running=b;const g=$("#goBtn");g.classList.toggle("stop",b);g.classList.remove("pri");g.classList.toggle("pri",!b);
+  S.running=b;const fc=$("#pg-find .fcard");if(fc)fc.classList.toggle("run",b);const g=$("#goBtn");g.classList.toggle("stop",b);g.classList.remove("pri");g.classList.toggle("pri",!b);
   $("span",g).textContent=b?"Stop":"Search";$("#pbar").classList.toggle("run",b);
 }
 function sText(t){const e=$("#sText");if(e.textContent!==t)e.textContent=t}
@@ -3404,7 +3410,9 @@ async function startSearch(){
   const v=id=>$("#"+id).value.trim(),type=v("fType"),area=[v("fCity"),v("fState"),v("fCountry")].filter(Boolean).join(", ");
   if(!type||!area)return toast("Enter a business type and at least a country, state/province or city.",{bad:1});
   try{const r=await api("search",v("fCountry"),v("fState"),v("fCity"),type);if(!r.ok)return toast(r.error||"Couldn't start the search.",{bad:1});
-    S.current=r.q;S.scope="current";$("#scope").value="current";S.find=[];S.active=null;S.sel.clear();lastDetail=null;$("#pfill").style.width="0%";setRunning(true);sText("Opening Google Maps in a browser window - please don't close it...");renderFind();
+    S.current=r.q;S.scope="current";$("#scope").value="current";S.find=[];S.active=null;S.sel.clear();lastDetail=null;$("#pfill").style.width="0%";setRunning(true);openFindForm(false);
+    if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+    sText(window.LF_API?"Searching for businesses...":"Opening Google Maps in a browser window - please don't close it...");renderFind();
   }catch(e){alertBox("Couldn't start the search",e.message)}
 }
 window.onPy=function(m){
@@ -3412,13 +3420,15 @@ window.onPy=function(m){
   if(e==="progress")progress(d);
   else if(e==="lead"){if(S.scope==="current"&&d.search!==S.current)return;if(d.status!=="none"||S.find.some(x=>x.id===d.id))return;S.find.push(d);renderFind()}
   else if(e==="refresh")reload();
+  else if(e==="search_started"){S.current=d.q;S.scope="current";$("#scope").value="current";S.find=[];S.active=null;S.sel.clear();lastDetail=null;$("#pfill").style.width="0%";setRunning(true);openFindForm(false);sText(d.text||"Searching...");renderFind();toast(d.text||"A search started from your phone")}
   else if(e==="sync"){S.sync=d;renderSync();if(d.state==="synced"&&!(S.people||[]).length)api("get_people").then(p=>{S.people=p||[]}).catch(()=>{})}
   else if(e==="auth_changed"){api("boot").then(b=>{if(b.auth&&b.auth.me){S.me=b.auth.me;applyMe()}}).catch(()=>{})}
   else if(e==="auth_lost"){S.me=null;needLogin(d.why==="deactivated"?"This account has been deactivated. Ask an administrator.":"Your session ended. Please sign in again.").then(()=>reload())}
   else if(e==="search_done"){setRunning(false);$("#pfill").style.width=d.stopped?$("#pfill").style.width:"100%";
     const skip=d.skipped?` (${d.skipped} already-called left out - see Called Leads)`:"";
-    sText(d.n===0?"No new businesses to call from that search."+skip+" Try a broader area or different wording.":
-      (d.stopped?`Stopped. ${d.n} businesses saved.`:`Done: ${d.n} businesses to call, ${d.owners} owner names found.`)+skip+(d.stopped?"":" Missing info shows N/A. Owner names come from website text, so double-check before you call."));
+    if(d.q)S.current=d.q;const pc=d.via==="pc"?" (searched by your PC)":"",own=d.owners==null?"":`, ${d.owners} owner names found`;
+    sText(d.n===0?(d.stopped?"Stopped.":"No new businesses to call from that search."+skip+" Try a broader area or different wording."):
+      (d.stopped?`Stopped. ${d.n} businesses saved.`:`Done: ${d.n} businesses to call${own}${pc}.`)+skip+(d.stopped?"":" Missing info shows N/A."+(d.owners==null?"":" Owner names come from website text, so double-check before you call.")));
     logNote(d.n?`Search finished: ${d.n} new businesses (${S.current||""})`:"Search finished: no new businesses");
     reload().then(()=>{if(d.n)toast(`${d.n} businesses ready to call`)})}
   else if(e==="search_error"){setRunning(false);sText("");$("#pfill").style.width="0%";reload();alertBox("Search failed",d.error||"Unknown error")}
@@ -3443,7 +3453,7 @@ $("#bellBtn").onclick=()=>{const b=$("#bell");b.classList.toggle("on");if(b.clas
 $("#userBtn").onclick=()=>go("account");$("#ringBtn").onclick=()=>go("account");
 $("#ringBtn").onkeydown=e=>{if(e.key==="Enter")go("account")};
 $("#fplus").onclick=async()=>{await go("find");setTimeout(()=>$("#fType").focus(),250)};
-$("#goBtn").onclick=startSearch;
+$("#goBtn").onclick=startSearch;$("#fOpen").onclick=()=>openFindForm(true);
 ["fCountry","fState","fCity","fType"].forEach(i=>$("#"+i).addEventListener("keydown",e=>{if(e.key==="Enter")startSearch()}));
 $("#scope").onchange=async e=>{S.scope=e.target.value;S.active=null;S.sel.clear();lastDetail=null;await reload()};
 $("#sort").onchange=e=>{S.sort=e.target.value;renderFind()};
@@ -4179,48 +4189,71 @@ async function clearMedia(kind){
   toast(av?"Photo removed":"Banner removed");profileUI();paintAccountMedia();
 }
 
-/* ---------- lead generation: provider-agnostic, OFF by default, zero-spend lock ---------- */
-const LEADGEN={
-  providers:{
-    google_places:{name:"Google Places API",paid:true,ready:false,note:"Not connected. Google needs a billing account and an API key, and charges per request past its monthly free usage, so Leafline keeps it locked."},
-    osm_overpass:{name:"OpenStreetMap (Overpass)",paid:false,ready:false,note:"Free and needs no key, but phone numbers and hours are often missing. Not built yet."},
-    desktop_maps:{name:"Desktop Google Maps search",paid:false,ready:true,desktop:true,note:"What Find Leads uses today in the Windows app. Free; it runs a browser on your computer."}},
-  cfg(){const c=getP("leadgen",null)||{};return {on:!!c.on,provider:this.providers[c.provider]?c.provider:"google_places"}},
-  status(){const c=this.cfg(),p=this.providers[c.provider];
-    if(!c.on)return {on:false,text:"Off. No requests are made."};
-    if(p.paid)return {on:true,text:`On, but ${p.name} stays locked (zero-spend). Nothing is sent.`};
-    if(!p.ready)return {on:true,text:`On. ${p.name} is not built yet, so nothing is sent.`};
-    if(p.desktop&&window.LF_API)return {on:true,text:`On. ${p.name} only runs in the desktop app.`};
-    return {on:true,text:`On. Using ${p.name}.`}},
-  async search(){const c=this.cfg(),p=this.providers[c.provider];
-    if(!c.on)throw new Error("Lead generation is turned off.");
-    if(p.paid)throw new Error("Blocked by the zero-spend lock.");
-    if(!p.ready)throw new Error(p.name+" is not connected yet.");
-    throw new Error("Use Find Leads in the desktop app.")}
-};
+/* ---------- finding leads on phones (12th database update): Google Places with a monthly limit, or your PC runs it ---------- */
+async function phoneSearchCfg(){
+  let r;try{r=await api("sb_rpc","lead_cfg",{})}catch(e){r={ok:false,error:e.message}}
+  return r&&r.ok&&r.data?r.data:{missing:!!(r&&r.missing),error:(r&&r.error)||"Couldn't load the settings."};
+}
 function leadgenCard(){
-  const c=LEADGEN.cfg(),s=LEADGEN.status();
-  return `<div class="card form pop lgen" id="lgenCard"><div class="row"><div><h3>Lead generation</h3><div class="note">Finds new businesses automatically from an online places service, for phones and the website too. Off by default.</div></div>
-    <button class="tgl${c.on?" on":""}" id="lgTgl" role="switch" aria-checked="${c.on}" aria-label="Lead generation"></button></div>
-    <div class="stt${s.on?" on":""}" id="lgStt"><i></i><span>${esc(s.text)}</span></div>
-    <div class="prov">${Object.entries(LEADGEN.providers).map(([k,p])=>`<label><input type="radio" name="lgP" value="${k}"${c.provider===k?" checked":""}><span><b>${esc(p.name)}</b>${p.paid?' <span class="ptag idea" style="height:20px;font-size:10.5px">PAID</span>':""}<small>${esc(p.note)}</small></span></label>`).join("")}</div>
-    <div class="note" style="margin-top:12px">Zero-spend lock: Leafline never sends a request to a paid service, even when this is on. Details are in LEAD_GENERATION.md.</div></div>`;
+  return `<div class="card form pop lgen" id="lgenCard"><h3>Finding leads on phones</h3>
+    <div class="note">On a phone (or the website), Find Leads searches Google Places. If no Google key is set up, the search is sent to your Leafline app on your PC instead: it runs the normal search there and the leads show up on your phone.</div>
+    <div id="lgBody" style="margin-top:12px"><div class="note">Loading...</div></div></div>`;
 }
-function wireLeadgen(root){
-  const t=$("#lgTgl",root);if(!t)return;
-  const paint=()=>{const c=LEADGEN.cfg(),s=LEADGEN.status();t.classList.toggle("on",c.on);t.setAttribute("aria-checked",c.on);$("#lgStt",root).classList.toggle("on",s.on);$("#lgStt span",root).textContent=s.text;paintLeadgenFind()};
-  t.onclick=()=>{const c=LEADGEN.cfg();setP("leadgen",{...c,on:!c.on});paint();toast(!c.on?"Lead generation turned on (still zero-spend)":"Lead generation turned off")};
-  $$("input[name=lgP]",root).forEach(i=>i.onchange=()=>{setP("leadgen",{...LEADGEN.cfg(),provider:i.value});paint()});
+async function wireLeadgen(root){
+  const box=$("#lgBody",root);if(!box)return;
+  const c=await phoneSearchCfg();if(!box.isConnected)return;
+  if(c.key===undefined){box.innerHTML=`<div class="stt" id="lgStt"><i></i><span>${esc(c.missing?"Needs the 12th database update. An admin runs RUN_IN_SUPABASE.sql in Supabase (see SETUP_SUPABASE.md).":c.error)}</span></div>`;return}
+  const on=!!c.key,left=Math.max(0,c.cap-c.used);
+  const stat=!on?"No Google key yet: phone searches are sent to your PC.":
+    left?`Google Places is on. ${num(c.used)} of ${num(c.cap)} Google requests used this month (one search uses 1 to 3).`:
+    `This month's Google limit (${num(c.cap)}) is used up. Phone searches go to your PC until next month.`;
+  box.innerHTML=`<div class="stt${on&&left?" on":""}" id="lgStt"><i></i><span>${esc(stat)}</span></div>
+    ${c.admin?`<div class="fg" style="margin:14px 0 0">
+      <div style="grid-column:1/3"><label class="l" for="lgKey">Google Places API key</label><input class="inp" id="lgKey" autocomplete="off" spellcheck="false" maxlength="100" placeholder="${on?"Saved (ends in "+esc(c.key.slice(-4))+"). Paste a new key to replace it":"Paste the key here (it starts with AIza)"}"></div>
+      <div><label class="l" for="lgCap">Monthly limit (Google requests)</label><input class="inp" id="lgCap" type="number" min="0" max="100000" value="${c.cap}"></div>
+      <div class="note" style="align-self:end">Google gives 1,000 free each month. Keep this under 1,000 and it never costs anything.</div></div>
+     <div class="lgbtns"><button class="btn pri" id="lgSave">Save</button>${on?`<button class="btn" id="lgDel">Remove key</button>`:""}<button class="btn" id="lgHelp">How to get a free key</button><span class="note" id="lgNote" role="status"></span></div>`
+    :`<div class="note" style="margin-top:10px">${on?"Set up by your admin.":"An admin can add a Google key here so phones search Google directly."} A search sent to your PC needs Leafline open on your PC and signed in as you.</div>`}`;
+  if(!c.admin)return;
+  const note=t=>{$("#lgNote",box).textContent=t};
+  const save=async(key,msg)=>{
+    const cap=parseInt($("#lgCap",box).value,10);
+    if(isNaN(cap)||cap<0||cap>100000)return note("Enter a monthly limit from 0 to 100000.");
+    note("Saving...");const r=await api("sb_rpc","lead_cfg_set",{p_key:key,p_cap:cap}).catch(e=>({ok:false,error:e.message}));
+    if(!r.ok)return note(r.error||"Couldn't save.");
+    toast(msg);wireLeadgen(root)};
+  $("#lgSave",box).onclick=()=>{const k=$("#lgKey",box).value.trim();
+    if(k&&!/^[A-Za-z0-9_-]{20,100}$/.test(k))return note("That doesn't look like a Google API key. Copy it again from Google Cloud.");
+    save(k||null,k?"Google key saved: phones now search Google":"Phone search settings saved")};
+  if($("#lgDel",box))$("#lgDel",box).onclick=()=>save("","Google key removed: phone searches go to your PC");
+  $("#lgHelp",box).onclick=keyHelp;
 }
-function paintLeadgenFind(){
-  const pg=$("#pg-find");if(!pg)return;let c=$("#lgFind");const s=LEADGEN.status();
-  if(!s.on||!window.LF_API){c&&c.remove();return}
-  if(!c){c=document.createElement("div");c.id="lgFind";c.className="card lgen-card";pg.insertBefore(c,pg.firstChild)}
-  c.innerHTML=`<span class="badge-i lg b-rising">${ic("spark")}Lead generation</span><div class="note" style="flex:1">${esc(s.text)}</div><button class="btn sm" data-go="account">Settings</button>`;
+function keyHelp(){
+  const site=window.LF_API?location.origin+location.pathname.replace(/[^/]*$/,"")+"*":"your Leafline website address, for example https://your-name.github.io/leafline/*";
+  openModal(`<h2>Get a free Google Places key</h2><ol class="kh">
+    <li>Open <b>console.cloud.google.com</b>, sign in with a Google account and create a project (for example "Leafline").</li>
+    <li><b>Billing</b>: add a billing account. Google asks for a card even for free use; searches inside the free 1,000 a month cost $0.</li>
+    <li><b>APIs &amp; Services › Library</b>: search for <b>Places API (New)</b> and press <b>Enable</b>.</li>
+    <li><b>APIs &amp; Services › Credentials › Create credentials › API key</b>. Open the new key and set:<br>
+      Application restrictions: <b>Websites</b>, add <code>${esc(site)}</code><br>API restrictions: <b>Restrict key</b> to <b>Places API (New)</b>. Save.</li>
+    <li>Hard cap (recommended): <b>APIs &amp; Services › Places API (New) › Quotas</b>, set the Text Search <b>requests per day</b> to <b>30</b>. Then Google itself can never go past about 900 a month.</li>
+    <li>Optional: <b>Billing › Budgets &amp; alerts</b>, a $1 budget that emails you if anything is ever charged.</li>
+    <li>Copy the key, paste it in Settings › Finding leads on phones, and press Save. Leafline also stops at the monthly limit you set there.</li></ol>
+    <div style="text-align:right;margin-top:16px"><button class="btn pri" data-x>Got it</button></div>`,(ov,close)=>$("[data-x]",ov).onclick=close);
+}
+function openFindForm(focus){
+  const f=$("#pg-find .fcard");if(!f)return;f.classList.add("open");
+  if(focus)setTimeout(()=>{const t=["fCity","fType"].map(i=>$("#"+i)).find(x=>x&&!x.value.trim());(t||$("#goBtn")).focus()},60);
 }
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.11.0",t:"Find new leads on your phone",items:[
+  "Find Leads on a phone has a “Find new leads” button: type the area and business type, press Search, and new businesses are added for the whole team, just like on the PC.",
+  "Phones search Google Places once an admin adds a free Google key in Settings › Finding leads on phones. Leafline counts every request and stops at the monthly limit you set, so it stays inside Google's free 1,000 a month.",
+  "No key yet? The search is sent to your Leafline app on your PC, which runs the normal search and sends the leads back to your phone. Your PC needs Leafline open and signed in as you.",
+  "Businesses someone already called are left out, and the same business is never added twice (matched by phone number).",
+  "Thought of the day now disappears after 24 hours. Posting the same thought again the next day shows it again."]},
  {v:"11.10.0",t:"Company costs",items:[
   "Admins can add company costs on the Profits page (for example software subscriptions or website hosting): what it was, how much, the date, and whose money it comes off.",
   "Costs are taken off the money made that month, on Profits and on the Dashboard.",
@@ -4295,7 +4328,6 @@ async function boot(){
   S.dockOpen=!!getP("dockOpen",false);S.dockId=getP("dockId",0);applyPaper();
   if(S.me){try{await loadNotes()}catch(e){}acctPull()}
   S.ready=true;setTimeout(maybePatchNotes,1800);if(S.me)loadCosts();initUpdates().then(()=>{if(UP&&UP.platform!=="web"&&UPS.state==="ready")paintUpd()});
-  if(window.LF_API){const sl=$("#sText");if(sl)sl.textContent="New businesses are found in the Leafline desktop app and show up here automatically."}
   const start=TITLES[pageFromHash]?pageFromHash:"dash";S.page="__";$("#title").textContent=pageTitle(start);
   await go(start,true);renderAll(true);applyDock();if(S.page!=="find")renderFind();
   introProgress(.85);

@@ -51,7 +51,7 @@ with sync_playwright() as p:
        banner:getComputedStyle(document.querySelector('.fcard')).display,exp:getComputedStyle(document.getElementById('fExport')).display}}""")
     check("Find Leads scrolls as one page; the list isn't a small box with its own scroll", r["page"] and not r["box"])
     check(f"at least 4 whole leads fit on screen at once (got {r['seen']})", r["seen"] >= 4)
-    check("the desktop-only search banner and Export are hidden on phones", r["banner"] == "none" and r["exp"] == "none")
+    check("Export is hidden on phones; the search form is folded into a 'Find new leads' button", r["banner"] != "none" and r["exp"] == "none" and pg.is_visible("#fOpen") and not pg.is_visible("#fType"))
     pg.evaluate("()=>{const p=document.getElementById('pg-find');p.style.scrollBehavior='auto';p.scrollTop=p.scrollHeight}"); pg.wait_for_timeout(300)
     check("scrolling all the way shows the last lead clear of the page bar", pg.evaluate("()=>{const a=[...document.querySelectorAll('#list .li')],r=a[a.length-1].getBoundingClientRect();return r.bottom<=document.querySelector('.fpill').getBoundingClientRect().top}"))
     pg.evaluate("()=>{const p=document.getElementById('pg-find');p.scrollTop=0;p.style.scrollBehavior=''}")
@@ -88,8 +88,8 @@ with sync_playwright() as p:
     check(f"the page bar is full width and sits on the bottom edge ({r})", r[0] <= 0.5 and r[1] >= r[3] - 0.5 and abs(r[2] - r[4]) <= 0.5)
     check("the page bar leaves room for the iPhone home bar", "calc(2px + env(safe-area-inset-bottom))" in B.UI_HTML)
     # with lead generation switched on and a real-sized list (hundreds of leads), the list still shows
-    pg.evaluate("""async()=>{setP('leadgen',{on:true,provider:'google_places'});const b=S.find.slice();S.find=[];for(let k=0;k<25;k++)b.forEach(l=>S.find.push(Object.assign({},l,{id:l.id+'_'+k})));
-      await go('dash');await go('find');renderFind();paintLeadgenFind();const pane=document.querySelector('#pg-find .pane');pane.classList.remove('in');io.observe(pane);await new Promise(r=>setTimeout(r,1500))}""")
+    pg.evaluate("""async()=>{const b=S.find.slice();S.find=[];for(let k=0;k<25;k++)b.forEach(l=>S.find.push(Object.assign({},l,{id:l.id+'_'+k})));
+      await go('dash');await go('find');renderFind();const pane=document.querySelector('#pg-find .pane');pane.classList.remove('in');io.observe(pane);await new Promise(r=>setTimeout(r,1500))}""")
     r = pg.evaluate("""()=>{const pane=document.querySelector('#pg-find .pane'),lg=document.getElementById('lgFind'),sb=document.getElementById('selBar').getBoundingClientRect();
       return {n:S.find.length,tall:pane.getBoundingClientRect().height>5000,shown:getComputedStyle(pane).opacity==='1',lg:!lg||getComputedStyle(lg).display==='none',
         firstLead:document.querySelector('#list .li').getBoundingClientRect().top,bar:getComputedStyle(document.getElementById('selBar')).visibility,barTop:Math.round(sb.top)}}""")

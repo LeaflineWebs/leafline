@@ -539,12 +539,18 @@ class Sync:
         except ValueError: e = {}
         return {**{k: "" for k in self.PEXT}, **(e if isinstance(e, dict) else {}), "banner": self._kv("banner") or ""}
 
+    @staticmethod
+    def _thought_old(at):
+        try: return datetime.now(timezone.utc) - datetime.fromisoformat(str(at).replace("Z", "+00:00")) >= timedelta(hours=24)
+        except Exception: return True
+
     def set_ext(self, d):
         """Saved on this computer at once, uploaded as soon as the shared database can take it."""
         banner = d.pop("banner", None)
         cur = self.ext(); cur.pop("banner", None)
         cur.update({k: d[k] for k in self.PEXT if k in d})
-        if "thought" in d and d["thought"] != self.ext().get("thought"): cur["thought_at"] = now_iso() if d["thought"] else ""
+        if "thought" in d and (d["thought"] != self.ext().get("thought") or self._thought_old(self.ext().get("thought_at"))):   # a thought lasts 24 hours; posting it again restarts the clock
+            cur["thought_at"] = now_iso() if d["thought"] else ""
         self._kv("pext", json.dumps(cur))
         if banner is not None: self._kv("banner", banner)
         self._kv("pext_pending", "1"); self.kick()
@@ -591,7 +597,7 @@ class Sync:
 
     # ---- Messages (11.4): the page calls the msg_* database functions and the private file bucket through here.
     #      Only those: nothing else in the database can be reached this way. All rules are enforced by the database.
-    MSG_FN = re.compile(r"^(msg|me|note|exp)_[a-z_]{2,40}$")     # msg_*: Messages; me_*: your own private settings (update 9)
+    MSG_FN = re.compile(r"^(msg|me|note|exp|lead)_[a-z_]{2,40}$")     # msg_*: Messages; me_*: your own private settings (update 9)
     MSG_PATH = re.compile(r"^[0-9a-f-]{36}/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,180}$")
 
     @staticmethod

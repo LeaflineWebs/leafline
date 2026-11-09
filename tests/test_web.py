@@ -77,7 +77,7 @@ with sync_playwright() as p:
     r = A(pg, "get_calls", {}); check("call log lists calls with names", r["ok"] and any(x["who"] == "Gio" and x["business"] == "Business 4" for x in r["rows"]))
     r = A(pg, "get_calls", {"q": "Business 4"}); check("call log search by business", r["ok"] and len(r["rows"]) == 1)
     r = A(pg, "get_calls", {"q": "5550104"}); check("digits match phone numbers", r["ok"] and len(r["rows"]) >= 1)
-    check("search is refused on the website with a helpful message", "desktop" in A(pg, "search", "Canada", "ON", "K", "x")["error"])
+    check("a website search without an area is refused with a helpful message", "at least a country" in A(pg, "search", "", "", "", "Roofing")["error"])
     print("3. deals, calendar, events")
     check("deal without client refused", not A(pg, "save_deal", {"client": "", "upfront": 5, "closed_at": "2026-11-07"})["ok"])
     check("deal saved", A(pg, "save_deal", {"client": "Acme Roofing", "upfront": "1,200", "monthly": 99, "months": 12, "closed_at": "2026-11-07", "first_bill": "2026-12-07"})["ok"]); time.sleep(1)

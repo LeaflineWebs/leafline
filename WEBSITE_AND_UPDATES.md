@@ -64,7 +64,7 @@ That's it:
 
 ## New: profiles
 Account & Settings, then **Your public profile**: banner picture, job title, mood, bio, profile colour, and **thought of the day**.
-Everyone sees them on the **Team** page: a "Thoughts of the day" strip, and each person's card shows title, mood, bio and thought; click a card to open their full profile with the banner. Thoughts fade after about a day and mood/bio stay until you change them.
+Everyone sees them on the **Team** page: a "Thoughts of the day" strip, and each person's card shows title, mood, bio and thought; click a card to open their full profile with the banner. Thoughts disappear after 24 hours and mood/bio stay until you change them.
 
 ---
 

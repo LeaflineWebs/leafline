@@ -553,6 +553,129 @@
   }
   const guardNet = async (f) => { try { return await f(); } catch (e) { return fail(netErr(e)); } };
 
+  // ------------------------------------------------------------------ finding new leads from a phone (12th database update)
+  // 1. Google Places (Text Search), when an admin saved a key: every request is counted by the database first, so the
+  //    team never goes past the monthly limit. 2. Otherwise (or if Google refuses): the search is handed to the same
+  //    person's Leafline app on their PC, which runs the normal Google Maps search and uploads what it finds.
+  const GOOGLE_TEXT_SEARCH = "https://places.googleapis.com/v1/places:searchText";
+  const PLACE_FIELDS = "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.regularOpeningHours.weekdayDescriptions,places.businessStatus,nextPageToken";
+  const NEED12 = "Finding leads on a phone needs the 12th database update. Ask an admin to run RUN_IN_SUPABASE.sql in Supabase (see SETUP_SUPABASE.md).";
+  const squash = (s) => String(s == null ? "" : s).split(/\s+/).filter(Boolean).join(" ");
+  const normType = (t) => squash(t).split(" ").map((w) => w.slice(0, 1).toUpperCase() + w.slice(1)).join(" ") || "Other";
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const rpc = (fn, args) => call("POST", "/rest/v1/rpc/" + fn, { body: args || {} });
+  const isMissing = (e) => e instanceof Http && e.status === 404 && (["PGRST202", "42883"].includes(e.code) || /Could not find/.test(e.message));
+  const dbMsg = (e) => (e instanceof Http ? String((e.body && typeof e.body === "object" && (e.body.message || e.body.error)) || e.message) : String(e.message || e)).slice(0, 300);
+  const hunt = { busy: false, stop: false, req: null };
+
+  function placeRow(p) {
+    const phone = squash(p.nationalPhoneNumber || p.internationalPhoneNumber || ""), name = squash((p.displayName || {}).text || "").slice(0, 200);
+    if (!p.id || !name || digits10(phone).length < 7 || p.businessStatus === "CLOSED_PERMANENTLY") return null;   // like the PC search: only businesses you can call
+    const h = {};
+    for (const line of ((p.regularOpeningHours || {}).weekdayDescriptions || [])) {
+      const m = /^\s*([A-Za-z]+):\s*(.+)$/.exec(String(line).replace(/[    ]/g, " "));
+      if (m && DAYS.includes(m[1])) h[m[1]] = squash(m[2]);
+    }
+    return { id: String(p.id).slice(0, 300), name, phone: phone.slice(0, 40), address: squash(p.formattedAddress || "").slice(0, 300) || NA, website: String(p.websiteUri || "").slice(0, 500) || NA,
+      rating: typeof p.rating === "number" ? String(Math.round(p.rating * 10) / 10) : NA, reviews: typeof p.userRatingCount === "number" ? String(p.userRatingCount) : NA,
+      hours: Object.keys(h).length ? JSON.stringify(h) : "" };
+  }
+  function googleWhy(status, er) {
+    const reason = ((er.details || []).find((d) => d && d.reason) || {}).reason || "", msg = String(er.message || "");
+    if (reason === "API_KEY_INVALID") return "Google says the API key isn't valid.";
+    if (reason === "API_KEY_HTTP_REFERRER_BLOCKED" || /referer|referrer/i.test(msg)) return "Google blocked the key for this website address.";
+    if (reason === "SERVICE_DISABLED" || /has not been used|is disabled/i.test(msg)) return "Places API (New) isn't turned on in Google Cloud.";
+    if (reason === "BILLING_DISABLED" || /billing/i.test(msg)) return "Google Cloud needs billing turned on for the key.";
+    if (status === 429) return "Google's daily limit for the key was reached.";
+    return "Google refused the search (" + (msg || status).toString().slice(0, 120) + ").";
+  }
+  async function googlePage(key, textQuery, pageToken) {
+    const body = { textQuery, pageSize: 20, languageCode: "en" };
+    if (pageToken) body.pageToken = pageToken;
+    let r;
+    try { r = await fetch(GOOGLE_TEXT_SEARCH, { method: "POST", headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": PLACE_FIELDS }, body: JSON.stringify(body) }); }
+    catch (e) { throw new Offline(String(e)); }
+    let j = {}; try { j = await r.json(); } catch (e) { j = {}; }
+    if (!r.ok) { const x = new Error(googleWhy(r.status, (j && j.error) || {})); x.google = true; throw x; }
+    return j || {};
+  }
+  function takeRows(rows) {
+    const dirty = new Set(LS.get("lf_outbox", []).filter((o) => o.table === "leads").map((o) => String(o.id)));
+    for (const R of rows || []) {
+      const row = leadIn(R);
+      if (dirty.has(String(row.id))) continue;                    // our own queued change wins until it is uploaded
+      st.leads.set(row.id, row);
+      if (row.status === "none") emit("lead", leadDict(row));
+    }
+    saveCache();
+  }
+  async function runGoogle(key, textQuery, q, bt, max) {
+    const pages = Math.max(1, Math.min(3, Math.ceil(max / 20)));
+    let token = "", n = 0, skipped = 0;
+    for (let i = 0; i < pages && !hunt.stop; i++) {
+      emit("progress", { text: i ? `Asking Google for more... ${n} businesses so far` : "Asking Google for businesses...", frac: 0.1 + 0.8 * (i / pages) });
+      let j;
+      try { await rpc("lead_quota_take", {}); j = await googlePage(key, textQuery, token); }
+      catch (e) { if (i === 0 || e instanceof AuthLost) throw e; break; }      // a later page failing keeps what was found
+      const rows = (j.places || []).map(placeRow).filter(Boolean);
+      if (rows.length) {
+        const res = await rpc("lead_add_found", { p_search: q, p_btype: bt, p_rows: rows });
+        n += (res.added || 0) + (res.moved || 0); skipped += res.skipped || 0;
+        takeRows(res.rows);
+      }
+      emit("progress", { text: `Found ${n} businesses to call...`, frac: 0.1 + 0.8 * ((i + 1) / pages) });
+      token = j.nextPageToken || "";
+      if (!token) break;
+      await wait(1500);                                           // Google needs a moment before the next page is ready
+    }
+    return { n, skipped, q, stopped: hunt.stop };
+  }
+  async function runOnPc(country, state, city, t, q, why) {
+    const r = await rpc("lead_req_add", { p_country: country, p_state: state, p_city: city, p_btype: t });
+    hunt.req = r.id;
+    const head = why ? why + " " : "";
+    emit("progress", { text: head + "Sent to Leafline on your PC. Waiting for it to start...", frac: 0.05 });
+    let last = r, t0 = Date.now(), offline = 0;
+    for (;;) {
+      await wait(3000);
+      if (hunt.stop) { try { await rpc("lead_req_cancel", { p_id: r.id }); } catch (e) { } return { n: last.found || 0, skipped: last.skipped || 0, q: last.q || q, stopped: true, pc: true }; }
+      try { last = await rpc("lead_req_get", { p_id: r.id }); offline = 0; }
+      catch (e) { if (e instanceof Offline && ++offline < 40) continue; throw e; }
+      if (last.status === "pending") emit("progress", { text: head + (Date.now() - t0 > 45000 ? "Still waiting for your PC. Open Leafline on your PC and sign in as you: the search starts as soon as it's on (it waits up to 30 minutes)." : "Sent to Leafline on your PC. Waiting for it to start..."), frac: 0.05 });
+      else if (last.status === "running") emit("progress", { text: "Your PC: " + (last.message || "searching..."), frac: null });
+      else break;
+    }
+    if (last.status === "done") { try { await pullTable("leads"); saveCache(); } catch (e) { } return { n: last.found || 0, skipped: last.skipped || 0, q: last.q || q, stopped: false, pc: true }; }
+    if (last.status === "cancelled") return { n: last.found || 0, skipped: last.skipped || 0, q: last.q || q, stopped: true, pc: true };
+    throw new Error(last.message || "Your PC couldn't finish the search.");
+  }
+  async function hunter(country, state, city, t, area, q, bt) {
+    let done = null, err = "";
+    try {
+      let cfg;
+      try { cfg = await rpc("lead_cfg", {}); } catch (e) { throw isMissing(e) ? new Error(NEED12) : e; }
+      const max = Math.min(60, (st.cosmetic && st.cosmetic.max_results) || PROFILE_DEFAULT.max_results);
+      let why = "";
+      if (cfg.key && cfg.used < cfg.cap) {
+        try { done = await runGoogle(cfg.key, `${t} in ${area}`, q, bt, max); }
+        catch (e) {
+          if (e instanceof Offline || e instanceof AuthLost) throw e;
+          if (e.google) why = e.message;
+          else if (e instanceof Http && /limit of/.test(dbMsg(e))) why = "This month's Google limit is used up.";
+          else throw e;
+        }
+      } else if (cfg.key) why = "This month's Google limit is used up.";
+      if (!done && !hunt.stop) done = await runOnPc(country, state, city, t, q, why);
+      if (!done) done = { n: 0, skipped: 0, q, stopped: true };
+    } catch (e) {
+      err = e instanceof Offline ? "You're offline. Try again when you have a connection." : e instanceof AuthLost ? "Signed out. Sign in again." : dbMsg(e);
+    }
+    hunt.busy = false; hunt.req = null;
+    if (err) return emit("search_error", { error: err });
+    st.current = done.q || q;
+    emit("search_done", { n: done.n, skipped: done.skipped, owners: null, stopped: !!done.stopped, q: st.current, via: done.pc ? "pc" : "google" });
+  }
+
   const API = {
     async boot() {
       if (!st.boot) {
@@ -567,7 +690,7 @@
         }
       }
       const me = st.session ? meOf() || (st.me ? { ...st.me, avatar: LS.get("lf_avatar", ""), ext: { ...Object.fromEntries(PEXT.map((k) => [k, ""])), ...LS.get("lf_ext", {}), banner: LS.get("lf_banner", "") } } : null) : null;
-      return { profile: st.cosmetic, stats: statsNow(), find: API.get_find(), called: API.get_called(), current: null, running: false, db_path: "Shared database (website)", deals: API.get_deals(), auth: { me, sync: st.sync, people: st.people } };
+      return { profile: st.cosmetic, stats: statsNow(), find: API.get_find(st.current ? "current" : "all"), called: API.get_called(), current: st.current || null, running: hunt.busy, db_path: "Shared database (website)", deals: API.get_deals(), auth: { me, sync: st.sync, people: st.people } };
     },
     get_profile() { return st.cosmetic; },
     save_profile(d) { st.cosmetic = cleanProfile(d, st.cosmetic); LS.set("lf_profile", st.cosmetic); return st.cosmetic; },
@@ -601,7 +724,8 @@
       if ("accent" in d) { const a = String(d.accent || ""); if (a && !/^#[0-9A-Fa-f]{6}$/.test(a)) return fail("Pick a colour from the list."); out.accent = a; }
       if ("banner" in d) { const b = String(d.banner || ""); if (b && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b)) return fail("That doesn't look like a picture."); if (b.length > 150000) return fail("That banner is too large."); LS.set("lf_banner", b); }
       const cur = { ...Object.fromEntries(PEXT.map((k) => [k, ""])), ...LS.get("lf_ext", {}) };
-      if ("thought" in out && out.thought !== cur.thought) cur.thought_at = out.thought ? nowIso() : "";
+      const thOld = !(Date.now() - new Date(cur.thought_at || 0).getTime() < 24 * 3600e3);   // a thought lasts 24 hours; posting it again restarts the clock
+      if ("thought" in out && (out.thought !== cur.thought || thOld)) cur.thought_at = out.thought ? nowIso() : "";
       for (const k of PEXT) if (k in out) cur[k] = out[k];
       LS.set("lf_ext", cur); LS.set("lf_ext_pending", true); cycleOnce(false);
       const me = meOf();
@@ -630,7 +754,7 @@
     get_people() { return st.people; },
     // ----- Messages (11.4): only the msg_* database functions and the private file bucket; the database enforces every rule
     async sb_rpc(fn, args) {
-      if (!/^(msg|me|note|exp)_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
+      if (!/^(msg|me|note|exp|lead)_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
       try { return { ok: true, data: await call("POST", "/rest/v1/rpc/" + fn, { body: args }) }; } catch (e) { return msgErr(e); }
     },
     async sb_storage(op, paths, opts) {
@@ -666,7 +790,7 @@
     set_pref(k, v) { k = String(k).replace(/[^A-Za-z0-9_]/g, "").slice(0, 30); const val = JSON.stringify(v); if (!k || val.length > 2000) return { ok: false }; st.prefs[k] = v; LS.set("lf_prefs", st.prefs); return { ok: true }; },
 
     // ----- leads
-    get_find() { return [...st.leads.values()].filter((l) => l.status === "none").sort((a, b) => revNum(b) - revNum(a) || cmpName(a.name, b.name)).map(leadDict); },
+    get_find(scope) { const cur = scope === "current" && st.current; return [...st.leads.values()].filter((l) => l.status === "none" && (!cur || l.search === cur)).sort((a, b) => revNum(b) - revNum(a) || cmpName(a.name, b.name)).map(leadDict); },
     get_called() {
       return [...st.leads.values()].filter((l) => l.status !== "none").sort((a, b) => cmpName(a.btype, b.btype) || (b.called_at || "").localeCompare(a.called_at || "") || cmpName(a.name, b.name)).map(leadDict);
     },
@@ -707,10 +831,19 @@
       if (!w || w === NA) return { ok: false };
       window.open(/^http/i.test(w) ? w : "http://" + w, "_blank", "noopener"); return { ok: true };
     },
-    search() { return fail("Finding new businesses runs in the Leafline desktop app. Everything it finds shows up here automatically."); },
-    stop() { return { ok: true }; },
+    search(country, state, city, btype) {
+      if (hunt.busy) return fail("A search is already running.");
+      if (!uid()) return fail("Sign in first.");
+      const t = squash(btype).slice(0, 80), [ci, sp, co] = [city, state, country].map((x) => squash(x).slice(0, 80)), area = [ci, sp, co].filter(Boolean).join(", ");
+      if (!t || !area) return fail("Enter a business type and at least a country, state/province or city.");
+      const bt = normType(t), q = `${bt} | ${area}`;
+      hunt.busy = true; hunt.stop = false; hunt.req = null; st.current = q;
+      hunter(co, sp, ci, t, area, q, bt);
+      return { ok: true, q };
+    },
+    stop() { if (hunt.busy) hunt.stop = true; return { ok: true }; },
     export_csv(called, scope) {
-      const rows = called ? API.get_called() : API.get_find(), extra = (id) => (st.leads.get(id) || {}).website || NA;
+      const rows = called ? API.get_called() : API.get_find(scope), extra = (id) => (st.leads.get(id) || {}).website || NA;
       const lab = { none: "Not called yet", green: "Called - Meeting set up", yellow: "Called - Interested", orange: "Called - No answer", red: "Called - Not interested" };
       const head = ["Business type", "Company", "Phone", "Owner", "Open now", "Hours today", "Rating", "Reviews", "Website", "Address", "Notes"];
       const table = [(called ? ["Result"] : []).concat(called ? head.slice(0, 4).concat(["Last called"], head.slice(4)) : head)];

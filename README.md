@@ -95,6 +95,17 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.11: find new leads on your phone
+- **Find Leads on phones** has a "Find new leads" button: area + business type, press Search, and new businesses are
+  added for the whole team (one per phone number; businesses someone already called are left out).
+- **Google Places** does the phone search once an admin pastes a Google key in Settings > Finding leads on phones.
+  Leafline counts every request and stops at the monthly limit (default 900, under Google's 1,000 free a month).
+  Set a daily quota in Google Cloud too; the in-app guide shows how.
+- **No key, or the limit used up?** The search is sent to your Leafline app on your PC, which runs the normal Google
+  Maps search and sends the leads back. Your PC needs Leafline open and signed in as you. Stop works from the phone.
+- **Thought of the day disappears after 24 hours** (it was 36). Posting the same thought again shows it again.
+- Needs the 12th database update (RUN_IN_SUPABASE.sql). Until it is run, phones say so when you search.
+
 ## What is new in 11.10: company costs
 - **Admins can record company costs** on the Profits page (Add cost): what it was, the amount, the date, and whose
   money it comes off (yourself by default). Everyone sees the list; only admins see Add and Remove, and the database
