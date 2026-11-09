@@ -5816,6 +5816,8 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.14.1",t:"Mac app fix",items:[
+  "The Mac app now also runs on older Macs (macOS 11 Big Sur and newer): one part of lead search needed macOS 13.5, so a version that works on older Macs is used instead."]},
  {v:"11.14.0",t:"Mac app updates itself",items:[
   "Leafline for Mac is now built with every update and downloads its own updates, just like Windows: a short “Downloading update” screen when you open it, then it restarts into the new version.",
   "Each update is checked before it's installed, and if anything goes wrong the old version is put back.",

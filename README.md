@@ -96,8 +96,8 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
   and the Messages details panel. No database update needed.
 
 ## What is new in 11.14: Mac app updates itself
-- `release.yml` has a `mac` job after the Windows job, for Apple Silicon (macos-14) and Intel (macos-15-intel), both for
-  macOS 11+ (python.org Python, MACOSX_DEPLOYMENT_TARGET 11.0, and a check that no file inside needs a newer macOS). It builds the `.dmg` and `.zip`, gives the
+- `release.yml` has a `mac` job after the Windows job, for Apple Silicon (macos-15) and Intel (macos-15-intel), both for
+  macOS 11+ (python.org Python, MACOSX_DEPLOYMENT_TARGET 11.0, Playwright pinned to 1.56.0 on Mac because newer ones ship a Node that needs macOS 13.5, and a check that no file inside needs a newer macOS). It builds the `.dmg` and `.zip`, gives the
   app an ad-hoc signature (`tools/mac_adhoc_sign.js`, electron-builder afterPack), checks the update list matches the
   zip, tests the real swap script (`mac_update.js`) on the Mac runner, then uploads the files to the same release.
 - `updater.js` on a Mac: no electron-updater (it needs a paid Apple certificate). It reads its update list and downloads

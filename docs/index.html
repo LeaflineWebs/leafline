@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.14.0"></script>
-<script src="engine.js?v=11.14.0"></script>
+<script src="config.js?v=11.14.1"></script>
+<script src="engine.js?v=11.14.1"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -4500,6 +4500,8 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.14.1",t:"Mac app fix",items:[
+  "The Mac app now also runs on older Macs (macOS 11 Big Sur and newer): one part of lead search needed macOS 13.5, so a version that works on older Macs is used instead."]},
  {v:"11.14.0",t:"Mac app updates itself",items:[
   "Leafline for Mac is now built with every update and downloads its own updates, just like Windows: a short “Downloading update” screen when you open it, then it restarts into the new version.",
   "Each update is checked before it's installed, and if anything goes wrong the old version is put back.",
