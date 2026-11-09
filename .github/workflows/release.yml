@@ -1,6 +1,6 @@
 name: Publish desktop update
-# Runs when PUSH_UPDATE.bat pushes a new version tag (v10.2.0 ...). It builds the Windows installer online and
-# attaches it to a GitHub Release. Installed desktop apps notice the new release on their next launch and update themselves.
+# Runs when PUSH_UPDATE.bat pushes a new version tag (v10.2.0 ...). It builds the Windows installer and the Mac app online
+# and attaches them to a GitHub Release. Installed desktop apps notice the new release on their next launch and update themselves.
 on:
   push:
     tags: ["v*"]
@@ -43,4 +43,97 @@ jobs:
         with:
           name: windows-exe
           path: dist/*.exe
+          if-no-files-found: error
+
+  # The Mac app, for both kinds of Mac: Apple Silicon (M1 and newer) and Intel. Runs after the Windows job, which creates
+  # the GitHub Release; each Mac build adds its files (.dmg to install, .zip + latest-mac-<arch>.yml for the Mac app's
+  # own updater) to that same release. Built to run on macOS 11 Big Sur and newer.
+  mac:
+    needs: windows
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-14
+          - arch: x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python from python.org (made for older macOS, so the app also runs on older Macs)
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/python.pkg" https://www.python.org/ftp/python/3.12.10/python-3.12.10-macos11.pkg
+          sudo installer -pkg "$RUNNER_TEMP/python.pkg" -target /
+          echo "/Library/Frameworks/Python.framework/Versions/3.12/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: python3 --version && python3 -c "import platform;print(platform.machine())"
+      - run: python3 -m pip install -r requirements.txt
+      - name: Bundle the Python engine
+        run: python3 -m PyInstaller --noconfirm --name leafline_backend --distpath backend-dist --workpath build/pyi --specpath build/pyi --collect-all playwright --collect-data tzdata backend/leafline_backend.py
+      - run: node tools/set_repo.js
+      - run: npm install
+      - name: Build the Mac app
+        run: npx electron-builder --mac --${{ matrix.arch }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Check the app's signature and that the update files match
+        run: |
+          set -e
+          APP="$(find dist -maxdepth 2 -name '*.app' -type d | head -1)"
+          echo "App: $APP"
+          codesign --verify --deep --strict "$APP"
+          test -f dist/latest-mac.yml
+          mv dist/latest-mac.yml "dist/latest-mac-${{ matrix.arch }}.yml"
+          ZIP="$(ls dist/*-${{ matrix.arch }}-mac.zip | head -1)"
+          node -e "const fs=require('fs'),c=require('crypto');const y=fs.readFileSync(process.argv[2],'utf8'),z=process.argv[1];const h=c.createHash('sha512').update(fs.readFileSync(z)).digest('base64');if(!y.includes(require('path').basename(z))||!y.includes(h)){console.error('the update list does not match '+z);process.exit(1)}console.log('update list matches '+z)" "$ZIP" "dist/latest-mac-${{ matrix.arch }}.yml"
+          ls -la dist
+      - name: Check everything inside runs on macOS 11 and newer
+        run: |
+          APP="$(find dist -maxdepth 2 -name '*.app' -type d | head -1)"
+          bad=0; n=0
+          while IFS= read -r -d '' f; do
+            file -b "$f" | grep -q 'Mach-O' || continue
+            n=$((n+1))
+            v=$(otool -l "$f" 2>/dev/null | awk '/LC_BUILD_VERSION/{b=1} b && $1=="minos"{print $2; exit} /LC_VERSION_MIN_MACOSX/{m=1} m && $1=="version"{print $2; exit}')
+            [ -z "$v" ] && continue
+            if [ "${v%%.*}" -gt 11 ]; then echo "needs macOS $v: $f"; bad=1; fi
+          done < <(find "$APP" -type f -print0)
+          echo "checked $n program files"
+          exit $bad
+      - name: Test the self-update on a real Mac (swap the app, keep it working)
+        run: |
+          set -e
+          SRC="$(find dist -maxdepth 2 -name '*.app' -type d | head -1)"
+          T="$RUNNER_TEMP/lf"; mkdir -p "$T/Apps" "$T/work"
+          TARGET="$T/Apps/Leafline Lead Finder.app"
+          ditto "$SRC" "$TARGET"
+          echo old > "$TARGET/Contents/old-marker"
+          cp "$(ls dist/*-mac.zip | head -1)" "$T/work/update.zip"
+          node -e "require('fs').writeFileSync(process.argv[1], require('./mac_update.js'))" "$T/work/install.sh"
+          sleep 60 & PID=$!; kill $PID; wait $PID 2>/dev/null || true
+          LEAFLINE_NO_OPEN=1 bash "$T/work/install.sh" "$TARGET" "$T/work/update.zip" "$PID" "$T/work"
+          cat "$T/work/install.log"
+          test -d "$TARGET"
+          test ! -e "$TARGET/Contents/old-marker"
+          test ! -e "$TARGET.old"
+          test ! -e "$T/work/update.zip"
+          codesign --verify --deep --strict "$TARGET"
+          echo "Self-update swap works."
+      - name: Add the Mac files to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/*-${{ matrix.arch }}.dmg dist/*-${{ matrix.arch }}-mac.zip "dist/latest-mac-${{ matrix.arch }}.yml" --clobber --repo "$GITHUB_REPOSITORY"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        with:
+          name: mac-app-${{ matrix.arch }}
+          path: |
+            dist/*.dmg
+            dist/*-mac.zip
+            dist/latest-mac-*.yml
           if-no-files-found: error

@@ -1,7 +1,7 @@
 {
   "name": "leafline-lead-finder",
   "productName": "Leafline Lead Finder",
-  "version": "11.13.0",
+  "version": "11.14.0",
   "description": "Leafline Web Services - Lead Finder",
   "author": "Leafline Web Services",
   "main": "main.js",
@@ -26,6 +26,7 @@
       "main.js",
       "preload.js",
       "updater.js",
+      "mac_update.js",
       "package.json",
       "build/icon.png"
     ],
@@ -59,12 +60,17 @@
       "target": [
         {
           "target": "dmg"
+        },
+        {
+          "target": "zip"
         }
       ],
       "icon": "build/icon.png",
       "category": "public.app-category.business",
       "identity": null,
-      "hardenedRuntime": false
+      "hardenedRuntime": false,
+      "artifactName": "Leafline-Lead-Finder-${version}-${arch}-mac.${ext}",
+      "minimumSystemVersion": "11.0"
     },
     "dmg": {
       "title": "Leafline Lead Finder",
@@ -77,7 +83,8 @@
         "repo": "leafline",
         "releaseType": "release"
       }
-    ]
+    ],
+    "afterPack": "tools/mac_adhoc_sign.js"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"

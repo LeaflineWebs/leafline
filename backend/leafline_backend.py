@@ -5816,6 +5816,10 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.14.0",t:"Mac app updates itself",items:[
+  "Leafline for Mac is now built with every update and downloads its own updates, just like Windows: a short “Downloading update” screen when you open it, then it restarts into the new version.",
+  "Each update is checked before it's installed, and if anything goes wrong the old version is put back.",
+  "Works on Intel Macs and Apple Silicon Macs (M1 and newer) with macOS 11 Big Sur or newer. Updates need the app to be in your Applications folder."]},
  {v:"11.13.0",t:"Confirm meetings and payments",items:[
   "Called Leads: once a meeting's time has passed, its card shows “Confirm meeting”. Press it when the meeting really happened; the card then shows “Met”. You can also confirm it in the business's pop-up.",
   "When you open Leafline, a window lists your meetings from the last 30 days that passed without being confirmed: press “It happened”, or pick a new date and time.",

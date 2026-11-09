@@ -95,6 +95,15 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.14: Mac app updates itself
+- `release.yml` has a `mac` job after the Windows job, for Apple Silicon (macos-14) and Intel (macos-15-intel), both for
+  macOS 11+ (python.org Python, MACOSX_DEPLOYMENT_TARGET 11.0, and a check that no file inside needs a newer macOS). It builds the `.dmg` and `.zip`, gives the
+  app an ad-hoc signature (`tools/mac_adhoc_sign.js`, electron-builder afterPack), checks the update list matches the
+  zip, tests the real swap script (`mac_update.js`) on the Mac runner, then uploads the files to the same release.
+- `updater.js` on a Mac: no electron-updater (it needs a paid Apple certificate). It reads its update list and downloads
+  the `.zip` for its own chip (`latest-mac-arm64.yml` / `latest-mac-x64.yml`), verifies the SHA-512 and, on restart, runs `mac_update.js` to swap the app (rolling back on failure).
+  Same launch-time flow, loop guard and Settings button as Windows.
+
 ## What is new in 11.13: confirm meetings and payments
 - **Confirm meeting**: after a meeting's time, its card in Called Leads (Meeting set up) shows "Confirm meeting"; once
   confirmed it shows "Met". Also in the business pop-up under the meeting time, with Undo.

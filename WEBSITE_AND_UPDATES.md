@@ -60,6 +60,19 @@ That's it:
 
 **Check for updates button:** Account & Settings, then **App & updates**. It exists in the desktop app and on the website.
 
+### Mac (11.14)
+Every update also builds the Mac app online (about 15 minutes after the Windows one; GitHub > Actions shows it) and adds
+two installers to the same release: `Leafline-Lead-Finder-<version>-arm64.dmg` for Apple Silicon Macs (M1 and newer) and
+`Leafline-Lead-Finder-<version>-x64.dmg` for Intel Macs. Both need macOS 11 Big Sur or newer. Not sure which Mac you
+have? Apple menu > About This Mac: "Chip: Apple M..." means arm64, "Processor: ... Intel ..." means x64.
+* **First install:** download the `.dmg` from the newest release (GitHub > Releases), open it and drag the app into
+  **Applications**. The app isn't signed by Apple (that needs a paid Apple developer account), so the first time macOS
+  blocks it: open it once, then go to **System Settings > Privacy & Security** and press **Open Anyway**.
+* **After that it updates itself** like Windows: it downloads `latest-mac.yml` and the `.zip` from the newest release,
+  checks the file's SHA-512, and swaps the new app in on restart (the old one is put back if anything fails). Each kind of
+  Mac reads its own list (`latest-mac-arm64.yml` / `latest-mac-x64.yml`), so it always gets the right build. This only
+  works from the Applications folder.
+
 ---
 
 ## New: profiles
