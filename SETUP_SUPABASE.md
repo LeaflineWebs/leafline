@@ -125,6 +125,13 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
 
+## Thirteenth migration (Leafline 11.13: confirming meetings)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261110000013_meeting_checks.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.)
+- Adds `meeting_checks`: which meeting (business + meeting time, as shown in the app) was confirmed, by whom and when.
+- Everyone on the team can read it. `mtg_confirm` / `mtg_unconfirm` let any active teammate confirm or undo a meeting
+  whose time has passed; there are no direct write rules, and every change goes into the audit log.
+
 ## Twelfth migration (Leafline 11.11: finding new leads on phones)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261109000012_phone_search.sql` > Run. Safe to run twice.
 (`RUN_IN_SUPABASE.sql` already contains it.)

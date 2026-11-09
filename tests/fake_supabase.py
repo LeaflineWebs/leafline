@@ -12,7 +12,8 @@ from urllib.parse import urlparse, parse_qs
 class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
-        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests")}
+        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests", "meeting_checks")}
+        self.mtg_cap = True
         self.lead = dict(key="", cap=900, used=0); self.lead_cap = True; self.google_calls = 0
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
@@ -211,6 +212,25 @@ class Fake:
                         r.update(status=body["p_status"], found=body.get("p_found") or 0, skipped=body.get("p_skipped") or 0, message=body.get("p_text") or "", q=body.get("p_q") or r["q"])
                         return s.reply(200, dict(ok=True, cancelled=False, status=r["status"]))
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + fn})
+                if tbl.startswith("rpc/mtg_"):           # mirrors migration 13 (confirming meetings); the real rules are tested in tests/pg
+                    if not F.mtg_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                    if not F.role(uid): return s.reply(400, {"code": "P0001", "message": "Sign in first"})
+                    M = F.t["meeting_checks"]; prof = {p["id"]: p for p in F.t["profiles"]}
+                    if tbl == "rpc/mtg_list":
+                        since = body.get("p_since") or ""
+                        return s.reply(200, [dict(m, confirmed_name=prof.get(m["confirmed_by"], {}).get("display_name")) for m in M if m["meeting_key"] >= since])
+                    lead, key = body.get("p_lead"), body.get("p_key") or ""
+                    if tbl == "rpc/mtg_confirm":
+                        if not re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$", key): return s.reply(400, {"code": "P0001", "message": "That meeting time is not valid"})
+                        if not any(r["id"] == lead for r in F.t["leads"]): return s.reply(400, {"code": "P0001", "message": "That business was not found"})
+                        if key > datetime.now(ZoneInfo("America/Toronto")).strftime("%Y-%m-%d %H:%M"): return s.reply(400, {"code": "P0001", "message": "This meeting hasn't happened yet"})
+                        if not any(m["lead_id"] == lead and m["meeting_key"] == key for m in M):
+                            M.append(dict(lead_id=lead, meeting_key=key, confirmed_by=uid, confirmed_at=F.now()))
+                        return s.reply(200, {"ok": True})
+                    if tbl == "rpc/mtg_unconfirm":
+                        n = len(M); M[:] = [m for m in M if not (m["lead_id"] == lead and m["meeting_key"] == key)]
+                        return s.reply(200, {"ok": len(M) < n})
+                    return s.reply(404, {"code": "PGRST202", "message": "Could not find the function"})
                 if tbl.startswith("rpc/note_"):          # note reactions are tested on real Postgres (tests/pg)
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                 if tbl in ("rpc/me_settings_get", "rpc/me_settings_set"):   # mirrors migration 9: own row only

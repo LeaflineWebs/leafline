@@ -95,6 +95,14 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.13: confirm meetings and payments
+- **Confirm meeting**: after a meeting's time, its card in Called Leads (Meeting set up) shows "Confirm meeting"; once
+  confirmed it shows "Met". Also in the business pop-up under the meeting time, with Undo.
+- **On app open**, a window asks about your own meetings from the last 30 days that passed unconfirmed ("It happened" or
+  pick a new time) and, for admins, payments whose date passed unconfirmed ("Received" or "Change dates", which opens
+  the deal). "Remind me later" closes it until the next start.
+- Needs the 13th database update (RUN_IN_SUPABASE.sql). Until it is run, payments still work and meetings say so.
+
 ## What is new in 11.12.1: banner uploads fixed
 - Uploading a big banner could fail with "You're offline". Supabase cuts the connection when a file is over its
   upload limit (8 MB until the 10th database update is run; at most 50 MB on the Free plan), and the app reported

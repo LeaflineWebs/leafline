@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.12.1"></script>
-<script src="engine.js?v=11.12.1"></script>
+<script src="config.js?v=11.13.0"></script>
+<script src="engine.js?v=11.13.0"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -253,6 +253,23 @@ svg text{font-family:var(--font)}
 .ph .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
 .tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
 .tools select{height:34px;font-size:13px;border-radius:17px}
+.mcf,.mdone{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:13px;font-size:12px;font-weight:700;margin:6px 0 0 6px;vertical-align:middle}
+.mcf{background:rgba(255,214,10,.14);color:#FFE36B;border:1px solid rgba(255,214,10,.35);cursor:pointer;transition:background var(--d-hover) var(--e-out)}
+.mcf:hover{background:rgba(255,214,10,.24)}.mcf .ic,.mdone .ic{width:13px;height:13px}
+.mdone{background:var(--accent-soft);color:var(--accent-hi);border:1px solid var(--accent-line)}
+.mline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--text2)}.mline.ok{color:var(--accent-hi)}.mline .ic{width:14px;height:14px}
+.mline .lnk{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+.dueh{display:flex;gap:14px;align-items:flex-start}
+.due{margin-top:14px;max-height:min(56vh,520px);overflow:auto;display:grid;gap:8px;padding-right:2px}
+.due h4{font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--accent-hi);margin:6px 0 0;display:flex;gap:8px;align-items:center}
+.due h4 span{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--accent-soft);display:inline-grid;place-items:center;font-size:11px}
+.drow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(0,0,0,.16);border:1px solid var(--line);transition:opacity .25s,transform .25s}
+.drow.gone{opacity:0;transform:translateX(16px)}
+.drow .dmain{flex:1 1 220px;min-width:0}.drow .dmain b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.drow .sub{font-size:12.5px;color:var(--muted)}
+.drow .dbtn{display:flex;gap:8px;flex-wrap:wrap}
+.drow .dnew{flex:1 1 100%;display:flex;gap:8px}.drow .dnew[hidden]{display:none}.drow .dnew .inp{flex:1;min-width:0}
+.duef{display:flex;justify-content:flex-end;margin-top:16px}
+@media (max-width:860px){.drow .dbtn{flex:1 1 100%}.drow .dbtn .btn{flex:1;height:44px}.mcf,.mdone{height:32px}}
 .fltn{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-text);font-size:11px;font-weight:800;display:inline-grid;place-items:center}.fltn:empty{display:none}
 .flt{margin-top:12px;padding:14px;border-radius:18px;background:rgba(0,0,0,.16);border:1px solid var(--line)}
 .flt[hidden],.fltchips[hidden]{display:none}
@@ -2475,12 +2492,13 @@ function leadModal(l){
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="mOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
    <div class="fact"><div class="k">Last called</div><div class="v">${esc(fmtDate(l.called_at)||NA)}</div></div>
-   ${l.status==="green"?`<div class="fact span"><div class="k">Meeting date &amp; time</div><input class="inp" id="mWhen" type="datetime-local" value="${esc((l.meeting_at||"").replace(" ","T"))}"></div>`:""}
+   ${l.status==="green"?`<div class="fact span"><div class="k">Meeting date &amp; time</div><input class="inp" id="mWhen" type="datetime-local" value="${esc((l.meeting_at||"").replace(" ","T"))}">${mtgLine(l)}</div>`:""}
    ${l.status!=="none"?creditField("lead",l.called_by):""}
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="mNotes" rows="3" maxlength="2000" style="margin-top:4px;background:var(--bg)" placeholder="What was said, when to call back...">${esc(l.notes)}</textarea></div></div>
    <div class="mark" style="margin-top:6px"><div class="t">Change result</div><div class="sb">${ORDER.map(k=>`<button class="st ${ST[k].cls}${l.status===k?" cur":""}" data-res="${k}">${ST[k].label}</button>`).join("")}</div></div>
    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
   (ov,close)=>{
+    wireMtgLine(ov,l);
     const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim();if((ow||NA)!==l.owner||no!==l.notes){try{await api("save_lead",l.id,ow,no)}catch(e){toast("Couldn't save",{bad:1});return false}}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
     $("[data-x]",ov).onclick=close;$("[data-copy]",ov).onclick=()=>copyText(l.phone);$("[data-site]",ov).onclick=()=>api("open_site",l.id);
     wireCredit(ov,"lead",l.id,()=>{close();reload()});
@@ -2497,6 +2515,96 @@ async function changeStatus(ids,status,prev){
   if(status==="green")meetingModal(ids);
 }
 const calledTab=()=>{const t=getP("calledTab","green");return ORDER.includes(t)?t:"green"};
+/* ---------- meetings that happened (13th database update) and the "needs confirming" pop-up on app open ----------
+   A meeting = a "Meeting set up" lead with a date and time. After that time, someone confirms it happened. A confirmation
+   belongs to one meeting time, so a moved meeting needs confirming again. */
+const MTG={keys:new Set(),at:0,missing:false,sig:"",v:0};
+const mtgKey=l=>l&&l.meeting_at?String(l.meeting_at).replace("T"," ").slice(0,16):"";
+const nowKey=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`};
+const mtgPast=l=>{const k=mtgKey(l);return !!k&&k<=nowKey()};
+const mtgDone=l=>MTG.keys.has(l.id+"|"+mtgKey(l));
+const MTG_NEED="Confirming meetings needs the 13th database update. Ask an admin to run RUN_IN_SUPABASE.sql in Supabase.";
+async function loadMtg(force){
+  if(!force&&Date.now()-MTG.at<30000)return false;MTG.at=Date.now();
+  const since=new Date(Date.now()-400*864e5).toISOString().slice(0,10);
+  let r;try{r=await api("sb_rpc","mtg_list",{p_since:since})}catch(e){return false}
+  if(!r||!r.ok){MTG.missing=!!(r&&r.missing);return false}
+  MTG.missing=false;const rows=Array.isArray(r.data)?r.data:[],sig=rows.map(x=>x.lead_id+"|"+x.meeting_key).sort().join(",");
+  if(sig===MTG.sig)return false;MTG.sig=sig;MTG.keys=new Set(rows.map(x=>x.lead_id+"|"+x.meeting_key));MTG.v++;return true;
+}
+async function confirmMeeting(l,on=true,quietly=false){
+  const k=mtgKey(l);if(!k)return false;
+  let r;try{r=await api("sb_rpc",on?"mtg_confirm":"mtg_unconfirm",{p_lead:l.id,p_key:k})}catch(e){r={ok:false,error:e.message}}
+  if(!r||!r.ok){toast(r&&r.missing?MTG_NEED:((r&&r.error)||"Couldn't save that."),{bad:1});return false}
+  const id=l.id+"|"+k;if(on)MTG.keys.add(id);else MTG.keys.delete(id);MTG.sig="";MTG.v++;
+  if(!quietly)toast(on?`Meeting with ${l.name} confirmed`:"Confirmation removed",{action:{label:"Undo",fn:()=>confirmMeeting(l,!on)}});
+  logNote((on?"Confirmed the meeting with ":"Un-confirmed the meeting with ")+l.name);
+  if(S.page==="called")renderBoard(true);
+  return true;
+}
+const mtgBadge=l=>!l.meeting_at||!mtgPast(l)?"":mtgDone(l)?`<span class="mdone" title="Confirmed: this meeting happened">${ic("check")}Met</span>`
+  :`<button class="mcf" data-mcf="${esc(l.id)}" title="Confirm the meeting with ${esc(l.name)} took place">${ic("check")}Confirm meeting</button>`;
+function wireMtg(root){
+  $$("[data-mcf]",root).forEach(b=>{b.draggable=false;b.onmousedown=e=>e.stopPropagation();
+    b.onclick=async e=>{e.stopPropagation();const l=(S.called||[]).find(x=>x.id===b.dataset.mcf);if(!l)return;b.disabled=true;if(!await confirmMeeting(l))b.disabled=false}});
+}
+// the line in the lead pop-up, under the meeting time
+function mtgLine(l){
+  if(!l.meeting_at)return "";
+  if(!mtgPast(l))return `<div class="mline note">Upcoming. You can confirm it once the meeting time has passed.</div>`;
+  return mtgDone(l)?`<div class="mline ok">${ic("check")}Confirmed: this meeting happened. <button type="button" class="lnk" data-mundo>Undo</button></div>`
+    :`<div class="mline"><span>Did this meeting happen?</span><button type="button" class="btn sm pri" data-mconf>${ic("check")}Confirm meeting</button></div>`;
+}
+function wireMtgLine(ov,l){
+  const c=$("[data-mconf]",ov),u=$("[data-mundo]",ov),box=$(".mline",ov);
+  const redo=()=>{if(box){box.outerHTML=mtgLine(l);hydrateIcons(ov);wireMtgLine(ov,l)}};
+  if(c)c.onclick=async()=>{c.disabled=true;if(await confirmMeeting(l,true,true)){toast(`Meeting with ${l.name} confirmed`);redo()}else c.disabled=false};
+  if(u)u.onclick=async()=>{if(await confirmMeeting(l,false,true))redo()};
+}
+
+/* On app open: your meetings from the last 30 days that passed without a confirmation, and (for admins) payment dates that
+   passed without being confirmed. Confirm, pick a new time, or open the deal to change its dates. Once per app start. */
+function dueMeetings(){
+  const me=S.me&&S.me.id;if(!me||MTG.missing)return [];
+  const d=new Date(Date.now()-30*864e5),p=n=>String(n).padStart(2,"0"),lo=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} 00:00`;
+  return (S.called||[]).filter(l=>l.status==="green"&&l.meeting_at&&l.called_by===me&&mtgPast(l)&&!mtgDone(l)&&mtgKey(l)>=lo).sort((a,b)=>mtgKey(a).localeCompare(mtgKey(b)));
+}
+const duePayments=()=>isAdmin()?((((S.stats||{}).money||{}).all||{}).to_confirm||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)):[];
+const agoTxt=k=>{const d=Math.floor((Date.now()-new Date(k.replace(" ","T")).getTime())/864e5);return d<=0?"today":d===1?"yesterday":d+" days ago"};
+async function maybeDuePopup(){
+  if(S.dueShown||!S.me)return;
+  if(navigator.webdriver&&!/[?&]due(&|$)/.test(location.search))return;      // automated test runs ask for it explicitly
+  S.dueShown=true;
+  if(window.LF_API){for(let i=0;i<60&&!(S.sync&&S.sync.state==="synced");i++)await new Promise(r=>setTimeout(r,500));await reload()}
+  await loadMtg(true);
+  for(let i=0;i<120&&document.querySelector(".ov.on");i++)await new Promise(r=>setTimeout(r,500));   // after What's new or any open window
+  const ms=dueMeetings(),ps=duePayments();if(!ms.length&&!ps.length)return;
+  const KIND={upfront:"Upfront",monthly:"Monthly"};
+  openModal(`<div class="dueh"><div class="pn-ic">${ic("bell")}</div><div><h2>Did these happen?</h2><div class="muted" style="font-size:13.5px;margin-top:2px">These dates have passed without being confirmed. Confirm them, or move them to the right date.</div></div></div>
+    <div class="due">
+    ${ms.length?`<h4>Meetings <span>${ms.length}</span></h4>${ms.map(l=>`<div class="drow" data-m="${esc(l.id)}"><div class="dmain"><b>${esc(l.name)}</b><span class="sub">${esc(meetFmt(l.meeting_at))} · ${esc(agoTxt(mtgKey(l)))}${l.phone?" · "+esc(l.phone):""}</span></div>
+      <div class="dbtn"><button type="button" class="btn sm pri" data-mok>${ic("check")}It happened</button><button type="button" class="btn sm" data-mnew>${ic("cal")}New time</button></div>
+      <div class="dnew" hidden><input class="inp" type="datetime-local" aria-label="New meeting date and time for ${esc(l.name)}"><button type="button" class="btn sm pri" data-msave>Save</button></div></div>`).join("")}`:""}
+    ${ps.length?`<h4>Payments <span>${ps.length}</span></h4>${ps.map(p=>`<div class="drow" data-p="${p.deal_id}|${esc(p.date)}|${esc(p.kind)}"><div class="dmain"><b>${esc(p.client)} · ${usd(p.amount)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||esc(p.kind)} · ${esc(agoTxt(p.date+" 00:00"))}</span></div>
+      <div class="dbtn"><button type="button" class="btn sm pri" data-pok>${ic("check")}Received</button><button type="button" class="btn sm" data-pedit>${ic("edit")}Change dates</button></div></div>`).join("")}`:""}
+    </div><div class="duef"><button type="button" class="btn" data-x>Remind me later</button></div>`,(ov,close)=>{
+    $("[data-x]",ov).onclick=close;
+    const gone=row=>{row.classList.add("gone");setTimeout(()=>{const h=row.parentNode;row.remove();$$(".due h4",ov).forEach(t=>{let n=t.nextElementSibling,c=0;while(n&&n.classList.contains("drow")){c++;n=n.nextElementSibling}if(!c)t.remove();else $("span",t).textContent=c});
+      if(!$(".drow",ov)){close();toast("All caught up")}},260)};
+    $$("[data-m]",ov).forEach(row=>{const l=(S.called||[]).find(x=>x.id===row.dataset.m);if(!l)return row.remove();
+      $("[data-mok]",row).onclick=async e=>{e.currentTarget.disabled=true;if(await confirmMeeting(l,true,true))gone(row);else e.currentTarget.disabled=false};
+      $("[data-mnew]",row).onclick=()=>{const nb=$(".dnew",row);nb.hidden=!nb.hidden;const i=$("input",nb);if(!i.value)i.value=mtgKey(l).replace(" ","T");if(!nb.hidden)i.focus()};
+      $("[data-msave]",row).onclick=async e=>{const i=$(".dnew input",row),v=i.value;if(!v)return i.focus();const b=e.currentTarget;b.disabled=true;
+        try{const r=await api("set_meeting",l.id,v);if(!r||!r.ok){b.disabled=false;return toast((r&&r.error)||"Couldn't save the new time.",{bad:1})}
+          toast(`Meeting with ${l.name} moved to ${meetFmt(v.replace("T"," "))}`);gone(row);reload()}catch(x){b.disabled=false;toast("Couldn't save: "+x.message,{bad:1})}}});
+    $$("[data-p]",ov).forEach(row=>{const [id,day,kind]=row.dataset.p.split("|");
+      $("[data-pok]",row).onclick=async e=>{const b=e.currentTarget;b.disabled=true;
+        try{const r=await api("confirm_payment",+id,day,kind,true);if(!r||!r.ok){b.disabled=false;return toast((r&&r.error)||"Couldn't save that.",{bad:1})}
+          toast("Payment confirmed. It now counts as made.");logNote("Confirmed a "+kind+" payment ("+dayFmt(day)+")");gone(row);reload()}catch(x){b.disabled=false;toast("Couldn't save: "+x.message,{bad:1})}};
+      $("[data-pedit]",row).onclick=()=>{const d=(S.deals||[]).find(x=>String(x.id)===String(id));close();if(d)setTimeout(()=>dealModal(d),280);else go("profits")}});
+  });
+}
+
 function renderBoard(q){
   const pg=$("#pg-called"),all=S.called.filter(match),types=[...new Map(S.called.map(l=>[l.btype.toLowerCase(),l.btype])).values()].sort((a,b)=>a.localeCompare(b));
   if(S.type!=="all"&&!types.some(t=>t.toLowerCase()===S.type))S.type="all";
@@ -2509,7 +2617,7 @@ function renderBoard(q){
   const glabel=l=>grp==="caller"?(l.called_by_name||"Caller not recorded"):grp==="day"?(byDay(l)?dayFmt(byDay(l)):"No date"):l.btype;
   const by=k=>rows.filter(l=>l.status===k),cnt=k=>S.called.filter(l=>l.status===k).length;
   const fold=new Set(getP("calledFold",[]));
-  const sig=JSON.stringify([rows,S.type,types,who,grp,srt,[...fold]]);if(q&&S.lastSig.board===sig)return;S.lastSig.board=sig;
+  const sig=JSON.stringify([rows,S.type,types,who,grp,srt,[...fold],MTG.v]);if(q&&S.lastSig.board===sig)return;S.lastSig.board=sig;
   const scroll=$$(".col .cb",pg).map(c=>c.scrollTop);
   pg.innerHTML=`<div class="two" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:4px"><div><h3 style="font-size:20px;font-weight:800">Call results</h3><div class="muted cdesc" style="font-size:13px;margin-top:2px">Drag a card to another column to change its result, or click a card to edit it. Group and filter by business type, who called, or the day.</div></div>
     <div class="cflt"><select id="cwho" aria-label="Who called"><option value="all">Everyone's calls</option><option value="me"${who==="me"?" selected":""}>My calls</option>${callers.filter(c=>c[0]!==mid).map(c=>`<option value="${esc(c[0])}"${who===c[0]?" selected":""}>${esc(c[1])}'s calls</option>`).join("")}<option value="none"${who==="none"?" selected":""}>Caller not recorded</option></select>
@@ -2519,7 +2627,7 @@ function renderBoard(q){
    <div class="cstats" role="tablist" aria-label="Call results">${ORDER.map(k=>`<div class="cstat pop${calledTab()===k?" on":""}" data-tab="${k}" role="tab" tabindex="0" aria-selected="${calledTab()===k}"><div class="ico tone-${ST[k].cls}">${ic(k==="green"?"check":k==="yellow"?"user":k==="orange"?"phone":"bell")}</div><div><div class="n">${num(cnt(k))}</div><div class="t">${ST[k].label}</div></div></div>`).join("")}</div>
    ${S.called.length?`<div class="board" data-show="${calledTab()}">${ORDER.map(k=>{const a=by(k),g0=new Map();a.forEach(l=>{const key=gkey(l);if(!g0.has(key))g0.set(key,{n:glabel(l),a:[]});g0.get(key).a.push(l)});
        const g=new Map([...g0.entries()].sort((x,y)=>grp==="day"?(srt==="old"?x[0].localeCompare(y[0]):y[0].localeCompare(x[0])):x[1].n.localeCompare(y[1].n)));
-     return `<div class="col pop" data-col="${k}"><div class="ch"><i style="background:${ST[k].color}"></i>${ST[k].label}<span class="n">${a.length}</span>${g.size>1?(()=>{const allShut=[...g.keys()].every(gk=>fold.has(foldKey(k,grp,gk)));return `<button class="fall${allShut?" all":""}" data-fall="${k}" title="${allShut?"Show every group":"Hide every group"}" aria-label="${allShut?"Show every group in":"Hide every group in"} ${esc(ST[k].label)}">${ic("down")}</button>`})():""}${k==="green"?`<button class="addm" data-addmeet title="Set up a meeting and add it to the Calendar" aria-label="Set up a meeting">${ic("plus")}Set up a meeting</button>`:""}</div><div class="cb">${a.length?[...g.entries()].map(([gk,x])=>{const fk=foldKey(k,grp,gk),shut=fold.has(fk);return `<button class="grp" data-fold="${esc(fk)}" aria-expanded="${!shut}" style="--cc:${ST[k].color}" title="${shut?"Show":"Hide"} ${esc(x.n)}"><i class="ic gc">${svg("down")}</i><span class="gl">${esc(x.n)}</span><span class="gn">${x.a.length}</span></button><div class="gb${shut?" fold":""}"><div>${x.a.map(l=>`<div class="kc ${q?"":"pop"}" draggable="true" data-id="${esc(l.id)}" tabindex="0" style="--cc:${ST[k].color}"><b>${esc(l.name)}</b><div class="m"><span>${esc(l.phone)}</span>${l.owner!==NA?`<span>${esc(l.owner)}</span>`:""}</div>${l.called_by_name?`<div class="cby"><i>${esc(initialsOf(l.called_by_name))}</i>Called by ${esc(l.called_by_name)}</div>`:""}${openPill(l)}<span class="hrs">${esc(l.hours!==NA?(l.hours==="Closed"?"Closed today":l.hours):"")}</span>${k==="green"?`${l.meeting_at?`<button class="mchip" data-meet="${esc(l.id)}" title="Change the meeting time">${ic("cal")}${esc(meetFmt(l.meeting_at))}</button>`:`<button class="mchip setup" data-setup="${esc(l.id)}" title="Adds a meeting for ${esc(l.name)} to the Calendar (next business day, 10 am)">${ic("cal")}Set up meeting</button>`}`:""}<div class="when">${esc(fmtDate(l.called_at))}</div></div>`).join("")}</div></div>`}).join(""):`<div class="muted" style="font-size:13px;padding:14px 10px;text-align:center">Drop a card here</div>`}</div></div>`}).join("")}</div>`
+     return `<div class="col pop" data-col="${k}"><div class="ch"><i style="background:${ST[k].color}"></i>${ST[k].label}<span class="n">${a.length}</span>${g.size>1?(()=>{const allShut=[...g.keys()].every(gk=>fold.has(foldKey(k,grp,gk)));return `<button class="fall${allShut?" all":""}" data-fall="${k}" title="${allShut?"Show every group":"Hide every group"}" aria-label="${allShut?"Show every group in":"Hide every group in"} ${esc(ST[k].label)}">${ic("down")}</button>`})():""}${k==="green"?`<button class="addm" data-addmeet title="Set up a meeting and add it to the Calendar" aria-label="Set up a meeting">${ic("plus")}Set up a meeting</button>`:""}</div><div class="cb">${a.length?[...g.entries()].map(([gk,x])=>{const fk=foldKey(k,grp,gk),shut=fold.has(fk);return `<button class="grp" data-fold="${esc(fk)}" aria-expanded="${!shut}" style="--cc:${ST[k].color}" title="${shut?"Show":"Hide"} ${esc(x.n)}"><i class="ic gc">${svg("down")}</i><span class="gl">${esc(x.n)}</span><span class="gn">${x.a.length}</span></button><div class="gb${shut?" fold":""}"><div>${x.a.map(l=>`<div class="kc ${q?"":"pop"}" draggable="true" data-id="${esc(l.id)}" tabindex="0" style="--cc:${ST[k].color}"><b>${esc(l.name)}</b><div class="m"><span>${esc(l.phone)}</span>${l.owner!==NA?`<span>${esc(l.owner)}</span>`:""}</div>${l.called_by_name?`<div class="cby"><i>${esc(initialsOf(l.called_by_name))}</i>Called by ${esc(l.called_by_name)}</div>`:""}${openPill(l)}<span class="hrs">${esc(l.hours!==NA?(l.hours==="Closed"?"Closed today":l.hours):"")}</span>${k==="green"?`${l.meeting_at?`<button class="mchip" data-meet="${esc(l.id)}" title="Change the meeting time">${ic("cal")}${esc(meetFmt(l.meeting_at))}</button>${mtgBadge(l)}`:`<button class="mchip setup" data-setup="${esc(l.id)}" title="Adds a meeting for ${esc(l.name)} to the Calendar (next business day, 10 am)">${ic("cal")}Set up meeting</button>`}`:""}<div class="when">${esc(fmtDate(l.called_at))}</div></div>`).join("")}</div></div>`}).join(""):`<div class="muted" style="font-size:13px;padding:14px 10px;text-align:center">Drop a card here</div>`}</div></div>`}).join("")}</div>`
     :`<div class="card empty pop" style="margin-top:6px"><div class="bub">${ic("phone")}</div><b>No called businesses yet</b>Mark a business on Find Leads and it shows up here.</div>`}`;
   hydrateIcons(pg);if(q)quiet(pg);
   $$(".col .cb",pg).forEach((c,i)=>c.scrollTop=scroll[i]||0);
@@ -2534,6 +2642,7 @@ function renderBoard(q){
   $$("[data-setup]",pg).forEach(b=>{b.onclick=e=>{e.stopPropagation();quickMeeting(b.dataset.setup)};b.draggable=false;b.onmousedown=e=>e.stopPropagation()});
   const ex=$("#cExport");if(ex)ex.onclick=()=>exportCsv(true);
   $$("[data-meet]",pg).forEach(b=>{b.onclick=e=>{e.stopPropagation();meetingModal([b.dataset.meet])};b.draggable=false;b.onmousedown=e=>e.stopPropagation()});
+  wireMtg(pg);loadMtg().then(ch=>{if(ch&&S.page==="called")renderBoard(true)});
   const am=$("[data-addmeet]",pg);if(am)am.onclick=()=>pickMeetingModal();
   $$("[data-fold]",pg).forEach(b=>{b.onclick=e=>{e.stopPropagation();const open=b.getAttribute("aria-expanded")==="true";setFold([b.dataset.fold],open);
       b.setAttribute("aria-expanded",String(!open));b.title=(open?"Show ":"Hide ")+$(".gl",b).textContent;b.nextElementSibling.classList.toggle("fold",open);syncFall(pg)};
@@ -4391,6 +4500,11 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.13.0",t:"Confirm meetings and payments",items:[
+  "Called Leads: once a meeting's time has passed, its card shows “Confirm meeting”. Press it when the meeting really happened; the card then shows “Met”. You can also confirm it in the business's pop-up.",
+  "When you open Leafline, a window lists your meetings from the last 30 days that passed without being confirmed: press “It happened”, or pick a new date and time.",
+  "Admins also see payments whose date passed without being confirmed: press “Received”, or “Change dates” to open the deal.",
+  "If a meeting is moved to a new time, the new time needs confirming again."]},
  {v:"11.12.1",t:"Banner uploads fixed",items:[
   "Fixed: uploading a big banner could say “you're offline” even though you were online. Big photos are now shrunk to banner size before uploading, so they upload quickly and fit under the upload limit.",
   "Animated banners (GIF, animated WebP or PNG) are kept exactly as they are. If one is too big for the server, Leafline now says so clearly instead of saying you're offline."]},
@@ -4481,7 +4595,7 @@ async function boot(){
   introProgress(.6);
   S.dockOpen=!!getP("dockOpen",false);S.dockId=getP("dockId",0);applyPaper();
   if(S.me){try{await loadNotes()}catch(e){}acctPull()}
-  S.ready=true;setTimeout(maybePatchNotes,1800);if(S.me)loadCosts();initUpdates().then(()=>{if(UP&&UP.platform!=="web"&&UPS.state==="ready")paintUpd()});
+  S.ready=true;setTimeout(maybePatchNotes,1800);setTimeout(maybeDuePopup,2600);if(S.me)loadCosts();initUpdates().then(()=>{if(UP&&UP.platform!=="web"&&UPS.state==="ready")paintUpd()});
   const start=TITLES[pageFromHash]?pageFromHash:"dash";S.page="__";$("#title").textContent=pageTitle(start);
   await go(start,true);renderAll(true);applyDock();if(S.page!=="find")renderFind();
   introProgress(.85);
