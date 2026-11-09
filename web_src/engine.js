@@ -551,6 +551,7 @@
     }
     return fail(String(e.message || e).slice(0, 300));
   }
+  const TOO_BIG = "That file couldn't be uploaded: the server cut the upload off, which means it is bigger than your Supabase upload limit (8 MB until the 10th database update is run, and at most 50 MB on Supabase's free plan). Pick a smaller file.";
   const guardNet = async (f) => { try { return await f(); } catch (e) { return fail(netErr(e)); } };
 
   // ------------------------------------------------------------------ finding new leads from a phone (12th database update)
@@ -1048,11 +1049,14 @@
         const path = `media/${uid()}/${kind}-${uuid4().replace(/-/g, "").slice(0, 12)}.${ext}`;
         const go = async (retry) => {
           let r; try { r = await fetch(SB + "/storage/v1/object/" + path, { method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + (await token()), "Content-Type": mime, "cache-control": "31536000", "x-upsert": "false" }, body: raw }); }
-          catch (e) { throw new Offline(String(e)); }
+          catch (e) {   // Supabase cuts the connection when a file is over its upload limit: if the internet still works, say that
+            try { await rest("GET", "profiles", { params: { select: "id", limit: 1 } }); } catch (x) { throw new Offline(String(e)); }
+            throw new Http(413, { message: "cut off" });
+          }
           if (r.status === 401 && retry) { await refresh(); return go(false); }
           if (!r.ok) throw new Http(r.status, await r.text());
         };
-        await go(true);
+        try { await go(true); } catch (e) { if (e instanceof Http && (e.status === 413 || /Payload too large|exceeded the maximum allowed size/i.test(e.message))) return fail(TOO_BIG); throw e; }
         const url = SB + "/storage/v1/object/public/" + path, old = mediaOf()[kind + "_url"] || "", body = { [kind + "_url"]: url };
         if (t && kind === "avatar" && st.caps.avatar) body.avatar = t;
         if (t && kind === "banner" && st.caps.pext) body.banner = t;

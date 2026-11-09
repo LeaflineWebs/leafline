@@ -95,6 +95,13 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.12.1: banner uploads fixed
+- Uploading a big banner could fail with "You're offline". Supabase cuts the connection when a file is over its
+  upload limit (8 MB until the 10th database update is run; at most 50 MB on the Free plan), and the app reported
+  every dropped connection as offline. Now still banners are shrunk to 3000px wide before uploading (usually well
+  under 1 MB), animated ones are kept as they are, and a file the server refuses is reported as too big, not offline.
+- The banner preview no longer refuses files over 20 MB.
+
 ## What is new in 11.12: filter your leads
 - **Find Leads > Filter**: country, state/province, city and business type. Matches the start of words ("kitch" finds
   Kitchener), knows province/state short forms (ON = Ontario, NY = New York), takes several values with commas, and

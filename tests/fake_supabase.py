@@ -122,6 +122,7 @@ class Fake:
                 if not F.media_cap: return s.reply(400, {"message": "Bucket not found"})
                 if key.split("/")[1] != uid: return s.reply(403, {"message": "new row violates row-level security policy"})
                 if method == "POST":
+                    if getattr(F, "cut_over", 0) and len(raw) > F.cut_over: return s.hang_up()     # like Supabase cutting off a file over its limit
                     if len(raw) > 8388608: return s.reply(413, {"message": "too large"})
                     F.files[key] = (raw, s.headers.get("Content-Type")); return s.reply(200, {"Key": key})
                 if method == "DELETE": F.files.pop(key, None); return s.reply(200, [])

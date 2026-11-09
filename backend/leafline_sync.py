@@ -309,9 +309,12 @@ class Remote:
         """Raw file into Supabase Storage (bucket/path). Returns the public URL."""
         h = {"apikey": PUBLISHABLE_KEY, "Authorization": "Bearer " + self.auth.token(), "Content-Type": mime, "cache-control": "31536000", "x-upsert": "false"}
         try:
-            r = requests.post(SUPABASE_URL + "/storage/v1/object/" + path, headers=h, data=data, timeout=(5, 60))
+            r = requests.post(SUPABASE_URL + "/storage/v1/object/" + path, headers=h, data=data, timeout=(10, 300))
         except (requests.ConnectionError, requests.Timeout) as e:
-            raise Offline(str(e))
+            # Supabase cuts the connection when a file is over its upload limit. If the internet still works, say that.
+            try: self.call("GET", "/rest/v1/profiles", params={"select": "id", "limit": 1})
+            except Exception: raise Offline(str(e))
+            raise Http(413, {"message": "The upload was cut off by the server"})
         if r.status_code == 401 and retry:
             self.auth.refresh(); return self.upload(path, data, mime, False)
         if r.status_code >= 400:

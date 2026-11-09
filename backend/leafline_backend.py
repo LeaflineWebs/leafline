@@ -114,6 +114,9 @@ def read_hours(page):
     return h or {}
 
 
+TOO_BIG = "That file couldn't be uploaded: the server cut the upload off, which means it is bigger than your Supabase upload limit (8 MB until the 10th database update is run, and at most 50 MB on Supabase's free plan). Pick a smaller file."
+
+
 def launch(p):
     args = ["--lang=en-US", "--disable-blink-features=AutomationControlled"]
     for ch in ("msedge", "chrome", None):
@@ -812,6 +815,9 @@ class Api:
             return self._sync.upload_media(kind, raw, mime, t or None)
         except lsync.Offline:
             return dict(ok=False, error="You're offline. Pictures upload when you're connected.")
+        except lsync.Http as e:
+            if e.status == 413 or re.search(r"Payload too large|exceeded the maximum allowed size", str(e.body), re.I): return dict(ok=False, error=TOO_BIG)
+            return dict(ok=False, error="Upload failed: " + str(e)[:140])
         except Exception as e:
             return dict(ok=False, error="Upload failed: " + str(e)[:140])
 
@@ -4803,7 +4809,6 @@ const freshThought=x=>!!(x&&x.thought&&x.thought_at&&Date.now()-new Date(x.thoug
 function bannerFromFile(file){
   return new Promise((res,rej)=>{
     if(!file||!/^image\//.test(file.type))return rej(new Error("Pick an image file (JPG, PNG or WebP)."));
-    if(file.size>20e6)return rej(new Error("That image is too big. Pick one under 20 MB."));
     const url=URL.createObjectURL(file),im=new Image();
     im.onload=()=>{try{URL.revokeObjectURL(url);res(fitStill(im,1,145000))}catch(e){rej(e)}};
     im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Couldn't read that picture. Try a JPG or PNG."))};im.src=url});
@@ -5587,7 +5592,33 @@ function mediaDialog(kind,file){
       try{const out=cr&&(cr.moved()||!anim)?await cr.export(file):file;await saveMedia(kind,out,pos);done()}catch(x){toast(x.message,{bad:1});b.disabled=false;b.textContent="Save"}};
   });
 }
+/* Banners show at most ~3000px wide, so a big still photo is shrunk before it uploads (a few hundred KB instead of
+   many MB): it uploads fast and fits under any upload limit. Animated pictures are kept exactly as they are. */
+async function isAnimatedFile(file){
+  if(/gif/.test(file.type))return true;
+  try{const b=new Uint8Array(await file.slice(0,262144).arrayBuffer()),s=String.fromCharCode.apply(null,b.subarray(0,Math.min(b.length,65536)));
+    if(/png/.test(file.type))return s.includes("acTL");
+    if(/webp/.test(file.type))return s.includes("ANIM");
+    if(/avif/.test(file.type))return s.slice(0,40).includes("avis");
+  }catch(e){return true}
+  return false;
+}
+async function shrinkBanner(file){
+  if(await isAnimatedFile(file))return file;
+  const url=URL.createObjectURL(file);
+  try{
+    const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("Couldn't read that picture. Try a JPG or PNG."));i.src=url});
+    const W=3000,sc=Math.min(1,W/im.naturalWidth);if(sc===1&&file.size<=1.5e6)return file;
+    const c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.naturalWidth*sc));c.height=Math.max(1,Math.round(im.naturalHeight*sc));
+    const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(im,0,0,c.width,c.height);
+    const blob=await new Promise(r=>c.toBlob(b=>r(b),"image/webp",.9));
+    const out=blob&&blob.type==="image/webp"?blob:await new Promise(r=>c.toBlob(b=>r(b),"image/jpeg",.9));
+    if(!out||out.size>=file.size)return file;
+    return new File([out],"banner."+(out.type==="image/webp"?"webp":"jpg"),{type:out.type});
+  }finally{URL.revokeObjectURL(url)}
+}
 async function saveMedia(kind,file,pos){
+  if(kind==="banner")file=await shrinkBanner(file);
   const av=kind==="avatar",thumb=av?await pictureFromFile(file):await bannerFromFile(file),data=await readAsDataURL(file);
   let r=await api("upload_media",kind,data,thumb);
   S.me.media=S.me.media||{};
@@ -5676,6 +5707,9 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.12.1",t:"Banner uploads fixed",items:[
+  "Fixed: uploading a big banner could say “you're offline” even though you were online. Big photos are now shrunk to banner size before uploading, so they upload quickly and fit under the upload limit.",
+  "Animated banners (GIF, animated WebP or PNG) are kept exactly as they are. If one is too big for the server, Leafline now says so clearly instead of saying you're offline."]},
  {v:"11.12.0",t:"Filter your leads",items:[
   "Find Leads has a Filter button: pick a country, state or province, city and business type, and the list shows only those businesses. Great for building up lots of leads and then calling one niche at a time from your phone.",
   "Type part of a name (\"kitch\" finds Kitchener), use short forms (ON or Ontario, NY or New York), or put several in one box with commas (Roofing, HVAC).",
