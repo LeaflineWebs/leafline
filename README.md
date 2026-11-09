@@ -95,6 +95,14 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.10: company costs
+- **Admins can record company costs** on the Profits page (Add cost): what it was, the amount, the date, and whose
+  money it comes off (yourself by default). Everyone sees the list; only admins see Add and Remove, and the database
+  refuses anyone else.
+- Costs are **taken off the money made** that month (Profits "Made in ...", Dashboard) and **off that person's money
+  on the leaderboard** (which can go below zero, shown as -$).
+- Needs the 11th database update (RUN_IN_SUPABASE.sql). Until it is run, admins see a note and nothing changes.
+
 ## What is new in 11.9: banners, picture shapes, What's new
 - **Banners up to 100 MB** (profile pictures stay at 8 MB). Needs the 10th database update (RUN_IN_SUPABASE.sql).
   Supabase also caps uploads project-wide: 50 MB on the Free plan (Storage > Settings), so banners over 50 MB need a

@@ -12,7 +12,7 @@ from urllib.parse import urlparse, parse_qs
 class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
-        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings")}
+        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses")}
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
         self.down = False; self.done_cap = True; self.avatar_cap = True; self.pext_cap = True; self.drop_next_write = False; self.expire_tokens = False; self.n = 0
@@ -141,6 +141,22 @@ class Fake:
             def rest(s, method, tbl, q, body, uid):
                 if tbl.startswith("rpc/msg_"):           # Messages (migration 8) not run here: answer like Supabase does
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                if tbl.startswith("rpc/exp_"):           # mirrors migration 11 (company costs); the real rules are tested in tests/pg
+                    if not getattr(F, "costs_cap", True): return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                    prof = {p["id"]: p for p in F.t["profiles"]}
+                    if tbl == "rpc/exp_list":
+                        return s.reply(200, [dict(e, charged_name=prof.get(e["charged_to"], {}).get("display_name"), created_name=prof.get(e["created_by"], {}).get("display_name"))
+                                             for e in sorted(F.t["expenses"], key=lambda e: (e["spent_on"], e["created_at"]), reverse=True)])
+                    if F.role(uid) != "admin": return s.reply(400, {"code": "P0001", "message": "Only an administrator can change company costs"})
+                    if tbl == "rpc/exp_add":
+                        to = body.get("p_to") or uid
+                        if not body.get("p_label") or not (float(body.get("p_amount") or 0) > 0) or to not in prof: return s.reply(400, {"code": "P0001", "message": "Bad cost"})
+                        e = dict(id=str(uuid.uuid4()), label=body["p_label"].strip(), amount=round(float(body["p_amount"]), 2), spent_on=body.get("p_on") or F.now()[:10],
+                                 charged_to=to, created_by=uid, created_at=F.now()); F.t["expenses"].append(e)
+                        return s.reply(200, {"id": e["id"]})
+                    if tbl == "rpc/exp_delete":
+                        n = len(F.t["expenses"]); F.t["expenses"][:] = [e for e in F.t["expenses"] if e["id"] != body.get("p_id")]
+                        return s.reply(200, {"ok": True}) if len(F.t["expenses"]) < n else s.reply(400, {"code": "P0001", "message": "That cost was already removed"})
                 if tbl.startswith("rpc/note_"):          # note reactions are tested on real Postgres (tests/pg)
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                 if tbl in ("rpc/me_settings_get", "rpc/me_settings_set"):   # mirrors migration 9: own row only

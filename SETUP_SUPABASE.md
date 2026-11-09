@@ -124,3 +124,11 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Raises the `media` bucket's size limit from 8 MB to 100 MB. The app keeps profile pictures at 8 MB; banners may be up to 100 MB.
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
+
+## Eleventh migration (Leafline 11.10: company costs)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000011_company_costs.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.)
+- Adds the `expenses` table: company costs (what it was, amount, date, whose money it comes off, who added it).
+- Everyone on the team can read it. Only administrators can add or remove costs, through `exp_add` and `exp_delete`,
+  which check the caller is an active admin. There are no direct write rules, and every change goes into the audit log.
+- Each cost is taken off the money made in its month (Profits, Dashboard) and off that person's leaderboard money.
