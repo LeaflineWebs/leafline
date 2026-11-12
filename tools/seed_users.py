@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Create / manage Leafline employee accounts (admin PC only; uses the SECRET service key).
 
-  python seed_users.py seed                 # Gio, James, Akbar, Omar, Jaylen, Tim (James, Omar, Akbar are admins)
+  python seed_users.py seed                 # Gio, James, Akbar, Omar, Jaylen, Tim (James, Omar, Akbar are admins), then Kyle and Mubaraq
+  python seed_users.py starters             # only the newer starters: Kyle and Mubaraq (regular employees)
   python seed_users.py add Sarah            # new employee, random temporary password printed once
   python seed_users.py reset James          # new temporary password, forces change at next login
   python seed_users.py reactivate Tim       # lets a deactivated person sign in again
@@ -20,6 +21,9 @@ DOM = os.environ.get("LEAFLINE_EMAIL_DOMAIN", "leaflineweb.com")
 H = {"apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json"}
 ADMINS = {"james", "omar", "akbar"}
 STARTERS = {"Gio": "Gio123", "James": "James123", "Akbar": "Akbar123", "Omar": "Omar123", "Jaylen": "Jaylen123", "Tim": "Tim123"}
+# Starters added later (11.15). Regular employees, never admins. No password is written anywhere: each gets a random
+# temporary one, printed once, and must choose their own at first sign-in (exactly like "add").
+NEW_STARTERS = ["Kyle", "Mubaraq"]
 
 
 def email(u): return f"{u.lower()}@{DOM}"
@@ -46,8 +50,12 @@ def create(name, pw, role="employee"):
 def main():
     if not URL or not KEY: sys.exit("Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.")
     a = sys.argv[1:]; cmd = a[0] if a else ""
-    if cmd == "seed":
-        for n, pw in STARTERS.items(): create(n, pw, "admin" if n.lower() in ADMINS else "employee")
+    if cmd in ("seed", "starters"):
+        if cmd == "seed":
+            for n, pw in STARTERS.items(): create(n, pw, "admin" if n.lower() in ADMINS else "employee")
+        for n in NEW_STARTERS:
+            pw = temp_pw()
+            if create(n, pw, "employee"): print(f"  {n}: temporary password {pw}  (login name: {n})")
     elif cmd == "add" and len(a) > 1:
         pw = temp_pw()
         if create(a[1], pw): print(f"  temporary password: {pw}")

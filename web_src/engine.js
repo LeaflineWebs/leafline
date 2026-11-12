@@ -755,7 +755,7 @@
     get_people() { return st.people; },
     // ----- Messages (11.4): only the msg_* database functions and the private file bucket; the database enforces every rule
     async sb_rpc(fn, args) {
-      if (!/^(msg|me|note|exp|lead|mtg)_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
+      if (!/^(msg|me|note|exp|lead|mtg|inv|team)_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
       try { return { ok: true, data: await call("POST", "/rest/v1/rpc/" + fn, { body: args }) }; } catch (e) { return msgErr(e); }
     },
     async sb_storage(op, paths, opts) {

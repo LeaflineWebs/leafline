@@ -2298,6 +2298,25 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.45;resize:vertical;font
 .pcard{--acc:#3DDC84;text-align:center}.pcard .pban{margin:-24px -26px 0;border-radius:30px 30px 0 0}
 .pcard .pav{margin-top:-42px;display:flex;justify-content:center;position:relative;z-index:2}.pcard .pav .tav{width:84px;height:84px;font-size:28px;box-shadow:0 0 0 4px #182A1F,0 0 0 6px var(--acc)}
 .pcard h2{margin-top:10px;font-size:22px}.pcard .pm{font-size:22px}.pcard .sub{color:var(--muted);font-size:13.5px;margin-top:2px}.pcard .sub .on{color:var(--accent)}
+/* team card details (11.15): department, responsibilities, skills, contact */
+.pinfo{margin-top:14px;text-align:left;display:flex;flex-direction:column;gap:12px}
+.pinfo:empty{display:none}
+.pinfo>*{animation:pInfo .42s var(--e-out,cubic-bezier(.22,1,.36,1)) both}.pinfo>*:nth-child(2){animation-delay:.05s}.pinfo>*:nth-child(3){animation-delay:.1s}.pinfo>*:nth-child(4){animation-delay:.15s}
+@keyframes pInfo{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.pchips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:13px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--text2)}
+.pchip .ic{width:14px;height:14px}.pchip.dep{background:color-mix(in srgb,var(--acc) 16%,transparent);border-color:color-mix(in srgb,var(--acc) 36%,transparent);color:var(--text)}
+.pchip.off{background:rgba(255,120,120,.12);border-color:rgba(255,120,120,.3);color:#FF9AA0}
+.psec{padding:12px 14px;border-radius:16px;background:rgba(0,0,0,.16);border:1px solid var(--line)}
+.psec h5{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.psec p{margin:0;font-size:13.5px;line-height:1.5;white-space:pre-wrap}
+.pskills{display:flex;flex-wrap:wrap;gap:6px}.pskills span{height:26px;padding:0 10px;border-radius:13px;background:var(--accent-soft);color:var(--accent-hi);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center}
+.pcon{display:flex;flex-direction:column;gap:6px}
+.pcon a{text-decoration:none;border-bottom:0;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--text);padding:6px 8px;margin:0 -8px;border-radius:10px;transition:background-color var(--d-hover,.15s) var(--e-out,ease)}
+.pcon a:hover{background:rgba(255,255,255,.05)}.pcon a .ic{width:16px;height:16px;color:var(--accent-hi);flex:none}.pcon a span{overflow-wrap:anywhere}
+.pcard .pacts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+[data-au]{cursor:pointer}
+.plink{border-radius:6px;transition:color var(--d-hover,.15s) var(--e-out,ease)}.plink:hover,.plink:focus-visible{color:var(--accent-hi);text-decoration:underline;text-underline-offset:3px;outline:none}
 .pcard .pbio2{margin:14px 4px 0;line-height:1.5;white-space:pre-wrap;font-size:14px}
 .pcard .pth{margin:14px 0 0;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.07);font-size:15px;line-height:1.4}.pcard .pth small{display:block;color:var(--muted);font-size:11.5px;margin-top:4px}
 .idc .pban{margin:-26px -22px 14px;border-radius:30px 30px 0 0}.idc .pban+.ring{margin-top:-52px}.idc .ring{position:relative;z-index:2}
@@ -3134,6 +3153,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
       <button class="nv" data-go="calls"><i class="ic" data-ic="log"></i>Call Log</button>
       <button class="nv" data-go="notes"><i class="ic" data-ic="note"></i>Notes</button>
       <button class="nv" data-go="profits"><i class="ic" data-ic="dollar"></i>Profits</button>
+      <button class="nv" data-go="invoices"><i class="ic" data-ic="receipt"></i>Invoices</button>
       <button class="nv" data-go="admin" id="navAdmin" style="display:none"><i class="ic" data-ic="shield"></i>Admin</button>
       <button class="nv" data-go="account"><i class="ic" data-ic="gear"></i>Settings</button>
     </nav>
@@ -3215,6 +3235,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
 
       <!-- PROFITS -->
       <div class="page" id="pg-profits"></div>
+      <div class="page" id="pg-invoices"></div>
 
       <div class="page" id="pg-calls"></div>
       <div class="page flex" id="pg-notes"></div>
@@ -3231,7 +3252,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
 
     <div class="fnav pop" id="fnav">
       <div class="fpill" id="fpill"><div class="flamp" id="flamp"></div><div class="fbg" id="fbg"></div><div class="fthumb" id="fthumb"></div>
-        <button data-go="dash"><i class="ic" data-ic="home"></i><span>Home</span></button><button data-go="team" class="fx"><i class="ic" data-ic="users"></i><span>Team</span></button><button data-go="board" class="fx"><i class="ic" data-ic="trophy"></i><span>Ranks</span></button><button data-go="posts" class="fx"><i class="ic" data-ic="mega"></i><span>News</span></button><button data-go="msgs" class="fmsg"><i class="ic" data-ic="chat"></i><span>Messages</span><i class="ndot" id="fnMsgDot"></i></button><button data-go="find"><i class="ic" data-ic="search"></i><span>Leads</span></button><button data-go="called"><i class="ic" data-ic="phone"></i><span>Called</span></button><button data-go="calendar"><i class="ic" data-ic="cal"></i><span>Calendar</span></button><button data-go="calls" class="fx"><i class="ic" data-ic="log"></i><span>Calls</span></button><button data-go="notes" class="fx"><i class="ic" data-ic="note"></i><span>Notes</span></button><button data-go="profits" class="fx"><i class="ic" data-ic="dollar"></i><span>Profits</span></button><button data-go="admin" class="fx" id="fnAdmin" style="display:none"><i class="ic" data-ic="shield"></i><span>Admin</span></button><button data-go="account" class="fx"><i class="ic" data-ic="gear"></i><span>Settings</span></button><button class="fmore" id="fmore" aria-label="More pages"><i class="ic" data-ic="grid"></i><span>More</span><i class="ndot" id="moreDot"></i></button>
+        <button data-go="dash"><i class="ic" data-ic="home"></i><span>Home</span></button><button data-go="team" class="fx"><i class="ic" data-ic="users"></i><span>Team</span></button><button data-go="board" class="fx"><i class="ic" data-ic="trophy"></i><span>Ranks</span></button><button data-go="posts" class="fx"><i class="ic" data-ic="mega"></i><span>News</span></button><button data-go="msgs" class="fmsg"><i class="ic" data-ic="chat"></i><span>Messages</span><i class="ndot" id="fnMsgDot"></i></button><button data-go="find"><i class="ic" data-ic="search"></i><span>Leads</span></button><button data-go="called"><i class="ic" data-ic="phone"></i><span>Called</span></button><button data-go="calendar"><i class="ic" data-ic="cal"></i><span>Calendar</span></button><button data-go="calls" class="fx"><i class="ic" data-ic="log"></i><span>Calls</span></button><button data-go="notes" class="fx"><i class="ic" data-ic="note"></i><span>Notes</span></button><button data-go="profits" class="fx"><i class="ic" data-ic="dollar"></i><span>Profits</span></button><button data-go="invoices" class="fx"><i class="ic" data-ic="receipt"></i><span>Invoices</span></button><button data-go="admin" class="fx" id="fnAdmin" style="display:none"><i class="ic" data-ic="shield"></i><span>Admin</span></button><button data-go="account" class="fx"><i class="ic" data-ic="gear"></i><span>Settings</span></button><button class="fmore" id="fmore" aria-label="More pages"><i class="ic" data-ic="grid"></i><span>More</span><i class="ndot" id="moreDot"></i></button>
       </div>
       <button class="fplus" id="fplus" aria-label="New search"><i class="ic" data-ic="plus"></i></button>
     </div>
@@ -3270,6 +3291,9 @@ const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
    final state. CSS animations are switched off by the stylesheet rule. */
 if(REDUCE&&Element.prototype.animate){const A=Element.prototype.animate;Element.prototype.animate=function(k,o){const opt=typeof o==="number"?{}:Object.assign({},o);opt.duration=1;opt.delay=0;opt.endDelay=0;if(!isFinite(opt.iterations))opt.iterations=1;return A.call(this,k,opt)}}
 const ICONS={
+ receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+ download:'<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+ building:'<path d="M4 21V5a1 1 0 011-1h9a1 1 0 011 1v16M15 9h4a1 1 0 011 1v11M3 21h18"/><path d="M8 8h3M8 12h3M8 16h3"/>',
  filter:'<path d="M4 6h16M7 12h10M10 18h4"/>',
  x:'<path d="M6 6l12 12M18 6L6 18"/>',
  mega:'<path d="M4 10v4a1 1 0 001 1h2l5 4V5L7 9H5a1 1 0 00-1 1z"/><path d="M16 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>',
@@ -3609,7 +3633,7 @@ function movePills(){
     const fp=$("#fpill");if(fp.scrollWidth>fp.clientWidth+2)fp.scrollTo({left:Math.max(0,fb.offsetLeft-(fp.clientWidth-fb.offsetWidth)/2),behavior:"smooth"})}
 }
 const pageTitle=p=>p==="posts"&&matchMedia("(max-width:860px)").matches?"News":TITLES[p];
-const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",admin:"Admin",account:"Settings"};
+const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",invoices:"Invoices",admin:"Admin",account:"Settings"};
 let navToken=0;
 async function go(p,force){
   if(p===S.page&&!force)return;
@@ -3623,7 +3647,7 @@ async function go(p,force){
   if(my!==navToken)return;
   if(old){old.getAnimations().forEach(a=>a.cancel());old.classList.remove("on")}
   S.lastSig={};
-  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
+  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="invoices")renderInvoices(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
   arm(next);next.classList.add("on");applyDock();
   if(!REDUCE)next.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:480,easing:EASE.out});
   history.replaceState(null,"","#"+p);
@@ -4122,7 +4146,7 @@ function dealModal(d){
     ${isNew?"":`<div style="grid-column:1/3">${creditField("deal",null)}</div>`}
    </div>
    <div class="note" id="dHint" style="min-height:20px"></div>
-   <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">${isNew?"":`<button class="btn" data-del style="color:#FF9AA0">${ic("trash")}Delete</button>`}<span style="flex:1"></span><button class="btn" data-x>Cancel</button><button class="btn pri" data-save>Save deal</button></div>`,
+   <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">${isNew?"":`<button class="btn" data-del style="color:#FF9AA0">${ic("trash")}Delete</button><button class="btn" data-inv>${ic("receipt")}Create invoice</button>`}<span style="flex:1"></span><button class="btn" data-x>Cancel</button><button class="btn pri" data-save>Save deal</button></div>`,
   (ov,close)=>{
     if(!isNew){wireCredit(ov,"deal",d.id,()=>{close();reload()});api("get_credit","deal",d.id).then(r=>{const sel=$("#crWho",ov);if(sel&&r&&r.ok){sel.value=r.owner||"";sel.dataset.cur=r.owner||""}}).catch(()=>{})}
     const g=id=>$("#"+id,ov),pn=v=>parseFloat(String(v).replace(/[$,\s]/g,""))||0;
@@ -4141,6 +4165,7 @@ function dealModal(d){
     };
     $("[data-save]",ov).onclick=save;$("[data-x]",ov).onclick=close;
     $$("input",ov).forEach(i=>i.onkeydown=e=>{if(e.key==="Enter")save()});
+    const mkInv=$("[data-inv]",ov);if(mkInv)mkInv.onclick=()=>{close();invFromDeal(d)};
     const del=$("[data-del]",ov);
     if(del){let armed=false,tm;del.onclick=async()=>{
       if(!armed){armed=true;del.style.cssText="background:#D62828;color:#fff";del.innerHTML=ic("trash")+"Click again to delete";tm=setTimeout(()=>{armed=false;del.style.cssText="color:#FF9AA0";del.innerHTML=ic("trash")+"Delete"},3000);return}
@@ -4758,7 +4783,7 @@ async function renderAdmin(){
     <button class="btn pri" id="tgSave">Save targets</button></div>
    <div class="card"><h3>People</h3>
     <table class="tbl"><tr><th>Name</th><th>Login</th><th>Role</th><th>Last seen</th><th>Active</th></tr>
-    ${r.people.map(p=>{const me=S.me.id===p.id;return `<tr><td><b>${esc(p.display_name)}</b>${me?" (you)":""}${p.must_change_password?`<br><span class="tag scr">Has not changed the starter password</span>`:""}</td><td>${esc(p.username)}</td>
+    ${r.people.map(p=>{const me=S.me.id===p.id;return `<tr><td><b class="plink" data-au="${esc(p.id)}" tabindex="0" role="button">${esc(p.display_name)}</b>${me?" (you)":""}${p.must_change_password?`<br><span class="tag scr">Has not changed the starter password</span>`:""}</td><td>${esc(p.username)}</td>
      <td><select data-role="${esc(p.id)}"${me?" disabled":""}><option value="employee"${p.role==="employee"?" selected":""}>Employee</option><option value="admin"${p.role==="admin"?" selected":""}>Administrator</option></select></td>
      <td>${esc(ago(p.last_seen))}</td><td><button class="tg${p.active?" on":""}" data-act="${esc(p.id)}"${me?" disabled":""} aria-label="${p.active?"Deactivate":"Activate"} ${esc(p.display_name)}" aria-pressed="${p.active}"></button></td></tr>`}).join("")}</table>
     <div class="muted" style="font-size:13px;line-height:1.55;margin-top:12px">A deactivated person is signed out within about a minute and cannot sign back in. Their calls, leads and notes stay in the shared database.<br>
@@ -4812,7 +4837,7 @@ function renderAccount(){
     <div style="grid-column:1/3"><label class="l" for="xBio">Bio</label><textarea class="inp" id="xBio" maxlength="280" rows="3" placeholder="A line or two about you">${esc(ex.bio||"")}</textarea><div class="note"><span id="xBioN">0</span>/280</div></div>
     <div style="grid-column:1/3"><label class="l" for="xTh">Thought of the day</label><input class="inp" id="xTh" maxlength="140" value="${esc(freshThought(ex)?ex.thought:"")}" placeholder="Something to share with the team today"></div>
     <div style="grid-column:1/3"><label class="l">Profile colour</label><div class="sw" id="xAcc" style="justify-content:flex-start;margin:6px 0 0">${ACCENTS.map(c=>`<button type="button" style="background:${c}" data-a="${c}" class="${(okAccent(ex.accent)||ACCENTS[0])===c?"on":""}" aria-label="Colour ${c}"></button>`).join("")}</div></div></div>
-   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><button class="btn pri" id="xSave">Save profile</button><span class="note" id="xNote"></span></div></div>
+   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><button class="btn pri" id="xSave">Save profile</button><button class="btn" id="xCard">${ic("briefcase")}Team card details</button><span class="note" id="xNote"></span></div></div>
   <div class="card form pop" id="themeCard"><h3>Appearance</h3><div class="note">Pick a colour for Leafline. Your choice follows you to every device you sign in on.</div>
    <div class="lgt big" data-lgt aria-label="Theme" role="radiogroup" style="margin-top:14px"></div></div>
   ${leadgenCard()}
@@ -4820,6 +4845,7 @@ function renderAccount(){
    <div class="upd"><div><b id="updVer">Version</b><div class="note" id="updNote"></div><div class="bar" id="updBar"><i></i></div></div><button class="btn" id="updBtn">Check for updates</button></div>
    <div class="upd" style="margin-top:12px"><div><b>What's new</b><div class="note">Everything that changed in recent updates.</div></div><button class="btn" id="pnBtn">${ic("spark")}What's new</button></div></div></div></div>`})()}`;
   hydrateIcons(pg);profileUI();
+  {const xc=$("#xCard");if(xc)xc.onclick=()=>{loadTeamCards(true).then(()=>teamCardModal(S.me.id))}}
   const live=()=>{const n=$("#aName").value.trim(),r=$("#aRole").value.trim(),c=$("#aCo").value.trim();
     $("#accName").textContent=n||"Your name";$("#accRole").textContent=[r,c].filter(Boolean).join(" · ")||"Leafline Web Services";
     if(!(S.me&&S.me.avatar)){$$("[data-live]").forEach(e=>e.textContent=n?initials(n):"LF");$("#sideAv").textContent=n?initials(n):"LF"}};
@@ -4922,6 +4948,59 @@ function bannerFromFile(file){
     im.onload=()=>{try{URL.revokeObjectURL(url);res(fitStill(im,1,145000))}catch(e){rej(e)}};
     im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Couldn't read that picture. Try a JPG or PNG."))};im.src=url});
 }
+/* ---------- team cards (14th database update) ----------
+   Department, responsibilities, skills and work contact for everyone, loaded once and kept for 5 minutes (also saved on
+   this device), so a profile opens instantly. Banners are fetched in the background for the same reason. */
+const TEAMC={by:(()=>{try{return JSON.parse(localStorage.getItem("lf_teamc")||"{}")||{}}catch(e){return {}}})(),at:0,missing:false,loading:null};
+function loadTeamCards(force){
+  if(!S.me)return Promise.resolve(TEAMC.by);
+  if(!force&&TEAMC.at&&Date.now()-TEAMC.at<300000)return Promise.resolve(TEAMC.by);
+  if(TEAMC.loading)return TEAMC.loading;
+  TEAMC.loading=api("sb_rpc","team_cards",{}).then(r=>{
+    if(r&&r.ok&&Array.isArray(r.data)){const by={};r.data.forEach(c=>by[c.id]=c);TEAMC.by=by;TEAMC.at=Date.now();TEAMC.missing=false;try{localStorage.setItem("lf_teamc",JSON.stringify(by))}catch(e){}}
+    else if(r&&r.missing){TEAMC.missing=true;TEAMC.at=Date.now()}
+    return TEAMC.by}).catch(()=>TEAMC.by).finally(()=>{TEAMC.loading=null});
+  return TEAMC.loading;
+}
+async function preloadTeam(){
+  await loadTeamCards(false);
+  const ids=[...new Set([...(S.people||[]).filter(p=>p.active!==false).map(p=>p.id),...Object.values(TEAMC.by).filter(c=>c.active).map(c=>c.id)])].filter(id=>!S.me||id!==S.me.id);
+  for(const id of ids){if(document.hidden)break;try{const b=await personBanner(id);const src=b&&(b.still||b.src);if(src){const im=new Image();im.decoding="async";im.src=lightSrc(src)}}catch(e){}
+    await new Promise(r=>setTimeout(r,250))}
+}
+(function teamWarm(){let started=false;const t=setInterval(()=>{if(S.me&&!started){started=true;clearInterval(t);setTimeout(preloadTeam,4000)}},1000);
+  setInterval(()=>{if(S.me&&!document.hidden)preloadTeam()},300000)})();
+const TEAM_MISSING="Team card details need the 14th database update. An admin runs RUN_IN_SUPABASE.sql in Supabase first.";
+function teamCardModal(pid){
+  const c=TEAMC.by[pid]||{},mine=S.me&&S.me.id===pid,who=personFull(pid);
+  if(!mine&&!isAdmin())return;
+  openModal(`<h2>${mine?"Your team card":esc(who.name)+"'s team card"}</h2><div class="muted" style="margin:4px 0 0;font-size:13.5px">Everyone on the team sees this when they open ${mine?"your":"their"} profile.</div>
+   <div class="fg"><div><label class="l" for="tcD">Department</label><input class="inp" id="tcD" maxlength="60" placeholder="e.g. Sales" value="${esc(c.department||"")}"></div>
+    <div><label class="l" for="tcP">Work phone</label><input class="inp" id="tcP" type="tel" maxlength="30" value="${esc(c.work_phone||"")}"></div>
+    <div style="grid-column:1/3"><label class="l" for="tcE">Work email</label><input class="inp" id="tcE" type="email" maxlength="160" value="${esc(c.work_email||"")}"></div>
+    <div style="grid-column:1/3"><label class="l" for="tcR">Responsibilities</label><textarea class="inp" id="tcR" maxlength="600" rows="3" placeholder="What ${mine?"you look":"they look"} after">${esc(c.responsibilities||"")}</textarea></div>
+    <div style="grid-column:1/3"><label class="l" for="tcS">Skills</label><input class="inp" id="tcS" maxlength="300" placeholder="Separate with commas, e.g. Cold calling, Web design" value="${esc(c.skills||"")}"></div></div>
+   <div id="tcErr" role="alert" style="color:#FF9AA0;font-size:13px;min-height:18px"></div>
+   <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px"><button class="btn" data-x>Cancel</button><button class="btn pri" data-ok>${ic("check")}Save card</button></div>`,(ov,close)=>{
+    $("[data-x]",ov).onclick=close;
+    $("[data-ok]",ov).onclick=async()=>{const v=id=>$("#"+id,ov).value.trim(),e=$("#tcErr",ov),b=$("[data-ok]",ov);e.textContent="";
+      const em=v("tcE");if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return e.textContent="That email address is not valid.";
+      b.disabled=true;b.textContent="Saving...";
+      let r;try{r=await api("sb_rpc","team_card_set",{p_id:pid,p_department:v("tcD"),p_responsibilities:v("tcR"),p_skills:v("tcS"),p_phone:v("tcP"),p_email:em})}catch(x){r={ok:false,error:x.message}}
+      b.disabled=false;b.innerHTML=ic("check")+"Save card";
+      if(!r||!r.ok)return e.textContent=r&&r.missing?TEAM_MISSING:String((r&&r.error)||"Couldn't save it.").replace(/^.*?ERROR:\s*/,"");
+      await loadTeamCards(true);close();toast(mine?"Your team card is saved":"Team card saved");
+      if(S.page==="team")renderTeam()}});
+}
+function pinfoHTML(pid){
+  const c=TEAMC.by[pid];if(!c)return "";
+  const skills=String(c.skills||"").split(",").map(x=>x.trim()).filter(Boolean),joined=c.joined?new Date(c.joined).toLocaleDateString("en-US",{month:"long",year:"numeric"}):"";
+  return `<div class="pchips">${c.department?`<span class="pchip dep">${ic("briefcase")}${esc(c.department)}</span>`:""}<span class="pchip">${ic(c.role==="admin"?"shield":"user")}${c.role==="admin"?"Admin":"Team member"}</span>
+     ${c.active===false?`<span class="pchip off">${ic("x")}Deactivated</span>`:`<span class="pchip">${ic("check")}Active account</span>`}${joined?`<span class="pchip">${ic("cal")}Joined ${esc(joined)}</span>`:""}</div>
+   ${c.responsibilities?`<div class="psec"><h5>Responsibilities</h5><p>${esc(c.responsibilities)}</p></div>`:""}
+   ${skills.length?`<div class="psec"><h5>Skills</h5><div class="pskills">${skills.map(x=>`<span>${esc(x)}</span>`).join("")}</div></div>`:""}
+   ${c.work_email||c.work_phone?`<div class="psec"><h5>Contact</h5><div class="pcon">${c.work_email?`<a href="mailto:${esc(c.work_email)}">${ic("mail")}<span>${esc(c.work_email)}</span></a>`:""}${c.work_phone?`<a class="tel" href="${esc(telHref(c.work_phone))}" data-ph="${esc(c.work_phone)}">${ic("phone")}<span>${esc(c.work_phone)}</span></a>`:""}</div></div>`:""}`;
+}
 function personModal(p){
   if(!p)return;const ext=p.ext||{},mine=!!(S.me&&S.me.id===p.id),acc=okAccent(ext.accent)||"#4ADE8B";
   if(mine)p={...p,avatar:S.me.avatar,media:S.me.media,ext:{...ext,banner:(S.me.ext||{}).banner}};
@@ -4933,8 +5012,11 @@ function personModal(p){
    ${ext.bio?`<p class="pbio2">${esc(ext.bio)}</p>`:""}
    ${freshThought(ext)?`<div class="pth">“${esc(ext.thought)}”<small>Thought of the day</small></div>`:""}
    ${p.today?`<div class="mini"><div><b>${p.today.calls}</b><span>Calls today</span></div><div><b>${p.today.meetings}</b><span>Meetings</span></div><div><b>${p.today.sales}</b><span>Sales</span></div></div>`:""}
-   <div style="text-align:right;margin-top:18px"><button class="btn pri" data-x>Close</button></div></div>`,(ov,close)=>{
+   <div class="pinfo" id="pInfo">${pinfoHTML(p.id)}</div>
+   <div class="pacts">${mine||isAdmin()?`<button class="btn" data-edcard>${ic("edit")}${mine?"Edit my card":"Edit card"}</button>`:""}<button class="btn pri" data-x>Close</button></div></div>`,(ov,close)=>{
     $("[data-x]",ov).onclick=close;
+    const ed=$("[data-edcard]",ov);if(ed)ed.onclick=()=>{close();setTimeout(()=>teamCardModal(p.id),200)};
+    if(!TEAMC.at||Date.now()-TEAMC.at>60000)loadTeamCards(true).then(()=>{const el=$("#pInfo",ov);if(el){const h=pinfoHTML(p.id);if(el.innerHTML!==h){el.innerHTML=h;hydrateIcons(el)}}});
     ensureBoard();
     if(!mine&&!bn.src)api("get_person",p.id).then(r=>{if(!r||!r.ok||!r.person)return;const q=r.person,b2=bannerOf({ext:{banner:q.banner},media:{banner_url:q.banner_url,banner_pos:q.banner_pos}});
       if(b2.src){const el=$("#pBan",ov);el.style.setProperty("--bp",b2.pos+"%");el.innerHTML=imgTag(b2.src,b2.still)}}).catch(()=>{})});
@@ -5088,10 +5170,10 @@ async function renderTeam(){
    ${d.stale?`<div class="stale">You're offline. Showing the last numbers loaded${d.fetched?" at "+esc(d.fetched):""}.</div>`:""}
    <div class="tm-tiles">${mk("Calls today",tot.calls,T.calls)}${mk("Connections",tot.connections,T.connections)}${mk("Prospects contacted",tot.prospects)}${mk("Meetings booked",tot.meetings,T.meetings)}${mk("Sales",tot.sales,T.sales)}
     <div class="tm-tile"><span>Revenue closed today</span><b>${usd(d.revenue_today)}</b><small>${num(d.deals_today)} deal${d.deals_today===1?"":"s"} (upfront)</small></div></div>
-   ${d.people.some(p=>freshThought(p.ext))?`<div class="card tm-th"><h3>Thoughts of the day</h3>${d.people.filter(p=>freshThought(p.ext)).map(p=>`<div class="th-i">${avHTML(p.name,p.avatar,p.media)}<div><q>${esc(p.ext.thought)}</q><small>${esc(p.name)}${p.ext.mood?" "+esc(p.ext.mood):""}</small></div></div>`).join("")}</div>`:""}
+   ${d.people.some(p=>freshThought(p.ext))?`<div class="card tm-th"><h3>Thoughts of the day</h3>${d.people.filter(p=>freshThought(p.ext)).map(p=>`<div class="th-i" data-au="${esc(p.id)}" tabindex="0" role="button" aria-label="${esc(p.name)}'s profile">${avHTML(p.name,p.avatar,p.media)}<div><q>${esc(p.ext.thought)}</q><small>${esc(p.name)}${p.ext.mood?" "+esc(p.ext.mood):""}</small></div></div>`).join("")}</div>`:""}
    <div class="tm-people">${d.people.map(p=>`<div class="card tm-p ${S.me&&S.me.id===p.id?"me":""}" data-pid="${esc(p.id)}" style="--acc:${okAccent((p.ext||{}).accent)||"transparent"}">
      <h3>${avHTML(p.name,p.avatar,p.media)}${esc(p.name)}${(p.ext||{}).mood?` <span>${esc(p.ext.mood)}</span>`:""}${streakChip(p.id)}<span class="role">${p.role==="admin"?"Admin":"Rep"}</span><span class="st ${p.online?"on":""}"><i></i>${p.online?"Online":"Offline"}</span></h3>
-     ${bdgSlot(p.id,8)}${(p.ext||{}).title?`<div class="psub">${esc(p.ext.title)}</div>`:""}${(p.ext||{}).bio?`<div class="pbio">${esc(p.ext.bio)}</div>`:""}${freshThought(p.ext)?`<div class="pth">“${esc(p.ext.thought)}”</div>`:""}
+     ${bdgSlot(p.id,8)}${(p.ext||{}).title||(TEAMC.by[p.id]||{}).department?`<div class="psub">${esc([(p.ext||{}).title,(TEAMC.by[p.id]||{}).department].filter(Boolean).join(" · "))}</div>`:""}${(p.ext||{}).bio?`<div class="pbio">${esc(p.ext.bio)}</div>`:""}${freshThought(p.ext)?`<div class="pth">“${esc(p.ext.thought)}”</div>`:""}
      <div class="nums"><div><b>${p.today.calls}</b><span>Calls</span></div><div><b>${p.today.connections}</b><span>Connected</span></div><div><b>${p.today.prospects}</b><span>Prospects</span></div><div><b>${p.today.meetings}</b><span>Meetings</span></div><div><b>${p.today.sales}</b><span>Sales</span></div>${d.tasks_enabled?`<div><b>${p.today.tasks||0}</b><span>Tasks done</span></div>`:""}</div>
      <div class="tm-bar" title="${p.progress}% of the daily call target"><i style="width:${Math.min(100,p.progress)}%"></i></div>
      <div class="last">${p.last?esc(p.last.text)+" · "+esc(tmTime(p.last.at)):"No activity yet."}</div>
@@ -5104,7 +5186,10 @@ async function renderTeam(){
    </div>
    </div>`;
   hydrateIcons(pg);paintStreaks();ensureBoard().then(()=>{if(S.page==="team")paintStreaks()});
-  $$("[data-pid]",pg).forEach(c=>c.onclick=()=>personModal(d.people.find(x=>x.id===c.dataset.pid)));
+  $$("[data-pid]",pg).forEach(c=>{c.onclick=()=>personModal(d.people.find(x=>x.id===c.dataset.pid));c.tabIndex=0;c.setAttribute("role","button");c.onkeydown=k=>{if(k.key==="Enter")c.click()}});
+  /* first visit: fill in departments in place once the team cards arrive (no redraw, so the cards keep animating in) */
+  if(!TEAMC.at)loadTeamCards(false).then(()=>{if(S.page!=="team")return;d.people.forEach(p=>{const c=$(`.tm-p[data-pid="${CSS.escape(p.id)}"]`,pg),dep=(TEAMC.by[p.id]||{}).department;if(!c||!dep)return;
+    const txt=[(p.ext||{}).title,dep].filter(Boolean).join(" · ");let el=$(".psub",c);if(!el){el=document.createElement("div");el.className="psub";const b=$(".bdg",c);b?b.after(el):$("h3",c).after(el)}if(el.textContent!==txt)el.textContent=txt})});
 }
 setInterval(()=>{if(S.ready&&S.page==="team"&&!document.hidden)renderTeam()},8000);
 setInterval(()=>{if(!S.ready||document.hidden||!S.me)return;if(S.page==="board")ensureBoard(true).then(()=>{if(S.page==="board")drawRanks(false)});else ensureBoard()},60000);
@@ -5230,7 +5315,7 @@ function thPop(anchor){
 }
 
 /* ---------- phone: "More" sheet ---------- */
-const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["admin","shield","Admin"],["account","gear","Settings"]];
+const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["invoices","receipt","Invoices"],["admin","shield","Admin"],["account","gear","Settings"]];
 function openSheet(){
   const sh=$("#msheet"),adm=S.me&&S.me.role==="admin";
   $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n==="Announcements"?"News":n}">${ic(i)}${n==="Announcements"?`<span>News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
@@ -5436,7 +5521,7 @@ function drawRanks(anim){
       <div class="nm"><b>${esc(r.p.name)}</b>${bdgSlot(r.p.id,5)}</div><div class="lbar"><i data-w="${Math.round(100*r.v/mx)}"></i></div><span class="v">${fmt(r.v)}</span></div>`).join("")}</div>
     <div class="lb-note" style="margin-top:12px">${metric==="money"?"Money = payments collected on deals each person owns (upfront + monthly payments that are due), minus company costs charged to them. ":metric==="meetings"?"Meetings = calls logged with the result “Meeting booked”. ":"Calls = every call logged in the app. "}Updated ${esc(d.fetched||"just now")}.</div>
     <div class="card lb-badges pop" style="margin-top:18px"><h3>Badges</h3><div class="note">Earned automatically from the team's real numbers. They update every few minutes.</div>
-     <div class="grid">${Object.entries(BADGES).map(([k,b])=>{const who=d.people.filter(p=>(B.badges[p.id]||[]).includes(k));return `<div class="bi"><span class="badge-i b-${k}">${ic(b.i)}</span><div style="min-width:0"><b>${esc(b.n)}</b><small>${esc(b.d)}</small></div><div class="who">${who.slice(0,4).map(p=>avHTML(p.name,p.avatar,p.media)).join("")}</div></div>`}).join("")}</div></div>`;
+     <div class="grid">${Object.entries(BADGES).map(([k,b])=>{const who=d.people.filter(p=>(B.badges[p.id]||[]).includes(k));return `<div class="bi"><span class="badge-i b-${k}">${ic(b.i)}</span><div style="min-width:0"><b>${esc(b.n)}</b><small>${esc(b.d)}</small></div><div class="who">${who.slice(0,4).map(p=>`<span data-au="${esc(p.id)}" title="${esc(p.name)}">${avHTML(p.name,p.avatar,p.media)}</span>`).join("")}</div></div>`}).join("")}</div></div>`;
   hydrateIcons(body);
   $$("[data-pid]",body).forEach(e=>{e.onclick=()=>personModal(personFull(e.dataset.pid));e.onkeydown=k=>{if(k.key==="Enter")e.click()}});
   requestAnimationFrame(()=>$$(".lbr .lbar i",body).forEach(i=>i.style.width=i.dataset.w+"%"));
@@ -5506,7 +5591,7 @@ function drawPosts(anim){
      <h3>${richText(p.title)}</h3>${p.body?`<div class="bd">${richText(p.body)}</div>`:""}${ed?`<div class="ed">Edited by ${esc(ed.name)} · ${esc(ago(p.edited_at))}</div>`:""}
      <div class="rx">${EMO.map(e=>{const u=(p.reactions||{})[e]||[];return `<button data-rx="${e}" class="${u.includes(me)?"on":""}" aria-label="React ${e}" title="${esc(u.map(x=>personById(x).name).join(", "))}">${e}${u.length?`<span>${u.length}</span>`:""}</button>`}).join("")}
       <button class="cm" data-cm aria-expanded="${P.cmo.has(p.id)}">${ic("chat")}<span>${(p.comments||[]).length?(p.comments.length+" comment"+(p.comments.length===1?"":"s")):"Comment"}</span></button></div>
-     <div class="cms"><div>${(p.comments||[]).map(c=>{const ca=personById(c.author_id);return `<div class="cmt" data-cid="${esc(c.id)}">${avHTML(ca.name,ca.avatar,ca.media)}<div class="cb"><b>${esc(ca.name)}</b><small>${esc(ago(c.created_at))}</small><p>${richText(c.body)}</p></div><button class="ib cx" data-cdel aria-label="Delete comment">${ic("trash")}</button></div>`}).join("")}
+     <div class="cms"><div>${(p.comments||[]).map(c=>{const ca=personById(c.author_id);return `<div class="cmt" data-cid="${esc(c.id)}"><span data-au="${esc(c.author_id)}">${avHTML(ca.name,ca.avatar,ca.media)}</span><div class="cb"><b class="plink" data-au="${esc(c.author_id)}" tabindex="0" role="button">${esc(ca.name)}</b><small>${esc(ago(c.created_at))}</small><p>${richText(c.body)}</p></div><button class="ib cx" data-cdel aria-label="Delete comment">${ic("trash")}</button></div>`}).join("")}
       <div class="cadd"><input class="inp" data-mention data-pid="${esc(p.id)}" maxlength="1000" placeholder="Write a comment... type @ to tag someone" aria-label="Write a comment"><button class="btn sm pri" data-csend>Send</button></div></div></div></article>`}).join("")
     :`<div class="card empty" style="margin-top:10px"><div class="bub">${ic("mega")}</div><b>${f==="all"?"Nothing posted yet":"No "+KINDS[f][0].toLowerCase()+"s yet"}</b>Share news, wins or ideas for the business with the whole team.</div>`;
   hydrateIcons(l);
@@ -5620,18 +5705,19 @@ async function openPost(id){if(S.page!=="posts")await go("posts");const t0=Date.
 /* ---------- floating profile preview (hover on desktop, tap on phones) ---------- */
 const HC={el:null,t:null,pid:null,anchor:null};
 const TOUCH=matchMedia("(hover:none)").matches;
-function wireHover(root){
-  root.addEventListener("mouseover",e=>{if(TOUCH)return;const a=e.target.closest("[data-au]");if(!a||a===HC.anchor)return;clearTimeout(HC.t);HC.t=setTimeout(()=>showHover(a,a.dataset.au),260)});
-  root.addEventListener("mouseout",e=>{if(TOUCH)return;const a=e.target.closest("[data-au]");if(!a||a.contains(e.relatedTarget))return;clearTimeout(HC.t);HC.t=setTimeout(hideHover,220)});
-  root.addEventListener("click",e=>{const a=e.target.closest("[data-au]");if(!a)return;e.stopPropagation();if(TOUCH&&HC.anchor!==a)showHover(a,a.dataset.au);else{hideHover();personModal(personFull(a.dataset.au))}});
-  root.addEventListener("keydown",e=>{const a=e.target.closest("[data-au]");if(a&&e.key==="Enter"){hideHover();personModal(personFull(a.dataset.au))}});
+function wireHover(root,skip){
+  const own=e=>!!(skip&&e.target.closest&&e.target.closest(skip));
+  root.addEventListener("mouseover",e=>{if(TOUCH||own(e))return;const a=e.target.closest("[data-au]");if(!a||a===HC.anchor)return;clearTimeout(HC.t);HC.t=setTimeout(()=>showHover(a,a.dataset.au),260)});
+  root.addEventListener("mouseout",e=>{if(TOUCH||own(e))return;const a=e.target.closest("[data-au]");if(!a||a.contains(e.relatedTarget))return;clearTimeout(HC.t);HC.t=setTimeout(hideHover,220)});
+  root.addEventListener("click",e=>{if(own(e))return;const a=e.target.closest("[data-au]");if(!a)return;e.stopPropagation();if(TOUCH&&HC.anchor!==a)showHover(a,a.dataset.au);else{hideHover();personModal(personFull(a.dataset.au))}});
+  root.addEventListener("keydown",e=>{if(own(e))return;const a=e.target.closest("[data-au]");if(a&&e.key==="Enter"){hideHover();personModal(personFull(a.dataset.au))}});
 }
 function showHover(anchor,pid){
   hideHover(true);const p=personFull(pid),ext=p.ext||{},T=B.data?B.data.today:isoDay(new Date()),tl=B.data?tally(B.data,rangeOf("week",T)[0],T)[pid]:null;
   const el=document.createElement("div");el.className="hcard";el.setAttribute("role","dialog");el.setAttribute("aria-label",p.name+"'s profile");
   const bn=bannerOf(p);
   el.innerHTML=`<div class="hb">${bn.src?imgTag(bn.src,bn.still).replace('<img ','<img style="width:100%;height:100%;object-fit:cover;object-position:center '+bn.pos+'%" '):""}</div><div class="hm">${avHTML(p.name,p.avatar,p.media)}
-    <h4>${esc(p.name)}${ext.mood?` <span>${esc(ext.mood)}</span>`:""}${streakChip(pid,{zero:true})}</h4><div class="sub">${esc([ext.title,p.role==="admin"?"Admin":p.role?"Rep":""].filter(Boolean).join(" · "))}</div>
+    <h4>${esc(p.name)}${ext.mood?` <span>${esc(ext.mood)}</span>`:""}${streakChip(pid,{zero:true})}</h4><div class="sub">${esc([ext.title,(TEAMC.by[pid]||{}).department,p.role==="admin"?"Admin":p.role?"Rep":""].filter(Boolean).join(" · "))}</div>
     ${bdgSlot(pid,8,false)}${ext.bio?`<p>${esc(ext.bio)}</p>`:""}
     ${tl?`<div class="hs"><div><b>${num(tl.calls)}</b><span>Calls this wk</span></div><div><b>${num(tl.meetings)}</b><span>Meetings</span></div><div><b>${usd(tl.money)}</b><span>Collected</span></div></div>`:""}</div>`;
   document.body.appendChild(el);hydrateIcons(el);HC.el=el;HC.pid=pid;HC.anchor=anchor;
@@ -5645,6 +5731,7 @@ function showHover(anchor,pid){
 }
 function hideHover(now){const el=HC.el;HC.el=null;HC.anchor=null;if(!el)return;if(now||REDUCE){el.remove();return}el.classList.remove("on");setTimeout(()=>el.remove(),300)}
 document.addEventListener("click",e=>{if(HC.el&&!e.target.closest(".hcard")&&!e.target.closest("[data-au]"))hideHover()});
+wireHover(document.body,"#psList,#pg-msgs,.hcard");   /* everywhere else: Team, Leaderboard, Admin, Invoices, comments... (posts and Messages wire their own) */
 document.addEventListener("scroll",()=>{if(HC.el&&!TOUCH)hideHover()},true);
 
 /* ---------- picture & banner uploads (GIF / WebP / PNG / JPEG / AVIF) ---------- */
@@ -5816,6 +5903,13 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.15.0",t:"Invoices and team cards",items:[
+  "New Invoices page: make professional invoices with items, quantities, discounts and tax, save them as drafts or issue them, edit, duplicate, and download a clean PDF to send to clients.",
+  "Every invoice shows how to pay by Interac e-Transfer: the email to send it to, the amount and the invoice number as the message. The PDF has a button that opens the client's email app so they can tell us once they've paid.",
+  "Track every invoice: drafts, unpaid, overdue and paid, with totals, search and filters by client and date. Admins mark invoices paid with the payment details.",
+  "Admins can save invoice templates (items, payment terms, notes and terms) and set the company details, tax and e-Transfer email in Invoices > Settings.",
+  "Profiles now show department, responsibilities, skills and work contact. Click anyone's picture or name around the app to see it. Fill in yours in Settings > Team card details.",
+  "Welcome Kyle and Mubaraq to the team!"]},
  {v:"11.14.1",t:"Mac app fix",items:[
   "The Mac app now also runs on older Macs (macOS 11 Big Sur and newer): one part of lead search needed macOS 13.5, so a version that works on older Macs is used instead."]},
  {v:"11.14.0",t:"Mac app updates itself",items:[
@@ -5935,6 +6029,8 @@ boot();
 
 import leafline_messages_ui as _msgui
 UI_HTML = _msgui.inject(UI_HTML)          # Messages (team chat): styles + page code live in leafline_messages_ui.py
+import leafline_invoices_ui as _invui
+UI_HTML = _invui.inject(UI_HTML)          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
 
 
 API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",

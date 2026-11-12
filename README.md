@@ -95,6 +95,31 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.15: invoices, team cards, Kyle and Mubaraq
+- **Invoices page** (sidebar and phone menu). `backend/leafline_invoices_ui.py` holds its styles, page code and the PDF
+  maker; it is added to the shared page like Messages, so the PC app and the website match.
+  - List with tabs (All, Drafts, Unpaid, Overdue, Paid, Void), totals (invoiced, outstanding, overdue, paid), search,
+    client filter and date range. Editor with client suggestions (past invoices, deals, leads), items with quantity,
+    price and per-item tax, percent or dollar discount, tax rate, currency, payment terms, notes and terms.
+  - Save as draft or issue; edit, duplicate, delete drafts, email the client (mailto draft), Download PDF. Admins: mark
+    paid (amount, date, method, reference, note), undo payment, void (with a reason), restore, save as template.
+  - Templates (admin): reusable items, payment terms, notes and terms; archived, never deleted.
+  - Settings (admin): company details, tax name / rate / number, e-Transfer email and recipient name, extra payment
+    instructions, number prefix (LF-2026-0001), days to pay, currency, footer.
+  - PDF: written directly (real text, Helvetica, vector logo, page numbers), not a screenshot. The e-Transfer email is a
+    mailto link, and an "Email us when you've paid" button opens the client's email app addressed to the e-Transfer
+    email with the invoice number filled in. It can't send the e-Transfer: that's done in the client's bank app.
+    Desktop: Save dialog (`save-pdf` in main.js / preload.js). Website: download (phones: share sheet when available).
+  - Profits: a deal's pop-up has **Create invoice** (client and payments filled in).
+- **Team cards**: the profile card shows department, responsibilities, skills, work contact, account status and the
+  join date; anything marked `data-au` anywhere in the app opens it (Team, Leaderboard, Admin, comments, invoices...).
+  Edit your own from the card or Settings > Team card details; admins can edit anyone's. Cards and banners are
+  preloaded in the background (refreshed every 5 minutes) so the card opens instantly.
+- **Kyle and Mubaraq**: `tools/seed_users.py starters` / ADMIN_TOOLS option 6, regular employees (see SETUP_SUPABASE.md).
+- Needs the 14th database update (`RUN_IN_SUPABASE.sql`). Until it is run, Invoices says so and profiles open without the
+  extra details. Tests: `tests/pg/test_invoices_sql.mjs` (real Postgres) and `tests/test_invoices.py` (website on PC and
+  phone sizes + the PC app, with the invoice functions on real Postgres).
+
 ## What is new in 11.14: Mac app updates itself
 - `release.yml` has a `mac` job after the Windows job, for Apple Silicon (macos-15) and Intel (macos-15-intel), both for
   macOS 11+ (python.org Python, MACOSX_DEPLOYMENT_TARGET 11.0, Playwright pinned to 1.56.0 on Mac because newer ones ship a Node that needs macOS 13.5, and a check that no file inside needs a newer macOS). It builds the `.dmg` and `.zip`, gives the

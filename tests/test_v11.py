@@ -255,7 +255,7 @@ with sync_playwright() as p:
     login(m, "tim", "Tim123"); time.sleep(.5)
     check("reduced motion: no flying animation left on screen", m.locator(".flyer").count() == 0)
     check("phone: header picture and bottom tab bar", m.is_visible("#mAvBtn") and m.is_visible("#fmore") and not m.is_visible("#side"))
-    m.tap("#fmore"); m.wait_for_selector("#msheet.show"); check("More opens a sheet with every page", m.locator("#sheetGrid button").count() == 12)
+    m.tap("#fmore"); m.wait_for_selector("#msheet.show"); check("More opens a sheet with every page", m.locator("#sheetGrid button").count() == 13)   # 11.15 added Invoices
     m.tap("#sheetGrid [data-go=board]"); time.sleep(1.2)
     check("sheet closes and opens the page", not m.is_visible("#msheet .sp") or m.evaluate("!document.querySelector('#msheet').classList.contains('show')") and m.evaluate("S.page") == "board")
     check("More is lit up when the page lives in the sheet", m.evaluate("document.querySelector('#fmore').classList.contains('on')"))

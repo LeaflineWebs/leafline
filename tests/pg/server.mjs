@@ -22,7 +22,7 @@ const grants = new Map();                 // one-time upload / download tokens
 const BUCKET = (await db.query("select file_size_limit, allowed_mime_types from storage.buckets where id = 'message-files'")).rows[0];
 const sigs = new Map();                   // function name -> [{name, type}]
 for (const r of (await db.query(`select p.proname, p.proargnames, array(select format_type(t, null) from unnest(p.proargtypes) t) as types
-                                 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'msg\\_%'`)).rows)
+                                 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and (p.proname like 'msg\\_%' or p.proname like 'inv\\_%' or p.proname like 'team\\_%')`)).rows)
   sigs.set(r.proname, (r.proargnames || []).map((n, i) => ({ name: n, type: r.types[i] })));
 
 const send = (res, code, obj, type = "application/json") => {

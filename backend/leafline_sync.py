@@ -600,7 +600,7 @@ class Sync:
 
     # ---- Messages (11.4): the page calls the msg_* database functions and the private file bucket through here.
     #      Only those: nothing else in the database can be reached this way. All rules are enforced by the database.
-    MSG_FN = re.compile(r"^(msg|me|note|exp|lead|mtg)_[a-z_]{2,40}$")     # msg_*: Messages; me_*: your own private settings (update 9)
+    MSG_FN = re.compile(r"^(msg|me|note|exp|lead|mtg|inv|team)_[a-z_]{2,40}$")     # msg_*: Messages; me_*: your own private settings (update 9)
     MSG_PATH = re.compile(r"^[0-9a-f-]{36}/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,180}$")
 
     @staticmethod

@@ -12,8 +12,8 @@ import _env  # noqa: F401
 URL = os.environ["SUPABASE_URL"].rstrip("/"); SECRET = os.environ["SUPABASE_SERVICE_KEY"]
 PUB = os.environ.get("SUPABASE_PUBLISHABLE_KEY") or "sb_publishable_6ssgQB4Z9D3lYtBtL3m8uA_B4w0fFiQ"
 DOM = os.environ.get("LEAFLINE_EMAIL_DOMAIN") or "leaflineweb.com"
-TABLES = ["profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates"]
-ROLES = {"james": "admin", "omar": "admin", "akbar": "admin", "gio": "employee", "jaylen": "employee", "tim": "employee"}
+TABLES = ["profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "invoices", "invoice_templates"]
+ROLES = {"james": "admin", "omar": "admin", "akbar": "admin", "gio": "employee", "jaylen": "employee", "tim": "employee", "kyle": "employee", "mubaraq": "employee"}
 bad = 0
 
 
@@ -60,6 +60,14 @@ for u, role in ROLES.items():
     say(p is not None and p["role"] == role and p["active"], f"{u}: " + ("missing (run seed_users.py seed)" if not p else f"role={p['role']} active={p['active']} must_change_password={p['must_change_password']}"))
 extra = sorted(set(prof) - set(ROLES))
 if extra: print("  note  other accounts:", ", ".join(extra))
+# every sign-in has a team profile, and every team profile has a sign-in (otherwise someone is missing from the app)
+au = requests.get(f"{URL}/auth/v1/admin/users", headers={"apikey": SECRET, "Authorization": "Bearer " + SECRET}, params={"per_page": 1000}, timeout=30)
+if au.status_code in (200, 206):
+    ids = {u["id"]: u.get("email", "") for u in (au.json().get("users") or [])}
+    pids = {pp["id"]: n for n, pp in prof.items()}
+    no_prof = sorted(e for i, e in ids.items() if i not in pids); no_auth = sorted(n for i, n in pids.items() if i not in ids)
+    say(not no_prof, "every sign-in has a team profile" + (f": missing for {', '.join(no_prof)}" if no_prof else ""))
+    say(not no_auth, "every team profile has a sign-in" + (f": no sign-in for {', '.join(no_auth)}" if no_auth else ""))
 r = requests.post(f"{URL}/rest/v1/rpc/daily_stats", headers={"apikey": SECRET, "Authorization": "Bearer " + SECRET, "Content-Type": "application/json"}, json={"p_from": "2026-01-01", "p_to": "2026-12-31"}, timeout=30)
 say(r.status_code in (200, 206), f"daily_stats() works (HTTP {r.status_code})")
 

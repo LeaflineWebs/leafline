@@ -95,7 +95,7 @@ async function createWindow() {
   win.once("ready-to-show", () => win.show());
   win.on("closed", () => { win = null; });
   // links that leave the app open in the normal browser
-  win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/i.test(url)) shell.openExternal(url); return { action: "deny" }; });
+  win.webContents.setWindowOpenHandler(({ url }) => { if (/^(https?|mailto):/i.test(url)) shell.openExternal(url); return { action: "deny" }; });   // web links open in the browser, email links in the email app
   // show something right away: the engine can take several seconds on the very first start
   win.show();
   win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(
@@ -109,7 +109,7 @@ async function createWindow() {
   try { port = await startBackend(); } finally { /* keep the update check running either way */ }
   if (await upd) { return; }                            // an update was downloaded: the app is restarting into it
   clearInterval(poll);
-  win.webContents.on("will-navigate", (e, url) => { if (!url.startsWith("http://127.0.0.1:" + port)) { e.preventDefault(); if (/^https?:/i.test(url)) shell.openExternal(url); } });
+  win.webContents.on("will-navigate", (e, url) => { if (!url.startsWith("http://127.0.0.1:" + port)) { e.preventDefault(); if (/^(https?|mailto):/i.test(url)) shell.openExternal(url); } });
   await win.loadURL(`http://127.0.0.1:${port}/?t=${TOKEN}`);
   setInterval(() => { if (U.state.state !== "downloading" && U.state.state !== "ready") U.check(false); }, 4 * 3600 * 1000);   // long-running sessions
 }
@@ -120,6 +120,20 @@ ipcMain.handle("save-csv", async (_e, name) => {
     filters: [{ name: "CSV files", extensions: ["csv"] }],
   });
   return r.canceled ? "" : r.filePath;
+});
+
+// Invoice PDFs (11.15): the page makes the PDF; this asks where to save it and writes it. Only real PDFs, at most 20 MB.
+ipcMain.handle("save-pdf", async (_e, name, bytes) => {
+  const buf = Buffer.from(bytes instanceof Uint8Array ? bytes : new Uint8Array(0));
+  if (buf.length < 8 || buf.length > 20 * 1024 * 1024 || buf.subarray(0, 5).toString("latin1") !== "%PDF-") return { ok: false, error: "That isn't a PDF." };
+  const r = await dialog.showSaveDialog(win, {
+    defaultPath: path.join(app.getPath("documents"), String(name).replace(/[^\w.\- ]/g, "_").replace(/\.pdf$/i, "") + ".pdf"),
+    filters: [{ name: "PDF files", extensions: ["pdf"] }],
+  });
+  if (r.canceled || !r.filePath) return { ok: false, canceled: true };
+  const fp = /\.pdf$/i.test(r.filePath) ? r.filePath : r.filePath + ".pdf";
+  try { await fs.promises.writeFile(fp, buf); } catch (e) { return { ok: false, error: e.message }; }
+  return { ok: true, path: fp };
 });
 
 function stopBackend() {

@@ -57,6 +57,11 @@ Until then calendar ticks stay on the computer that made them; afterwards they u
 ## Adding people later
 Double-click `ADMIN_TOOLS.bat` on the admin computer. Deactivating is done inside the app (Admin page).
 
+**Kyle and Mubaraq (11.15):** `ADMIN_TOOLS.bat` > option 6 (or `python tools/seed_users.py starters`). They are
+created the same way as everyone else: a sign-in plus a team profile, role **employee** (not admin), a random temporary
+password printed once, and a forced password change at first sign-in. Anyone who already exists is skipped. Then
+option 5 (`verify_db.py`) checks their role and that every sign-in has a team profile (and the other way round).
+
 ## Optional third migration (profile pictures)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261106000003_avatars.sql` > Run. Safe to run twice.
 
@@ -124,6 +129,20 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Raises the `media` bucket's size limit from 8 MB to 100 MB. The app keeps profile pictures at 8 MB; banners may be up to 100 MB.
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
+
+## Fourteenth migration (Leafline 11.15: invoices and team cards)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261111000014_invoices_team.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.) Nothing existing is changed or removed.
+- Adds `invoices` and `invoice_templates`, plus the invoice settings (company details, tax, e-Transfer email) as the
+  `invoice` row of the existing `settings` table.
+- Who sees what: admins see every invoice; everyone else sees only invoices they made. Every active teammate can create
+  invoices and use templates. Only admins mark invoices paid, void them, and change templates and invoice settings.
+  There are no direct write rules on either table: every change goes through checked `inv_*` functions, totals are
+  calculated in the database, and every change goes into the audit log. Templates are archived, never deleted.
+- Adds department, responsibilities, skills, work phone and work email to profiles (`team_cards`, `team_card_set`):
+  you edit your own card, admins can edit anyone's, every active teammate can read them.
+- After running it: open **Invoices > Settings** in the app (admin) and fill in the e-Transfer email and company details.
+  Leave the tax rate at 0 unless the business is registered for HST.
 
 ## Thirteenth migration (Leafline 11.13: confirming meetings)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261110000013_meeting_checks.sql` > Run. Safe to run twice.

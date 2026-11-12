@@ -17,18 +17,20 @@ echo   2  Reset someone's password
 echo   3  Reactivate someone who was deactivated
 echo   4  Back up the shared database now
 echo   5  Check the database is healthy
-echo   6  Quit
+echo   6  Add the new starters: Kyle and Mubaraq
+echo   7  Quit
 echo.
 echo   (To deactivate someone, use the Admin page inside the app.)
 echo.
 set "C="
-set /p C=Choose 1-6: 
+set /p C=Choose 1-7: 
 if "%C%"=="1" goto add
 if "%C%"=="2" goto reset
 if "%C%"=="3" goto react
 if "%C%"=="4" goto backup
 if "%C%"=="5" goto check
-if "%C%"=="6" exit /b 0
+if "%C%"=="6" goto starters
+if "%C%"=="7" exit /b 0
 goto menu
 
 :askname
@@ -63,6 +65,13 @@ if not exist "%~dp0backups" mkdir "%~dp0backups"
 python backup.py "%~dp0backups"
 echo.
 echo Saved in the backups folder next to this file.
+pause & goto menu
+
+:starters
+python seed_users.py starters
+echo.
+echo Give each of them their temporary password above. They must choose their own at first sign-in.
+echo Anyone who already has an account is skipped.
 pause & goto menu
 
 :check
