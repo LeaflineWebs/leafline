@@ -3170,10 +3170,12 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
       <button class="sync pop" id="syncBtn" aria-live="polite"><i></i><span id="syncTx">Sync</span></button>
       <button class="rb pop" id="bellBtn" aria-label="Activity"><i class="ic" data-ic="bell"></i><span class="cnt" id="bellCnt">0</span></button>
       <button class="rb pop" id="scriptBtn" aria-label="Show my script" title="Show my script beside the page (Ctrl+J)"><i class="ic" data-ic="script"></i></button>
+      <button class="rb pop" id="remBtn" aria-label="Reminders" title="Reminders"><i class="ic" data-ic="clock"></i><span class="cnt" id="remCnt">0</span></button>
       <button class="rb pop" id="userBtn" aria-label="Account"><i class="ic" data-ic="user"></i></button>
       <button class="rb pop" id="outBtn" aria-label="Sign out" title="Sign out"><i class="ic" data-ic="logout"></i></button>
     </header>
     <div class="bell" id="bell"><h4>Recent activity</h4><div id="bellList"></div></div>
+    <div class="remp" id="remPanel" role="dialog" aria-label="Reminders"></div>
 
     <div class="pages">
       <!-- DASHBOARD -->
@@ -3798,7 +3800,7 @@ function renderDetail(){
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="dOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
    <div class="fact"><div class="k">Google rating</div><div class="v">${l.rating===NA?NA:esc(l.rating)+" ★"}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${l.reviews===NA?"":esc(num(l.reviews))+" reviews"}</span></div></div>
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="dNotes" rows="3" placeholder="What was said, when to call back..." maxlength="2000" style="margin-top:4px;background:var(--bg)">${esc(l.notes)}</textarea></div></div>
-  <div style="display:flex;justify-content:flex-end"><button class="btn sm" id="dSave">Save owner &amp; notes</button></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn sm" id="dRem">${ic("clock")}Set reminder</button><button class="btn sm" id="dSave">Save owner &amp; notes</button></div>
   <div class="mark"><div class="t" id="markT">${n?`Mark ${n} selected business${n===1?"":"es"} as`:"Mark this business as"}</div>
    <div class="sb">${ORDER.map(k=>`<button class="st ${ST[k].cls}" data-mark="${k}">${ST[k].label}</button>`).join("")}</div></div></div>`;
   hydrateIcons(d);
@@ -3807,7 +3809,11 @@ function patchDetail(l){const n=S.sel.size,t=$("#markT");if(t)t.textContent=n?`M
 async function saveDetail(silent){
   const l=S.find.find(x=>x.id===S.active),o=$("#dOwner"),nt=$("#dNotes");if(!l||!o||!nt)return;
   const ow=o.value.trim(),no=nt.value.trim();if((ow||NA)===l.owner&&no===l.notes)return;
-  try{const r=await api("save_lead",l.id,ow,no);l.owner=r.owner;l.notes=no;lastDetail=null;if(!silent)toast("Saved");renderFind()}catch(e){toast("Couldn't save: "+e.message,{bad:1})}
+  try{const r=await api("save_lead",l.id,ow,no);l.owner=r.owner;l.notes=no;
+    /* the panel already shows what was saved: don't redraw it, or the notes you're still typing (or the button you're
+       pressing) get replaced underneath you */
+    if(lastDetail&&lastDetail.id===l.id)lastDetail.sig=JSON.stringify([l,[...S.sel].length]);
+    if(!silent)toast("Saved");renderFind()}catch(e){toast("Couldn't save: "+e.message,{bad:1})}
 }
 async function markLeads(status,fromBoard){
   let ids=fromBoard||(S.sel.size?[...S.sel]:S.active?[S.active]:[]);
@@ -3836,11 +3842,12 @@ function leadModal(l){
    ${l.status!=="none"?creditField("lead",l.called_by):""}
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="mNotes" rows="3" maxlength="2000" style="margin-top:4px;background:var(--bg)" placeholder="What was said, when to call back...">${esc(l.notes)}</textarea></div></div>
    <div class="mark" style="margin-top:6px"><div class="t">Change result</div><div class="sb">${ORDER.map(k=>`<button class="st ${ST[k].cls}${l.status===k?" cur":""}" data-res="${k}">${ST[k].label}</button>`).join("")}</div></div>
-   <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
+   <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><button class="btn" data-rem>${ic("clock")}Set reminder</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
   (ov,close)=>{
     wireMtgLine(ov,l);
     const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim();if((ow||NA)!==l.owner||no!==l.notes){try{await api("save_lead",l.id,ow,no)}catch(e){toast("Couldn't save",{bad:1});return false}}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
     $("[data-x]",ov).onclick=close;$("[data-copy]",ov).onclick=()=>copyText(l.phone);$("[data-site]",ov).onclick=()=>api("open_site",l.id);
+    $("[data-rem]",ov).onclick=()=>{const own=$("#mOwner",ov).value.trim(),nts=$("#mNotes",ov).value;save();close();setTimeout(()=>remSet({...l,owner:own,notes:nts}),220)};
     wireCredit(ov,"lead",l.id,()=>{close();reload()});
     $("[data-save]",ov).onclick=async()=>{if(await save()){close();toast("Saved");reload()}};
     $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status)}});
@@ -5072,6 +5079,7 @@ document.addEventListener("click",e=>{
   const g=e.target.closest("[data-go]");if(g){go(g.dataset.go);return}
   const bell=$("#bell");if(!e.target.closest("#bell")&&!e.target.closest("#bellBtn"))bell.classList.remove("on");
 });
+$("#remBtn").onclick=e=>{e.stopPropagation();remToggle()};
 $("#bellBtn").onclick=()=>{const b=$("#bell");b.classList.toggle("on");if(b.classList.contains("on")){S.unread=0;renderBell()}};
 $("#userBtn").onclick=()=>go("account");$("#ringBtn").onclick=()=>go("account");
 $("#ringBtn").onkeydown=e=>{if(e.key==="Enter")go("account")};
@@ -5103,6 +5111,7 @@ $("#detail").addEventListener("click",e=>{
   else if(e.target.closest("#dCopy"))copyText(l.phone);
   else if(e.target.closest("#dSite"))api("open_site",l.id).catch(()=>{});
   else if(e.target.closest("#dSave"))saveDetail(false);
+  else if(e.target.closest("#dRem")){const o=$("#dOwner"),nt=$("#dNotes");saveDetail(true);remSet({...l,owner:o?o.value.trim():l.owner,notes:nt?nt.value:l.notes})}
   else{const m=e.target.closest("[data-mark]");if(m)markLeads(m.dataset.mark)}
 });
 $("#detail").addEventListener("focusout",e=>{if(e.target.id==="dOwner"||e.target.id==="dNotes")saveDetail(true)});
@@ -5903,6 +5912,11 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.16.0",t:"Call reminders",items:[
+  "In Find Leads, press Set reminder on the business you're calling to be reminded when to call back. It saves the owner's name, your call notes and the company's details with it. It's on the business pop-up in Called Leads too.",
+  "Your reminders are behind the new clock button at the top, next to the script button. Only you can see them.",
+  "On the day of a reminder, it pops up when you open Leafline. If the app is open when the time comes, a notification appears in the top right with Open, Call, Done and Snooze.",
+  "Fixed: call notes you started typing right after the owner's name could disappear when the owner was saved."]},
  {v:"11.15.0",t:"Invoices and team cards",items:[
   "New Invoices page: make professional invoices with items, quantities, discounts and tax, save them as drafts or issue them, edit, duplicate, and download a clean PDF to send to clients.",
   "Every invoice shows how to pay by Interac e-Transfer: the email to send it to, the amount and the invoice number as the message. The PDF has a button that opens the client's email app so they can tell us once they've paid.",
@@ -6030,7 +6044,9 @@ boot();
 import leafline_messages_ui as _msgui
 UI_HTML = _msgui.inject(UI_HTML)          # Messages (team chat): styles + page code live in leafline_messages_ui.py
 import leafline_invoices_ui as _invui
-UI_HTML = _invui.inject(UI_HTML)          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
+UI_HTML = _invui.inject(UI_HTML)
+import leafline_reminders_ui as _remui
+UI_HTML = _remui.inject(UI_HTML)          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
 
 
 API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",

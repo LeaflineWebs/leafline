@@ -1,1 +1,1 @@
-window.LF_CONFIG={"url": "https://yvpmgmuthrmzievgdifw.supabase.co", "key": "sb_publishable_6ssgQB4Z9D3lYtBtL3m8uA_B4w0fFiQ", "version": "11.15.0", "build": "11.15.0-b4dc021e"};
+window.LF_CONFIG={"url": "https://yvpmgmuthrmzievgdifw.supabase.co", "key": "sb_publishable_6ssgQB4Z9D3lYtBtL3m8uA_B4w0fFiQ", "version": "11.16.0", "build": "11.16.0-16baf323"};

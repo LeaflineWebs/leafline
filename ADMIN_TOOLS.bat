@@ -2,7 +2,8 @@
 setlocal
 title Leafline admin tools
 cd /d "%~dp0tools"
-if not exist .env (echo tools\.env is missing. Run RUN_SETUP.bat first. & pause & exit /b 1)
+if not exist .env (copy /y .env.example .env >nul & echo tools\.env was missing, so it has been made now. & echo Paste the Supabase SECRET key after SUPABASE_SECRET_KEY= in the Notepad window, save, close it, then run this again. & start "" notepad .env & pause & exit /b 1)
+findstr /c:"SUPABASE_SECRET_KEY=PASTE_SECRET" .env >nul && (echo The Supabase secret key is not in tools\.env yet. & echo Paste it after SUPABASE_SECRET_KEY= in the Notepad window, save, close it, then run this again. & start "" notepad .env & pause & exit /b 1)
 python --version >nul 2>&1 || (echo Python was not found. Install Python and tick "Add to PATH". & pause & exit /b 1)
 python -m pip install requests tzdata --quiet
 

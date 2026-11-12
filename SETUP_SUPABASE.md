@@ -130,6 +130,13 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
 
+## Fifteenth migration (Leafline 11.16: call reminders)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261112000015_reminders.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.) Nothing existing is changed or removed.
+- Adds `reminders`: when to call a business back, with a copy of its details, the owner's name and the call notes.
+- Private: each person reads and changes only their own reminders (admins get nothing extra). `rem_list`, `rem_save`,
+  `rem_done`, `rem_snooze`, `rem_delete` all run as the caller, so that rule always applies.
+
 ## Fourteenth migration (Leafline 11.15: invoices and team cards)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261111000014_invoices_team.sql` > Run. Safe to run twice.
 (`RUN_IN_SUPABASE.sql` already contains it.) Nothing existing is changed or removed.

@@ -82,7 +82,7 @@ class Fake:
                 """Messages: msg_* functions and the private 'message-files' bucket go to the real-Postgres test server."""
                 import urllib.request, urllib.error
                 p = u.path; fwd = None; send_uid = True
-                if p.startswith(("/rest/v1/rpc/msg_", "/rest/v1/rpc/inv_", "/rest/v1/rpc/team_")) and method == "POST": fwd = ("POST", "/rpc/" + p.rsplit("/", 1)[1], raw)
+                if p.startswith(("/rest/v1/rpc/msg_", "/rest/v1/rpc/inv_", "/rest/v1/rpc/team_", "/rest/v1/rpc/rem_")) and method == "POST": fwd = ("POST", "/rpc/" + p.rsplit("/", 1)[1], raw)
                 elif p.startswith("/storage/v1/object/upload/sign/message-files/"):
                     key = p.split("/message-files/", 1)[1]
                     if method == "POST": fwd = ("POST", "/storage/upload-sign", json.dumps({"path": key}).encode())
@@ -144,7 +144,7 @@ class Fake:
             def rest(s, method, tbl, q, body, uid):
                 if tbl.startswith("rpc/msg_"):           # Messages (migration 8) not run here: answer like Supabase does
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
-                if tbl.startswith(("rpc/inv_", "rpc/team_")):   # invoices + team cards (migration 14) run on real Postgres when msg_url is set; otherwise "not installed"
+                if tbl.startswith(("rpc/inv_", "rpc/team_", "rpc/rem_")):   # invoices + team cards (migration 14) run on real Postgres when msg_url is set; otherwise "not installed"
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                 if tbl.startswith("rpc/exp_"):           # mirrors migration 11 (company costs); the real rules are tested in tests/pg
                     if not getattr(F, "costs_cap", True): return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})

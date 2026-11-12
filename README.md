@@ -95,6 +95,18 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.16: call reminders
+- `backend/leafline_reminders_ui.py` (added to the shared page like Messages and Invoices): **Set reminder** in the Find
+  Leads detail panel and in the Called Leads business pop-up. It saves a private reminder (15th database update) with a
+  copy of the company details, the owner's name and the call notes. Quick times: in 1 hour, in 3 hours, tomorrow 9 am,
+  in 3 days, next week.
+- Clock button in the top bar (next to the script button, on phones too): due now / later today / coming up / done.
+- When the app opens: a "Today's reminders" pop-up (after the meetings/payments pop-up, never on top of it).
+- While the app is open: a notification in the top right when a reminder comes due (Open, Call, Done, Snooze 10 min),
+  plus a system notification if the window is hidden and notifications are allowed. Each reminder notifies once.
+- Fixed: in Find Leads, saving the owner (when you moved to the notes box) redrew the panel and wiped the notes being typed.
+- Tests: `tests/pg/test_reminders_sql.mjs` (real Postgres) and `tests/test_reminders.py` (website PC + phone, PC app).
+
 ## What is new in 11.15: invoices, team cards, Kyle and Mubaraq
 - **Invoices page** (sidebar and phone menu). `backend/leafline_invoices_ui.py` holds its styles, page code and the PDF
   maker; it is added to the shared page like Messages, so the PC app and the website match.
