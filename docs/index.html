@@ -1024,6 +1024,14 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 .b-top_caller{--h1:#7BEBAE;--h2:#2FBF71}.b-meetings{--h1:#9ADCF0;--h2:#3BA3C4}.b-revenue{--h1:#EBCF7D;--h2:#B98F2E}.b-consistency{--h1:#B7E6A0;--h2:#6AAE4A}
 .b-rising{--h1:#A4F0D8;--h2:#33B99A}.b-closer{--h1:#C9E89A;--h2:#86B23F}.b-century{--h1:#F0B98C;--h2:#C6743C}.b-mvp{--h1:#F2D88C;--h2:#D2A23C}
 .bdg-list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.badge-i:focus-visible{outline:2px solid var(--h1);outline-offset:2px}
+/* hover explanation for a badge (one shared bubble, placed above the badge, or below when there's no room) */
+.bdgtip{position:fixed;z-index:calc(var(--z-modal) + 5);left:0;top:0;max-width:250px;padding:10px 12px;border-radius:14px;pointer-events:none;text-align:left;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid color-mix(in srgb,var(--h1,#7BEBAE) 45%,transparent);
+  box-shadow:var(--sh-lg),0 0 22px color-mix(in srgb,var(--h1,#7BEBAE) 18%,transparent);opacity:0;transform:translateY(4px);transition:opacity 140ms var(--e-out),transform 180ms var(--e-out)}
+.bdgtip.on{opacity:1;transform:none}
+.bdgtip b{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--h1,#7BEBAE)}.bdgtip b .ic{width:14px;height:14px}
+.bdgtip span{display:block;margin-top:4px;font-size:12px;line-height:1.4;color:var(--text);font-weight:500}
 /* ---------- leaderboard ---------- */
 .lbd{display:grid;gap:18px;padding-bottom:110px}
 .lb-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -4392,8 +4400,26 @@ function computeBadges(d){
 }
 function badgeHTML(pid,max,big){
   const l=(B.badges[pid]||[]).slice(0,max||8);
-  return l.map(k=>{const b=BADGES[k];return `<span class="badge-i b-${k}${big?" lg":""}" title="${esc(b.n)}: ${esc(b.d)}" role="img" aria-label="${esc(b.n)}">${ic(b.i)}${big?esc(b.n):""}</span>`}).join("");
+  return l.map(k=>{const b=BADGES[k];return `<span class="badge-i b-${k}${big?" lg":""}" data-badge="${k}" tabindex="0" role="img" aria-label="${esc(b.n)}: ${esc(b.d)}">${ic(b.i)}${big?esc(b.n):""}</span>`}).join("");
 }
+/* hover (or focus, or tap) a badge to see what it means */
+const BTIP={el:null,on:null,t:0,touch:0};
+function showBadgeTip(t){
+  const b=BADGES[t.dataset.badge];if(!b)return;
+  let el=BTIP.el;if(!el){el=BTIP.el=document.createElement("div");el.className="bdgtip";el.setAttribute("role","tooltip");document.body.appendChild(el)}
+  el.className="bdgtip b-"+t.dataset.badge;el.innerHTML=`<b>${ic(b.i)}${esc(b.n)}</b><span>${esc(b.d)}.</span>`;hydrateIcons(el);
+  const r=t.getBoundingClientRect(),w=el.offsetWidth,h=el.offsetHeight,vw=innerWidth;
+  const x=Math.max(8,Math.min(vw-w-8,r.left+r.width/2-w/2)),y=r.top-h-8<8?r.bottom+8:r.top-h-8;
+  el.style.left=x+"px";el.style.top=y+"px";BTIP.on=t;clearTimeout(BTIP.t);
+  if(Date.now()-BTIP.touch<1500)BTIP.t=setTimeout(hideBadgeTip,3000);   // tapped on a phone: there is no "mouse leaves", so it goes away by itself
+  requestAnimationFrame(()=>el.classList.add("on"));
+}
+function hideBadgeTip(){if(BTIP.el)BTIP.el.classList.remove("on");BTIP.on=null;clearTimeout(BTIP.t)}
+document.addEventListener("mouseover",e=>{const t=e.target.closest&&e.target.closest(".badge-i[data-badge]");if(t){if(t!==BTIP.on)showBadgeTip(t)}else if(BTIP.on)hideBadgeTip()});
+document.addEventListener("focusin",e=>{const t=e.target.closest&&e.target.closest(".badge-i[data-badge]");if(t&&t.matches(":focus-visible"))showBadgeTip(t);else if(BTIP.on&&!t)hideBadgeTip()});
+document.addEventListener("focusout",e=>{if(BTIP.on&&e.target===BTIP.on)hideBadgeTip()});
+document.addEventListener("pointerdown",e=>{const t=e.target.closest&&e.target.closest(".badge-i[data-badge]");if(t&&e.pointerType!=="mouse"){BTIP.touch=Date.now();showBadgeTip(t)}else if(!t&&BTIP.on)hideBadgeTip()},true);
+addEventListener("scroll",()=>{if(BTIP.on)hideBadgeTip()},true);
 const bdgSlot=(pid,max,big)=>`<span class="bdg" data-bdg="${esc(pid)}" data-max="${max||8}"${big?' data-big="1"':""}>${badgeHTML(pid,max,big)}</span>`;
 function paintBadges(root){$$("[data-bdg]",root||document).forEach(e=>{const h=badgeHTML(e.dataset.bdg,+e.dataset.max||8,!!e.dataset.big);if(e.innerHTML!==h)e.innerHTML=h})}
 function personById(id){
@@ -4831,7 +4857,8 @@ function openFindForm(focus){
 const PATCH_NOTES=[
  {v:"11.16.1",t:"Profile call numbers",items:[
   "Click someone's name or picture to see their calls today and their all-time calls.",
-  "The Team page cards no longer show Prospects for each person."]},
+  "The Team page cards no longer show Prospects for each person.",
+  "Hover over a badge (or tap it on a phone) to see what it means and how it was earned."]},
  {v:"11.16.0",t:"Call reminders",items:[
   "In Find Leads, press Set reminder on the business you're calling to be reminded when to call back. It saves the owner's name, your call notes and the company's details with it. It's on the business pop-up in Called Leads too.",
   "Your reminders are behind the new clock button at the top, next to the script button. Only you can see them.",
