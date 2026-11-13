@@ -95,6 +95,25 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.17: liquid glass
+- `backend/leafline_glass_ui.py` (added to the shared page like Messages, Invoices and Reminders): an optional look,
+  switched on and off in **Settings > Appearance > Liquid glass**. Off by default; the choice is saved on the device
+  and follows the account like the theme. No database update needed.
+- Real optics, not a blurred card: each glass surface gets its own SVG filter. A normal map is drawn on an offscreen
+  canvas at the surface's exact size and corner radius, and `feDisplacementMap` bends what is behind it only in the
+  outer 12-24px rim, in three colour channels at slightly different strengths for a thin prism fringe. The middle of
+  the map is flat (128,128,0) so text never moves. Interior frosting is done inside the same filter, masked to the
+  middle, so the bent rim stays sharp. Specular rim light, plus a highlight that follows the pointer.
+- Presets: frosted-pill (top bar buttons, search, bottom bar, theme button), thick-lens (dialogs, pop-ups, hover cards,
+  notifications), liquid-mercury (switch thumbs, on a spring: stiffness 280, damping 22), subtle-pane (sidebar, cards,
+  dashboard tiles).
+- Budget: maps are made only when a ResizeObserver reports a size, shared by same-size surfaces, never while
+  scrolling or moving the mouse. Nothing bigger than 900 x 900 bends; at most 14 cards bend at once (6 on phones).
+- Chromium only for the bending (the desktop app, Chrome, Edge). Safari and Firefox get clean frosted glass
+  (`blur(16px) saturate(180%)`). The tint comes from the theme's colours, so it works with every theme.
+- Tests: `tests/test_glass.py` (every theme, PC and phone sizes; stripes behind each surface prove the rim bends and
+  the middle does not).
+
 ## What is new in 11.16: call reminders
 - `backend/leafline_reminders_ui.py` (added to the shared page like Messages and Invoices): **Set reminder** in the Find
   Leads detail panel and in the Called Leads business pop-up. It saves a private reminder (15th database update) with a

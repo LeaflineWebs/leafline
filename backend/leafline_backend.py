@@ -4855,7 +4855,7 @@ function renderAccount(){
     <div style="grid-column:1/3"><label class="l">Profile colour</label><div class="sw" id="xAcc" style="justify-content:flex-start;margin:6px 0 0">${ACCENTS.map(c=>`<button type="button" style="background:${c}" data-a="${c}" class="${(okAccent(ex.accent)||ACCENTS[0])===c?"on":""}" aria-label="Colour ${c}"></button>`).join("")}</div></div></div>
    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><button class="btn pri" id="xSave">Save profile</button><button class="btn" id="xCard">${ic("briefcase")}Team card details</button><span class="note" id="xNote"></span></div></div>
   <div class="card form pop" id="themeCard"><h3>Appearance</h3><div class="note">Pick a colour for Leafline. Your choice follows you to every device you sign in on.</div>
-   <div class="lgt big" data-lgt aria-label="Theme" role="radiogroup" style="margin-top:14px"></div></div>
+   <div class="lgt big" data-lgt aria-label="Theme" role="radiogroup" style="margin-top:14px"></div>${glassRowHTML()}</div>
   ${leadgenCard()}
   <div class="card form pop" id="updCard"><h3>App &amp; updates</h3>
    <div class="upd"><div><b id="updVer">Version</b><div class="note" id="updNote"></div><div class="bar" id="updBar"><i></i></div></div><button class="btn" id="updBtn">Check for updates</button></div>
@@ -4868,7 +4868,7 @@ function renderAccount(){
   $("#avUp").onclick=()=>$("#avFile").click();
   $("#avFile").onchange=e=>{const f=e.target.files[0];e.target.value="";mediaDialog("avatar",f)};
   $("#avDel").onclick=()=>clearMedia("avatar");
-  paintLgt();wireLeadgen(pg);
+  paintLgt();wireGlassSwitch(pg);wireLeadgen(pg);
   ["aName","aRole","aCo"].forEach(i=>$("#"+i).oninput=live);
   $$(".sw button",pg).forEach(b=>b.onclick=()=>{$$(".sw button",pg).forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-checked",x===b)});S.profile.color=b.dataset.c;profileUI();bump(b)});
   $("#aSave").onclick=()=>saveAccount(false);
@@ -5949,6 +5949,11 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.17.0",t:"Liquid glass",items:[
+  "New in Settings > Appearance: turn on Liquid glass. The sidebar, cards, buttons, the bottom bar and pop-ups become real glass that bends the light behind it at the edges, with a thin rainbow fringe and a highlight that follows your pointer.",
+  "It works with every theme and takes its colours from the one you pick. Turn it off any time with the same switch.",
+  "Switches become drops of glass that slide on a spring.",
+  "In the Leafline app, Chrome and Edge the edges bend the light. Other browsers show clean frosted glass."]},
  {v:"11.16.1",t:"Profile call numbers",items:[
   "Click someone's name or picture to see their calls today and their all-time calls.",
   "The Team page cards no longer show Prospects for each person.",
@@ -6063,6 +6068,7 @@ async function boot(){
   try{S.prefs=await api("get_prefs")||{}}catch(e){S.prefs={}}
   loadFlt();
   if(getP("theme",""))setTheme(getP("theme","forest"),false,false);
+  {const g=getP("glass",null);if(g!=null&&!!g!==glassOn())setGlass(!!g,false)}   // liquid glass follows you like the theme
   introProgress(.6);
   S.dockOpen=!!getP("dockOpen",false);S.dockId=getP("dockId",0);applyPaper();
   if(S.me){try{await loadNotes()}catch(e){}acctPull()}
@@ -6087,7 +6093,9 @@ UI_HTML = _msgui.inject(UI_HTML)          # Messages (team chat): styles + page 
 import leafline_invoices_ui as _invui
 UI_HTML = _invui.inject(UI_HTML)
 import leafline_reminders_ui as _remui
-UI_HTML = _remui.inject(UI_HTML)          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
+UI_HTML = _remui.inject(UI_HTML)
+import leafline_glass_ui as _glassui
+UI_HTML = _glassui.inject(UI_HTML)        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
 
 
 API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",
