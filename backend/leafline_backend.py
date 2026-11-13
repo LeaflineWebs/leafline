@@ -1970,6 +1970,7 @@ button.grp[aria-expanded="false"]{color:var(--muted)}button.grp[aria-expanded="f
 .sw button{width:30px;height:30px;border-radius:50%;box-shadow:0 4px 8px rgba(0,0,0,.3);transition:transform .45s var(--spring),outline-color .2s;outline:3px solid transparent;outline-offset:3px}
 .sw button:hover{transform:scale(1.18)}.sw button.on{outline-color:#fff}
 .mini{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:20px}
+.mini.pcalls{grid-template-columns:1fr 1fr}
 .mini div{background:rgba(0,0,0,.22);border-radius:16px;padding:10px 4px}.mini b{display:block;font-size:20px}.mini span{font-size:12px;color:var(--muted);font-weight:600}
 .form{padding:24px}.form h3{font-size:18px;margin-bottom:4px}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
@@ -5008,6 +5009,16 @@ function pinfoHTML(pid){
    ${skills.length?`<div class="psec"><h5>Skills</h5><div class="pskills">${skills.map(x=>`<span>${esc(x)}</span>`).join("")}</div></div>`:""}
    ${c.work_email||c.work_phone?`<div class="psec"><h5>Contact</h5><div class="pcon">${c.work_email?`<a href="mailto:${esc(c.work_email)}">${ic("mail")}<span>${esc(c.work_email)}</span></a>`:""}${c.work_phone?`<a class="tel" href="${esc(telHref(c.work_phone))}" data-ph="${esc(c.work_phone)}">${ic("phone")}<span>${esc(c.work_phone)}</span></a>`:""}</div></div>`:""}`;
 }
+/* calls on a profile: today's from the live Team numbers when we have them, all-time from the leaderboard's daily numbers (every day since the start) */
+function pcallsOf(p){
+  const d=B.data,day=d&&d.today;let today=p.today?+p.today.calls||0:null,before=null;
+  if(d&&d.stats){before=0;let t=0;d.stats.forEach(r=>{if(r.employee_id!==p.id)return;const ds=String(r.day).slice(0,10),c=+r.calls||0;if(ds===day)t+=c;else if(ds<day)before+=c});if(today==null)today=t}
+  return {today,all:before==null?null:before+(today||0)};
+}
+function pcallsHTML(p){
+  const c=pcallsOf(p),v=x=>x==null?"…":num(x);
+  return `<div><b>${v(c.today)}</b><span>Calls today</span></div><div><b>${v(c.all)}</b><span>All-time calls</span></div>`;
+}
 function personModal(p){
   if(!p)return;const ext=p.ext||{},mine=!!(S.me&&S.me.id===p.id),acc=okAccent(ext.accent)||"#4ADE8B";
   if(mine)p={...p,avatar:S.me.avatar,media:S.me.media,ext:{...ext,banner:(S.me.ext||{}).banner}};
@@ -5018,13 +5029,13 @@ function personModal(p){
    ${bdgSlot(p.id,8,true).replace('class="bdg"','class="bdg bdg-list"')}
    ${ext.bio?`<p class="pbio2">${esc(ext.bio)}</p>`:""}
    ${freshThought(ext)?`<div class="pth">“${esc(ext.thought)}”<small>Thought of the day</small></div>`:""}
-   ${p.today?`<div class="mini"><div><b>${p.today.calls}</b><span>Calls today</span></div><div><b>${p.today.meetings}</b><span>Meetings</span></div><div><b>${p.today.sales}</b><span>Sales</span></div></div>`:""}
+   <div class="mini pcalls" id="pCalls">${pcallsHTML(p)}</div>
    <div class="pinfo" id="pInfo">${pinfoHTML(p.id)}</div>
    <div class="pacts">${mine||isAdmin()?`<button class="btn" data-edcard>${ic("edit")}${mine?"Edit my card":"Edit card"}</button>`:""}<button class="btn pri" data-x>Close</button></div></div>`,(ov,close)=>{
     $("[data-x]",ov).onclick=close;
     const ed=$("[data-edcard]",ov);if(ed)ed.onclick=()=>{close();setTimeout(()=>teamCardModal(p.id),200)};
     if(!TEAMC.at||Date.now()-TEAMC.at>60000)loadTeamCards(true).then(()=>{const el=$("#pInfo",ov);if(el){const h=pinfoHTML(p.id);if(el.innerHTML!==h){el.innerHTML=h;hydrateIcons(el)}}});
-    ensureBoard();
+    ensureBoard().then(()=>{const el=$("#pCalls",ov);if(el){const h=pcallsHTML(p);if(el.innerHTML!==h)el.innerHTML=h}});
     if(!mine&&!bn.src)api("get_person",p.id).then(r=>{if(!r||!r.ok||!r.person)return;const q=r.person,b2=bannerOf({ext:{banner:q.banner},media:{banner_url:q.banner_url,banner_pos:q.banner_pos}});
       if(b2.src){const el=$("#pBan",ov);el.style.setProperty("--bp",b2.pos+"%");el.innerHTML=imgTag(b2.src,b2.still)}}).catch(()=>{})});
 }
@@ -5183,7 +5194,7 @@ async function renderTeam(){
    <div class="tm-people">${d.people.map(p=>`<div class="card tm-p ${S.me&&S.me.id===p.id?"me":""}" data-pid="${esc(p.id)}" style="--acc:${okAccent((p.ext||{}).accent)||"transparent"}">
      <h3>${avHTML(p.name,p.avatar,p.media)}${esc(p.name)}${(p.ext||{}).mood?` <span>${esc(p.ext.mood)}</span>`:""}${streakChip(p.id)}<span class="role">${p.role==="admin"?"Admin":"Rep"}</span><span class="st ${p.online?"on":""}"><i></i>${p.online?"Online":"Offline"}</span></h3>
      ${bdgSlot(p.id,8)}${(p.ext||{}).title||(TEAMC.by[p.id]||{}).department?`<div class="psub">${esc([(p.ext||{}).title,(TEAMC.by[p.id]||{}).department].filter(Boolean).join(" · "))}</div>`:""}${(p.ext||{}).bio?`<div class="pbio">${esc(p.ext.bio)}</div>`:""}${freshThought(p.ext)?`<div class="pth">“${esc(p.ext.thought)}”</div>`:""}
-     <div class="nums"><div><b>${p.today.calls}</b><span>Calls</span></div><div><b>${p.today.connections}</b><span>Connected</span></div><div><b>${p.today.prospects}</b><span>Prospects</span></div><div><b>${p.today.meetings}</b><span>Meetings</span></div><div><b>${p.today.sales}</b><span>Sales</span></div>${d.tasks_enabled?`<div><b>${p.today.tasks||0}</b><span>Tasks done</span></div>`:""}</div>
+     <div class="nums"><div><b>${p.today.calls}</b><span>Calls</span></div><div><b>${p.today.connections}</b><span>Connected</span></div><div><b>${p.today.meetings}</b><span>Meetings</span></div><div><b>${p.today.sales}</b><span>Sales</span></div>${d.tasks_enabled?`<div><b>${p.today.tasks||0}</b><span>Tasks done</span></div>`:""}</div>
      <div class="tm-bar" title="${p.progress}% of the daily call target"><i style="width:${Math.min(100,p.progress)}%"></i></div>
      <div class="last">${p.last?esc(p.last.text)+" · "+esc(tmTime(p.last.at)):"No activity yet."}</div>
      <div class="tm-stkc" data-stk="${esc(p.id)}"></div></div>`).join("")}</div>
@@ -5912,6 +5923,9 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.16.1",t:"Profile call numbers",items:[
+  "Click someone's name or picture to see their calls today and their all-time calls.",
+  "The Team page cards no longer show Prospects for each person."]},
  {v:"11.16.0",t:"Call reminders",items:[
   "In Find Leads, press Set reminder on the business you're calling to be reminded when to call back. It saves the owner's name, your call notes and the company's details with it. It's on the business pop-up in Called Leads too.",
   "Your reminders are behind the new clock button at the top, next to the script button. Only you can see them.",
