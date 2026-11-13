@@ -61,6 +61,9 @@ html.lf-glass .toast[data-lgp]{--lg-ring:0 0 0 1px var(--accent-line),0 0 30px v
 html.lf-glass .top .srch input[data-lgp]:focus{border-color:var(--accent) !important;--lg-ring:0 0 0 4px rgba(var(--accent-rgb),.18)}
 html.lf-glass [data-lgp=frosted-pill]:hover{--lg-ring:0 0 0 1px var(--accent-line),0 0 26px var(--glow-soft)}
 @media (hover:hover){html.lf-glass .card[data-lgp]:hover{--lg-ring:0 0 0 1px var(--accent-line),0 0 34px var(--glow-soft)}}
+/* phones: the bottom bar sits flush on the bottom edge (rounded top corners only, square at the screen edge) */
+@media (max-width:860px){html.lf-glass .fpill[data-lgp]{border-radius:24px 24px 0 0 !important;border-bottom:0 !important;
+  --lg-depth:0 -12px 32px rgba(0,0,0,.4)}}
 /* the theme picker's pop-up sits above everything; keep it readable */
 html.lf-glass .thpop[data-lgp]{--lg-t:84%}
 
@@ -117,12 +120,12 @@ const LG=(()=>{
   }
   /* the normal map: R/G = which way the rim leans (128 = flat); B = how much of the rim shows sharp (0 = frosted).
      The middle is exactly rgb(128,128,0): no bend, so text and icons on the glass never move. */
-  function normalMap(w,h,r,b,mmax){
+  function normalMap(w,h,rs,b,mmax){   // rs = corner radii [top-left, top-right, bottom-right, bottom-left]
     const cv=document.createElement("canvas");cv.width=w;cv.height=h;const cx=cv.getContext("2d"),im=cx.createImageData(w,h),d=im.data;
-    const hw=w/2,hh=h/2;r=Math.min(r,hw,hh);
-    for(let y=0;y<h;y++){const py=y+.5-hh,ay=Math.abs(py),sy=py<0?-1:1,qy=ay-(hh-r);
-      for(let x=0;x<w;x++){const px=x+.5-hw,ax=Math.abs(px),qx=ax-(hw-r),i=(y*w+x)*4;let dist,nx=0,ny=0;
-        if(qx>0&&qy>0){const l=Math.hypot(qx,qy);dist=r-l;if(l>0){nx=qx/l;ny=qy/l}}
+    const hw=w/2,hh=h/2;rs=rs.map(r=>Math.min(r,hw,hh));
+    for(let y=0;y<h;y++){const py=y+.5-hh,ay=Math.abs(py),sy=py<0?-1:1;
+      for(let x=0;x<w;x++){const px=x+.5-hw,ax=Math.abs(px),r=py<0?(px<0?rs[0]:rs[1]):(px<0?rs[3]:rs[2]),qx=ax-(hw-r),qy=ay-(hh-r),i=(y*w+x)*4;let dist,nx=0,ny=0;
+        if(r>0&&qx>0&&qy>0){const l=Math.hypot(qx,qy);dist=r-l;if(l>0){nx=qx/l;ny=qy/l}}
         else if(hw-ax<hh-ay){dist=hw-ax;nx=1}else{dist=hh-ay;ny=1}
         let m=0,k=0;if(dist>0&&dist<b){const t=1-dist/b;m=Math.pow(t,1.8)*mmax;k=Math.min(1,t*1.6)}
         d[i]=Math.round(128+(px<0?-nx:nx)*m*127);d[i+1]=Math.round(128+sy*ny*m*127);d[i+2]=Math.round(k*255);d[i+3]=255}}
@@ -130,13 +133,13 @@ const LG=(()=>{
   }
   const NS="http://www.w3.org/2000/svg",mk=(tag,at)=>{const e=document.createElementNS(NS,tag);for(const k in at)e.setAttribute(k,at[k]);return e};
   /* one filter per shape (same-size cards share one) */
-  function filterFor(key,p,w,h,r){
+  function filterFor(key,p,w,h,rs){
     let f=L.filters.get(key);if(f){f.refs++;f.used=Date.now();return f}
     const P=PRESET[p],b=Math.max(4,Math.min(Math.max(12,Math.min(24,Math.round(Math.min(w,h)*.22))),Math.floor(Math.min(w,h)/2)));
     /* small surfaces: the rim may only borrow from inside the surface, so the strongest bend fits in it */
     const mmax=Math.min(1,Math.max(.05,(Math.min(w,h)-4)/((Math.abs(P.s)+P.f)/2)));
     const id="lgf"+(++L.n),fl=mk("filter",{id,x:"-10%",y:"-10%",width:"120%",height:"120%","color-interpolation-filters":"sRGB"});
-    fl.appendChild(mk("feImage",{href:normalMap(w,h,r,b,mmax),x:0,y:0,width:w,height:h,preserveAspectRatio:"none",result:"map"}));
+    fl.appendChild(mk("feImage",{href:normalMap(w,h,rs,b,mmax),x:0,y:0,width:w,height:h,preserveAspectRatio:"none",result:"map"}));
     fl.appendChild(mk("feGaussianBlur",{in:"SourceGraphic",stdDeviation:P.blur,result:"frost"}));   // the preset's interior blur
     [["R",P.s-P.f,"1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"],["G",P.s,"0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"],["B",P.s+P.f,"0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"]].forEach(([c,s,v])=>{
       fl.appendChild(mk("feDisplacementMap",{in:"SourceGraphic",in2:"map",scale:s,xChannelSelector:"R",yChannelSelector:"G",result:"disp"+c}));
@@ -157,15 +160,16 @@ const LG=(()=>{
   function measure(rec){
     const el=rec.el;
     if(rec.p==="liquid-mercury"){const a=getComputedStyle(el,"::after"),w=Math.round(px(a.width)),h=Math.round(px(a.height));
-      rec.travel=Math.max(0,el.clientWidth-w-2*px(a.left));return {w,h,r:Math.min(w,h)/2}}
-    const w=el.offsetWidth,h=el.offsetHeight,cs=getComputedStyle(el).borderTopLeftRadius,r=/%$/.test(cs)?px(cs)/100*Math.min(w,h):px(cs);
-    return {w,h,r:Math.min(r,w/2,h/2)};
+      rec.travel=Math.max(0,el.clientWidth-w-2*px(a.left));const r=Math.round(Math.min(w,h)/2);return {w,h,rs:[r,r,r,r]}}
+    const w=el.offsetWidth,h=el.offsetHeight,cs=getComputedStyle(el),
+      rs=["borderTopLeftRadius","borderTopRightRadius","borderBottomRightRadius","borderBottomLeftRadius"].map(k=>{const v=cs[k];return Math.round(Math.min(/%$/.test(v)?px(v)/100*Math.min(w,h):px(v),w/2,h/2))});
+    return {w,h,rs};
   }
   const inView=el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>-80&&r.top<innerHeight+80&&r.right>-80&&r.left<innerWidth+80};
   function onResize(entries){
     for(const e of entries){const rec=L.recs.get(e.target);if(!rec)continue;
-      const {w,h,r}=measure(rec),ok=w>=8&&h>=8&&!tooBig(w,h),key=ok?rec.p+"|"+w+"|"+h+"|"+Math.round(r):null;
-      if(key!==rec.key){detach(rec);release(rec.key);rec.key=key;if(key&&L.opt)filterFor(key,rec.p,w,h,Math.round(r))}
+      const {w,h,rs}=measure(rec),ok=w>=8&&h>=8&&!tooBig(w,h),key=ok?rec.p+"|"+w+"|"+h+"|"+rs.join(","):null;
+      if(key!==rec.key){detach(rec);release(rec.key);rec.key=key;if(key&&L.opt)filterFor(key,rec.p,w,h,rs)}
       rec.vis=inView(rec.el)}
     assign();
   }

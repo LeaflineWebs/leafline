@@ -3070,6 +3070,10 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
 .mark.ask{animation:askPulse 1.2s var(--e-out) 2}
 @keyframes askPulse{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 2px var(--accent),0 0 30px var(--glow)}}
 @media (max-width:860px){
+  /* the app fills the whole screen. On iPhones opened from the home screen, 100vh/100dvh leave out the status bar,
+     so the page stopped that far above the bottom edge; pinning it to the screen edges always reaches the bottom. */
+  .app{position:fixed;inset:0;height:auto}
+  .main{height:100%}
   /* bottom bar: full width, sitting on the bottom edge, with room for the iPhone home bar */
   .fnav{left:0;right:0;bottom:0}
   .fpill{border-radius:24px 24px 0 0;padding:6px 6px calc(2px + env(safe-area-inset-bottom));border-bottom:0;

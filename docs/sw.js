@@ -1,5 +1,5 @@
 /* Leafline service worker: the newest published files always win when online; cached copies keep the app opening offline. */
-const V = "leafline-11.17.0-dcc17214";
+const V = "leafline-11.17.0-7b534642";
 const CORE = ["./", "index.html", "engine.js", "config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(V).then((c) => Promise.all(CORE.map((u) => fetch(new Request(u, { cache: "reload" })).then((r) => (r.ok ? c.put(u, r) : null)).catch(() => null)))).then(() => self.skipWaiting()));

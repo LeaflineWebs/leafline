@@ -41,7 +41,7 @@ def refr_diff(pg, sel, behind=".main"):
     if not box: return None
     if behind.startswith("under:"):   # a striped sheet right under the surface (same stacking level, one below)
         pg.evaluate("""([s,st,z])=>{const e=document.querySelector(s),r=e.getBoundingClientRect(),d=document.createElement('div');d.id='zzStripes';
-            d.style.cssText=`position:fixed;left:${r.left-30}px;top:${r.top-30}px;width:${r.width+60}px;height:${r.height+60}px;z-index:${z};pointer-events:none;background:${st}`;document.body.appendChild(d)}""", [sel, STRIPES, int(behind[6:])])
+            d.style.cssText=`position:fixed;left:${r.left-30}px;top:${r.top-30}px;width:${r.width+60}px;height:${r.height+60}px;z-index:${z};pointer-events:none;background:${st}`;(e.closest('.app')||document.body).appendChild(d)}""", [sel, STRIPES, int(behind[6:])])
     else:
         pg.evaluate("([b,st])=>{const e=document.querySelector(b);e.dataset.bg=e.style.background;e.style.setProperty('background',st,'important')}", [behind, STRIPES])
     pg.wait_for_timeout(300)
