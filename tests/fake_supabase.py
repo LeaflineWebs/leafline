@@ -12,8 +12,8 @@ from urllib.parse import urlparse, parse_qs
 class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
-        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests", "meeting_checks")}
-        self.mtg_cap = True
+        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests", "meeting_checks", "deal_splits", "lead_stages", "app_status")}
+        self.mtg_cap = True; self.split_cap = True; self.p17_cap = True
         self.lead = dict(key="", cap=900, used=0); self.lead_cap = True; self.google_calls = 0
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
@@ -82,7 +82,7 @@ class Fake:
                 """Messages: msg_* functions and the private 'message-files' bucket go to the real-Postgres test server."""
                 import urllib.request, urllib.error
                 p = u.path; fwd = None; send_uid = True
-                if p.startswith(("/rest/v1/rpc/msg_", "/rest/v1/rpc/inv_", "/rest/v1/rpc/team_", "/rest/v1/rpc/rem_")) and method == "POST": fwd = ("POST", "/rpc/" + p.rsplit("/", 1)[1], raw)
+                if p.startswith(("/rest/v1/rpc/msg_", "/rest/v1/rpc/inv_", "/rest/v1/rpc/team_", "/rest/v1/rpc/rem_")) and p != "/rest/v1/rpc/team_health" and method == "POST": fwd = ("POST", "/rpc/" + p.rsplit("/", 1)[1], raw)   # team_health (migration 17) is mirrored here
                 elif p.startswith("/storage/v1/object/upload/sign/message-files/"):
                     key = p.split("/message-files/", 1)[1]
                     if method == "POST": fwd = ("POST", "/storage/upload-sign", json.dumps({"path": key}).encode())
@@ -142,6 +142,54 @@ class Fake:
                 s.reply(200, {"access_token": at, "refresh_token": rt, "expires_in": 3600, "user": {"id": uid}})
 
             def rest(s, method, tbl, q, body, uid):
+                if tbl in ("rpc/lead_stage_list", "rpc/lead_stage_set", "rpc/lead_guard", "rpc/me_status_report", "rpc/team_health"):   # mirrors migration 17; real rules in tests/pg/test_pipeline_health_sql.mjs
+                    if not F.p17_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                    prof = {p["id"]: p for p in F.t["profiles"]}
+                    if not uid or not prof.get(uid, {}).get("active"): return s.reply(400, {"code": "P0001", "message": "Sign in first"})
+                    LS = F.t["lead_stages"]
+                    if tbl == "rpc/lead_stage_list": return s.reply(200, [dict(r) for r in LS])
+                    if tbl == "rpc/lead_stage_set":
+                        lead = next((l for l in F.t["leads"] if l["id"] == body.get("p_lead")), None); st = body.get("p_stage") or ""
+                        if not lead: return s.reply(400, {"code": "P0001", "message": "That business was not found"})
+                        LS[:] = [r for r in LS if r["lead_id"] != lead["id"]]
+                        if not st: return s.reply(200, dict(ok=True, lead_id=lead["id"], stage=None))
+                        lbl = dict(called="Called", interested="Interested", meeting="Meeting", proposal="Proposal sent", won="Won", lost="Lost").get(st)
+                        if not lbl: return s.reply(400, {"code": "P0001", "message": "That stage is not valid"})
+                        LS.append(dict(lead_id=lead["id"], stage=st, updated_by=uid, updated_at=F.now()))
+                        F.t["activity"].append(dict(id=len(F.t["activity"]) + 1, employee_id=uid, kind="pipeline", summary=prof[uid]["display_name"] + " moved " + lead["name"] + " to " + lbl, ref_table="leads", ref_id=lead["id"], created_at=F.now()))
+                        return s.reply(200, dict(ok=True, lead_id=lead["id"], stage=st))
+                    if tbl == "rpc/lead_guard":
+                        now = datetime.now(timezone.utc); out = []
+                        dig = lambda x: re.sub(r"\D", "", x or "")[-10:]
+                        for it in (body.get("p_leads") if isinstance(body.get("p_leads"), list) else [])[:300]:
+                            lid, k = it.get("id"), dig(it.get("key"))
+                            hits = [c for c in F.t["call_log"] if c.get("lead_id") == lid or (len(k) >= 7 and dig(c.get("phone")) == k)]
+                            at = lambda c: datetime.fromisoformat(c["started_at"].replace("Z", "+00:00"))
+                            rec = sorted([c for c in hits if c.get("employee_id") != uid and (now - at(c)).days < 14], key=at, reverse=True)
+                            dnc = sorted([(at(c), c.get("employee_id")) for c in hits if c["outcome"] == "not_interested"], reverse=True)
+                            lead = next((l for l in F.t["leads"] if l["id"] == lid), None)
+                            if lead and lead.get("status") == "red": dnc.insert(0, (datetime.fromisoformat((lead.get("called_at") or F.now()).replace("Z", "+00:00")), lead.get("called_by")))
+                            if not rec and not dnc: continue
+                            r = dict(id=lid, last_at=None, last_outcome=None, last_by=None, last_name=None, dnc_at=None, dnc_by=None, dnc_name=None)
+                            if rec: r.update(last_at=rec[0]["started_at"], last_outcome=rec[0]["outcome"], last_by=rec[0].get("employee_id"), last_name=prof.get(rec[0].get("employee_id"), {}).get("display_name"))
+                            if dnc: r.update(dnc_at=dnc[0][0].isoformat(), dnc_by=dnc[0][1], dnc_name=prof.get(dnc[0][1], {}).get("display_name"))
+                            out.append(r)
+                        return s.reply(200, out)
+                    if tbl == "rpc/me_status_report":
+                        b = body.get("p") if isinstance(body.get("p"), dict) else {}
+                        F.t["app_status"][:] = [r for r in F.t["app_status"] if r["user_id"] != uid]
+                        F.t["app_status"].append(dict(user_id=uid, version=str(b.get("version", ""))[:40], platform=str(b.get("platform", ""))[:40], sync_state=str(b.get("sync_state", ""))[:40],
+                                                      pending=int(b.get("pending") or 0), last_error=str(b.get("last_error", ""))[:300], updated_at=F.now()))
+                        return s.reply(200, {"ok": True})
+                    if tbl == "rpc/team_health":
+                        if F.role(uid) != "admin": return s.reply(400, {"code": "P0001", "message": "Administrators only"})
+                        st = {r["user_id"]: r for r in F.t["app_status"]}
+                        ups = {str(n): True for n in range(2, 18)}
+                        ups.update({"7": F.paid_cap, "13": F.mtg_cap, "16": F.split_cap})
+                        people = [dict(id=p["id"], name=p["display_name"], username=p["username"], role=p["role"], active=p["active"], last_seen=p.get("last_seen"),
+                                       version=st.get(p["id"], {}).get("version"), platform=st.get(p["id"], {}).get("platform"), sync_state=st.get(p["id"], {}).get("sync_state"),
+                                       pending=st.get(p["id"], {}).get("pending"), last_error=st.get(p["id"], {}).get("last_error"), reported_at=st.get(p["id"], {}).get("updated_at")) for p in F.t["profiles"]]
+                        return s.reply(200, dict(updates=ups, checked_at=F.now(), people=people))
                 if tbl.startswith("rpc/msg_"):           # Messages (migration 8) not run here: answer like Supabase does
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                 if tbl.startswith(("rpc/inv_", "rpc/team_", "rpc/rem_")):   # invoices + team cards (migration 14) run on real Postgres when msg_url is set; otherwise "not installed"
@@ -214,6 +262,28 @@ class Fake:
                         r.update(status=body["p_status"], found=body.get("p_found") or 0, skipped=body.get("p_skipped") or 0, message=body.get("p_text") or "", q=body.get("p_q") or r["q"])
                         return s.reply(200, dict(ok=True, cancelled=False, status=r["status"]))
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + fn})
+                if tbl == "deal_splits" and not F.split_cap: return s.reply(404, {"code": "PGRST205", "message": "Could not find the table 'public.deal_splits' in the schema cache"})
+                if tbl.startswith("rpc/deal_"):          # mirrors migration 16 (profit splits); the real rules are tested in tests/pg/test_splits_sql.mjs
+                    if not F.split_cap or tbl != "rpc/deal_split_set": return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                    prof = {p["id"]: p for p in F.t["profiles"]}
+                    if not uid or not prof.get(uid, {}).get("active"): return s.reply(400, {"code": "P0001", "message": "Sign in first"})
+                    d = next((r for r in F.t["deals"] if r["id"] == body.get("p_deal")), None)
+                    if not d: return s.reply(400, {"code": "P0001", "message": "That deal was not found"})
+                    if not (F.role(uid) == "admin" or d.get("owner_id") == uid): return s.reply(400, {"code": "P0001", "message": "Only an admin or the person this deal is credited to can split it"})
+                    key = body.get("p_key") or ""; sh = body.get("p_shares")
+                    if not re.match(r"^(\d{4}-\d{2}-\d{2}:(upfront|monthly))?$", key): return s.reply(400, {"code": "P0001", "message": "That payment is not valid"})
+                    if not isinstance(sh, list) or not 1 <= len(sh) <= 8: return s.reply(400, {"code": "P0001", "message": "Split it between 1 and 8 people"})
+                    ids = [x.get("id") for x in sh]; pcts = [x.get("pct") for x in sh]
+                    if len(set(ids)) != len(ids): return s.reply(400, {"code": "P0001", "message": "Each teammate can only be in the split once"})
+                    if any(not prof.get(i, {}).get("active") for i in ids): return s.reply(400, {"code": "P0001", "message": "Pick active teammates only"})
+                    if any(not isinstance(p, (int, float)) or p <= 0 or p > 100 or round(p, 2) != p for p in pcts): return s.reply(400, {"code": "P0001", "message": "Each percent must be more than 0 and at most 100 (up to 2 decimals)"})
+                    if round(sum(pcts), 2) != 100: return s.reply(400, {"code": "P0001", "message": "The percents must add up to 100 (they add up to %g)" % round(sum(pcts), 2)})
+                    clean = [dict(id=i, pct=p) for i, p in zip(ids, pcts)]; S_ = F.t["deal_splits"]
+                    for k in ([key] if key else []) + ([""] if (not key or body.get("p_default", True)) else []):
+                        S_[:] = [r for r in S_ if not (r["deal_id"] == d["id"] and r["pay_key"] == k)]
+                        S_.append(dict(deal_id=d["id"], pay_key=k, shares=clean, updated_by=uid, updated_at=F.now()))
+                    F.t["activity"].append(dict(id=len(F.t["activity"]) + 1, employee_id=uid, kind="credit", summary=prof[uid]["display_name"] + " split " + d["client"] + ": " + ", ".join("%s %g%%" % (prof[i]["display_name"], p) for i, p in zip(ids, pcts)), ref_table="deals", ref_id=d["id"], created_at=F.now()))
+                    return s.reply(200, dict(ok=True, deal_id=d["id"], pay_key=key, shares=clean))
                 if tbl.startswith("rpc/mtg_"):           # mirrors migration 13 (confirming meetings); the real rules are tested in tests/pg
                     if not F.mtg_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                     if not F.role(uid): return s.reply(400, {"code": "P0001", "message": "Sign in first"})

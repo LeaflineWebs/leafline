@@ -447,10 +447,12 @@ class Sync:
             prof = self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active"), "order": "display_name.asc"})
             today = datetime.now(TZ).date().isoformat()
             stats = self.remote.call("POST", "/rest/v1/rpc/daily_stats", body={"p_from": "2020-01-01", "p_to": today})
-            deals = self.remote.all_pages("deals", {"select": "owner_id,upfront,monthly,months,closed_at,first_bill" + (",confirmed" if self.caps.get("paid") else ""), "order": "closed_at.asc"})
+            deals = self.remote.all_pages("deals", {"select": "id,owner_id,client,upfront,monthly,months,closed_at,first_bill" + (",confirmed" if self.caps.get("paid") else ""), "order": "closed_at.asc"})
+            try: splits, split_ok = self.remote.all_pages("deal_splits", {"select": "deal_id,pay_key,shares", "order": "deal_id.asc"}), True   # profit splits (16th update)
+            except Http: splits, split_ok = [], False
             try: tg = (self.remote.rest("GET", "settings", params={"key": "eq.daily_targets", "select": "value"}) or [{}])[0].get("value") or {}
             except Http: tg = {}
-            out = dict(ok=True, stale=False, today=today, people=[self._pub(p) for p in prof if p.get("active")], stats=stats, deals=deals,
+            out = dict(ok=True, stale=False, today=today, people=[self._pub(p) for p in prof if p.get("active")], stats=stats, deals=deals, splits=splits, splits_ready=split_ok,
                        targets={"calls": 100, "connections": 20, "meetings": 3, "sales": 1, **tg},
                        fetched=datetime.now().strftime("%H:%M"))
             self._kv("board", json.dumps(out))
@@ -600,7 +602,7 @@ class Sync:
 
     # ---- Messages (11.4): the page calls the msg_* database functions and the private file bucket through here.
     #      Only those: nothing else in the database can be reached this way. All rules are enforced by the database.
-    MSG_FN = re.compile(r"^(msg|me|note|exp|lead|mtg|inv|team|rem)_[a-z_]{2,40}$")     # msg_*: Messages; me_*: your own private settings (update 9)
+    MSG_FN = re.compile(r"^(msg|me|note|exp|lead|mtg|inv|team|rem|deal)_[a-z_]{2,40}$")     # msg_*: Messages; me_*: your own private settings (update 9)
     MSG_PATH = re.compile(r"^[0-9a-f-]{36}/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,180}$")
 
     @staticmethod

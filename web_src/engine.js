@@ -755,7 +755,7 @@
     get_people() { return st.people; },
     // ----- Messages (11.4): only the msg_* database functions and the private file bucket; the database enforces every rule
     async sb_rpc(fn, args) {
-      if (!/^(msg|me|note|exp|lead|mtg|inv|team|rem)_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
+      if (!/^(msg|me|note|exp|lead|mtg|inv|team|rem|deal)_[a-z_]{2,40}$/.test(String(fn)) || !args || typeof args !== "object" || Array.isArray(args)) return fail("Not allowed.");
       try { return { ok: true, data: await call("POST", "/rest/v1/rpc/" + fn, { body: args }) }; } catch (e) { return msgErr(e); }
     },
     async sb_storage(op, paths, opts) {
@@ -858,7 +858,7 @@
     },
 
     // ----- deals
-    get_deals() { const today = parseDay(todayStr()); return dealsList().map((d) => ({ id: d.id, client: d.client, upfront: d.upfront, monthly: d.monthly, months: d.months, closed_at: d.closed_at, first_bill: d.first_bill, notes: d.notes, ...dealSummary(d, today) })); },
+    get_deals() { const today = parseDay(todayStr()); return dealsList().map((d) => ({ id: d.id, rid: d.uuid, client: d.client, upfront: d.upfront, monthly: d.monthly, months: d.months, closed_at: d.closed_at, first_bill: d.first_bill, notes: d.notes, ...dealSummary(d, today) })); },
     save_deal(d) {
       const [c, err] = cleanDeal(d); if (err) return fail(err);
       const lid = parseInt(d.id || 0, 10), uu = lid && byLid.deals.get(lid), cur = uu && st.deals.get(uu);
@@ -1087,9 +1087,11 @@
       try {
         const prof = await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active"), order: "display_name.asc" } });
         const stats = await call("POST", "/rest/v1/rpc/daily_stats", { body: { p_from: "2020-01-01", p_to: todayStr() } });
-        const deals = await allPages("deals", { select: "owner_id,upfront,monthly,months,closed_at,first_bill" + (st.caps.paid ? ",confirmed" : ""), order: "closed_at.asc" });
+        const deals = await allPages("deals", { select: "id,owner_id,client,upfront,monthly,months,closed_at,first_bill" + (st.caps.paid ? ",confirmed" : ""), order: "closed_at.asc" });
+        let splits = [], splitsReady = true;   // profit splits (16th update)
+        try { splits = await allPages("deal_splits", { select: "deal_id,pay_key,shares", order: "deal_id.asc" }); } catch (e) { if (!(e instanceof Http)) throw e; splitsReady = false; }
         let tg = {}; try { const r = await rest("GET", "settings", { params: { key: "eq.daily_targets", select: "value" } }); tg = (r[0] && r[0].value) || {}; } catch (e) { if (!(e instanceof Http)) throw e; }
-        const out = { ok: true, stale: false, today: todayStr(), people: prof.filter((p) => p.active).map(pub), stats, deals, targets: { calls: 100, connections: 20, meetings: 3, sales: 1, ...tg }, fetched: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+        const out = { ok: true, stale: false, today: todayStr(), people: prof.filter((p) => p.active).map(pub), stats, deals, splits, splits_ready: splitsReady, targets: { calls: 100, connections: 20, meetings: 3, sales: 1, ...tg }, fetched: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
         LS.set("lf_board", out); return out;
       } catch (e) {
         if (e instanceof Offline) { const c = LS.get("lf_board", null); return c ? { ...c, stale: true } : fail("You're offline. The leaderboard needs a connection the first time."); }

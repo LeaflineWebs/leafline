@@ -130,6 +130,31 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
 
+## Seventeenth migration (Leafline 11.19: pipeline, call warnings, system health)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261116000017_pipeline_health.sql` > Run. Safe to run
+twice. (`RUN_IN_SUPABASE.sql` already contains it.) Nothing existing is changed or removed.
+- `lead_stages`: where a business sits on the Pipeline when someone moves it by hand. Everyone signed in can read and
+  move cards (`lead_stage_list`, `lead_stage_set`); each move shows in Activity and the audit log. Without a row, the
+  stage comes from the call result as before.
+- `lead_guard`: for a list of businesses, the latest call by a teammate in the last 14 days and the latest "not
+  interested". Read-only, runs as the caller. Two indexes on `call_log` keep it fast.
+- `app_status` + `me_status_report`: each app reports its version and sync state (readable by that person and admins
+  only). `team_health` (admins only) lists that for everyone, plus which database updates (2 to 17) have been run.
+- Until it is run: the Pipeline still shows stages from call results (moving cards by hand says it needs this update),
+  the call warnings stay off, and Admin > System health says to run it.
+
+## Sixteenth migration (Leafline 11.18: profit splits)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261113000016_deal_splits.sql` > Run. Safe to run twice.
+(`RUN_IN_SUPABASE.sql` already contains it.) Nothing existing is changed or removed.
+- Adds `deal_splits`: who gets credit for a confirmed payment, by percent (e.g. Omar 60%, Jay 40%). Kept for that
+  payment and as the deal's default, which later payments follow. With no split, a payment counts 100% for the
+  person the deal is credited to, as before.
+- Everyone signed in can read splits (the leaderboard needs them). Nobody can write the table directly: only
+  `deal_split_set`, which allows an admin or the person the deal is credited to, checks the percents add up to
+  exactly 100, and only allows active teammates. Each change goes to Activity (percents only, never amounts) and the
+  audit log.
+- Until it is run, confirming payments works as before and the app says splitting needs this update.
+
 ## Fifteenth migration (Leafline 11.16: call reminders)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261112000015_reminders.sql` > Run. Safe to run twice.
 (`RUN_IN_SUPABASE.sql` already contains it.) Nothing existing is changed or removed.

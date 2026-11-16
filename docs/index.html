@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.17.0"></script>
-<script src="engine.js?v=11.17.0"></script>
+<script src="config.js?v=11.19.0"></script>
+<script src="engine.js?v=11.19.0"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -2116,6 +2116,95 @@ html.lf-glass .tgl[data-lgsp]:after{transition:none !important}
 /* ---- the switch in Settings > Appearance ---- */
 .lfg-row{display:flex;align-items:center;gap:16px;margin-top:16px;padding:14px 16px;border-radius:18px;background:rgba(0,0,0,.16);border:1px solid var(--line)}
 .lfg-row>div{flex:1;min-width:0}.lfg-row b{font-size:14px}.lfg-row .note{margin-top:3px}
+
+/* ---------- profit splits (11.18) ---------- */
+.spl-chip{display:inline-flex;align-items:center;gap:6px;height:30px;max-width:230px;padding:0 11px;border-radius:15px;font-size:12px;font-weight:700;
+  color:var(--text2);background:rgba(255,255,255,.05);border:1px solid var(--line2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;
+  transition:border-color var(--d-hover) var(--e-out),color var(--d-hover) var(--e-out),transform var(--d-card) var(--e-spring)}
+.spl-chip .ic{width:14px;height:14px;flex:none}.spl-chip span{overflow:hidden;text-overflow:ellipsis}
+.spl-chip:hover{border-color:var(--accent-line);color:var(--text);transform:translateY(-1px)}
+.spl-chip.multi{color:var(--accent-hi);border-color:var(--accent-line);background:var(--accent-soft)}
+/* payment rows with a split: the name keeps its room; the chip drops to its own line when space runs out */
+.prow:has(.spl-chip){flex-wrap:wrap;row-gap:8px}.prow:has(.spl-chip)>div:first-child{min-width:150px !important}
+.prow .spl-chip{order:9;margin-left:auto}
+.spl-head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-top:6px;color:var(--muted);font-size:13.5px}
+.spl-head b{color:var(--text);font-size:15px}
+.spl-sec{margin-top:16px;padding:14px;border-radius:18px;background:rgba(0,0,0,.16);border:1px solid var(--line)}
+.spl-sec h3{font-size:14.5px}.spl-sec .note{margin-top:3px}
+.spl-rows{display:grid;gap:8px;margin-top:12px}
+.spl-row{display:grid;grid-template-columns:minmax(0,1fr) 92px 92px 34px;gap:8px;align-items:center}
+.spl-row select,.spl-row input{height:40px;min-width:0}
+.spl-row .spl-pct{position:relative}.spl-row .spl-pct input{width:100%;padding-right:26px;text-align:right}
+.spl-row .spl-pct:after{content:"%";position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;pointer-events:none}
+.spl-amt{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text2);font-size:13px}
+.spl-rm{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--muted);font-size:18px;line-height:1;background:rgba(255,255,255,.04)}
+.spl-rm:hover{color:var(--bad);background:rgba(240,138,138,.12)}.spl-rm[disabled]{opacity:.3;pointer-events:none}
+.spl-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.spl-sum{margin-left:auto;font-weight:800;font-size:13px;padding:5px 11px;border-radius:12px;background:rgba(255,255,255,.05)}
+.spl-sum.ok{color:var(--ok);background:rgba(91,227,154,.12)}.spl-sum.bad{color:var(--warn);background:rgba(235,193,92,.12)}
+.spl-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:12px;background:rgba(255,255,255,.06)}
+.spl-bar i{display:block;height:100%;transition:width var(--d-card) var(--e-out)}
+.spl-ro{display:grid;gap:6px;margin-top:10px}.spl-ro div{display:flex;justify-content:space-between;gap:10px;font-size:13.5px}
+.spl-ro b{font-variant-numeric:tabular-nums}
+.spl-err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+.spl-deal{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@media (max-width:560px){.spl-row{grid-template-columns:minmax(0,1fr) 84px 34px}.spl-row .spl-amt{display:none}}
+
+/* ================= productivity pack (11.19) ================= */
+/* lead score */
+.sc-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:11px;font-weight:800;flex:none;
+  background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line)}
+.sc-pill.hot{background:rgba(var(--accent-rgb),.16);color:var(--accent-hi);border-color:var(--accent-line)}
+.sc-pill.warm{background:rgba(235,193,92,.13);color:#F3D27A;border-color:rgba(235,193,92,.35)}
+.sc-why{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.sc-why span{font-size:12px;font-weight:600;color:var(--text2);background:rgba(255,255,255,.05);border-radius:8px;padding:3px 8px}
+/* call guard */
+.gd-ic{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:900;flex:none;background:rgba(235,193,92,.2);color:#F3D27A}
+.gd-ic.dnc{background:rgba(240,138,138,.2);color:#F7A9A9}
+.gd-ban{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.45;
+  background:rgba(235,193,92,.10);border:1px solid rgba(235,193,92,.32);color:var(--text)}
+.gd-ban.dnc{background:rgba(240,138,138,.10);border-color:rgba(240,138,138,.38)}
+.gd-ban b{display:block}.gd-ban .gd-ic{margin-top:1px}
+/* saved searches */
+.ss-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.ss-chip{display:inline-flex;align-items:center;gap:0;height:32px;border-radius:16px;border:1px solid var(--line2);background:rgba(255,255,255,.04);overflow:hidden;max-width:100%}
+.ss-chip>button{height:100%;padding:0 10px;font-size:12.5px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ss-chip>button:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.ss-chip .ss-x{padding:0 9px;color:var(--muted);border-left:1px solid var(--line)}
+.ss-chip.due{border-color:rgba(235,193,92,.5)}.ss-chip.due .ss-run:after{content:"due";margin-left:6px;font-size:10.5px;font-weight:800;color:#F3D27A;text-transform:uppercase;letter-spacing:.3px}
+.ss-chip small{font-weight:600;color:var(--muted);margin-left:6px}
+@media (max-width:860px){.fcard:not(.open) .ss-bar{display:none}}   /* phones: folds away with the search form */
+/* pipeline */
+.pl-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:4px 0 14px}
+.pl-top .note{flex:1;min-width:220px}
+/* sidebar: with every page listed, the list scrolls inside the sidebar on short screens so the footer stays visible */
+.side .nav{flex:0 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}.side .nav::-webkit-scrollbar{display:none}
+.side .foot{flex:none}
+.pl-cols{display:grid;grid-template-columns:repeat(6,minmax(160px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;align-items:start}
+.pl-col{border-radius:20px;padding:10px;background:rgba(0,0,0,.14);border:1px solid var(--line);min-height:160px;transition:border-color var(--d-hover) var(--e-out),background var(--d-hover) var(--e-out)}
+.pl-col.over{border-color:var(--accent);background:var(--accent-soft)}
+.pl-ch{display:flex;align-items:center;gap:8px;padding:4px 4px 10px;font-weight:800;font-size:13.5px}
+.pl-ch i{width:9px;height:9px;border-radius:50%;flex:none}.pl-ch span{margin-left:auto;font-size:12px;color:var(--muted);font-weight:700}
+.pl-list{display:grid;gap:8px}
+.pl-card{position:relative;padding:11px 12px;border-radius:14px;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);cursor:grab;
+  box-shadow:0 4px 10px rgba(0,0,0,.18);transition:transform var(--d-card) var(--e-spring),border-color var(--d-hover) var(--e-out)}
+.pl-card:hover{transform:translateY(-2px);border-color:var(--line2)}.pl-card.drag{opacity:.45}
+.pl-card b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:4px}
+.pl-card .pl-sub{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:11.5px;color:var(--text2);font-weight:600}
+.pl-stale{color:#F3D27A;background:rgba(235,193,92,.13);border-radius:8px;padding:2px 7px;font-weight:800}
+.pl-hand{color:var(--accent-hi);background:var(--accent-soft);border-radius:8px;padding:2px 7px;font-weight:800}
+.pl-mv{margin-top:8px;width:100%;height:30px;font-size:12px;border-radius:10px}
+.pl-empty{font-size:12.5px;color:var(--faint);text-align:center;padding:16px 6px}
+@media (max-width:860px){.pl-cols{grid-template-columns:repeat(6,minmax(240px,82vw));scroll-snap-type:x mandatory}.pl-col{scroll-snap-align:start}}
+/* health */
+.hl-ups{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:12px}
+.hl-up{display:flex;align-items:center;justify-content:center;gap:6px;height:36px;border-radius:12px;font-size:12.5px;font-weight:800;background:rgba(91,227,154,.10);color:var(--ok);border:1px solid rgba(91,227,154,.28)}
+.hl-up.no{background:rgba(240,138,138,.10);color:var(--bad);border-color:rgba(240,138,138,.35)}.hl-up.unk{background:rgba(255,255,255,.05);color:var(--muted);border-color:var(--line)}
+.hl-tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+.hl-tbl th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}
+.hl-tbl td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+.hl-old{color:#F3D27A;font-weight:800}.hl-bad{color:var(--bad);font-weight:700}.hl-ok{color:var(--ok);font-weight:700}
+.hl-wrap{overflow-x:auto}
 </style>
 </head>
 <body>
@@ -2136,6 +2225,7 @@ html.lf-glass .tgl[data-lgsp]:after{transition:none !important}
       <button class="nv" data-go="msgs"><i class="ic" data-ic="chat"></i>Messages<span class="badge" id="msgBadge" style="display:none">0</span></button>
       <button class="nv" data-go="find"><i class="ic" data-ic="search"></i>Find Leads</button>
       <button class="nv" data-go="called"><i class="ic" data-ic="phone"></i>Called Leads<span class="badge" id="calledBadge">0</span></button>
+      <button class="nv" data-go="pipeline"><i class="ic" data-ic="pipe"></i>Pipeline</button>
       <button class="nv" data-go="calendar"><i class="ic" data-ic="cal"></i>Calendar</button>
       <button class="nv" data-go="calls"><i class="ic" data-ic="log"></i>Call Log</button>
       <button class="nv" data-go="notes"><i class="ic" data-ic="note"></i>Notes</button>
@@ -2225,6 +2315,7 @@ html.lf-glass .tgl[data-lgsp]:after{transition:none !important}
       <!-- PROFITS -->
       <div class="page" id="pg-profits"></div>
       <div class="page" id="pg-invoices"></div>
+      <div class="page" id="pg-pipeline"></div>
 
       <div class="page" id="pg-calls"></div>
       <div class="page flex" id="pg-notes"></div>
@@ -2280,6 +2371,7 @@ const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
    final state. CSS animations are switched off by the stylesheet rule. */
 if(REDUCE&&Element.prototype.animate){const A=Element.prototype.animate;Element.prototype.animate=function(k,o){const opt=typeof o==="number"?{}:Object.assign({},o);opt.duration=1;opt.delay=0;opt.endDelay=0;if(!isFinite(opt.iterations))opt.iterations=1;return A.call(this,k,opt)}}
 const ICONS={
+ pipe:'<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>',
  receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
  download:'<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
  building:'<path d="M4 21V5a1 1 0 011-1h9a1 1 0 011 1v16M15 9h4a1 1 0 011 1v11M3 21h18"/><path d="M8 8h3M8 12h3M8 16h3"/>',
@@ -2562,7 +2654,8 @@ function wireFlt(){
 function visibleFind(){
   const fl=fltOn(S.flt)?S.flt:null;let a=S.find.filter(l=>match(l)&&fltMatch(l,fl));if(S.openOnly)a=a.filter(l=>l.open==="open");
   const rv=l=>parseInt(l.reviews)||0,rank={open:0,unknown:1,closed:2};
-  if(S.sort==="name")a.sort((x,y)=>x.name.localeCompare(y.name));
+  if(S.sort==="score"){const sc=new Map(a.map(l=>[l.id,leadScore(l).s]));a.sort((x,y)=>(sc.get(y.id)-sc.get(x.id))||(rv(x)-rv(y))||x.name.localeCompare(y.name))}
+  else if(S.sort==="name")a.sort((x,y)=>x.name.localeCompare(y.name));
   else if(S.sort==="open")a.sort((x,y)=>(rank[x.open]-rank[y.open])||(rv(y)-rv(x))||x.name.localeCompare(y.name));
   else a.sort((x,y)=>(rv(y)-rv(x))||x.name.localeCompare(y.name));
   return a;
@@ -2622,7 +2715,7 @@ function movePills(){
     const fp=$("#fpill");if(fp.scrollWidth>fp.clientWidth+2)fp.scrollTo({left:Math.max(0,fb.offsetLeft-(fp.clientWidth-fb.offsetWidth)/2),behavior:"smooth"})}
 }
 const pageTitle=p=>p==="posts"&&matchMedia("(max-width:860px)").matches?"News":TITLES[p];
-const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",invoices:"Invoices",admin:"Admin",account:"Settings"};
+const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",pipeline:"Pipeline",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",invoices:"Invoices",admin:"Admin",account:"Settings"};
 let navToken=0;
 async function go(p,force){
   if(p===S.page&&!force)return;
@@ -2636,7 +2729,7 @@ async function go(p,force){
   if(my!==navToken)return;
   if(old){old.getAnimations().forEach(a=>a.cancel());old.classList.remove("on")}
   S.lastSig={};
-  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="invoices")renderInvoices(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
+  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="invoices")renderInvoices(false);if(p==="pipeline")renderPipeline(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
   arm(next);next.classList.add("on");applyDock();
   if(!REDUCE)next.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:480,easing:EASE.out});
   history.replaceState(null,"","#"+p);
@@ -2738,6 +2831,7 @@ function fillItem(n,l){
   hr.hidden=/N\/A/.test(h)&&/N\/A/.test(pl);            /* no hours known: the pill already says so */
   n.classList.toggle("act",S.active===l.id);n.classList.toggle("sel",S.sel.has(l.id));n.setAttribute("aria-selected",S.active===l.id);
   const sep=n.querySelector(".ls");sep.title=l.btype+" · "+(l.hours||"");
+  paintScore(n,l);paintGuardRow(n,l);   // prospect score + "called recently / not interested" flag (11.19)
 }
 function renderFind(){
   const arr=visibleFind(),list=$("#list"),have=new Map($$(".li",list).map(n=>[n.dataset.id,n]));
@@ -2761,6 +2855,7 @@ function renderFind(){
   paintSelBar();
   const allOn=arr.length&&arr.every(l=>S.sel.has(l.id));$("#allChk").style.cssText=allOn?"background:var(--accent);border-color:var(--accent);color:var(--accent-text)":"";
   renderDetail();
+  guardLoad(arr.slice(0,300));ssPaint();
 }
 function paintSelBar(){let b=$("#selBar");const n=S.sel.size;
   if(!b){b=document.createElement("div");b.id="selBar";b.className="selbar";b.setAttribute("role","region");b.setAttribute("aria-label","Selected businesses");
@@ -2781,11 +2876,13 @@ function renderDetail(){
   const n=S.sel.size;
   d.innerHTML=`<div class="${changed?"dsw":""}"><button class="btn sm dclose" id="dClose" aria-label="Back to the list">${ic("back")}Back</button><div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div>
    <div class="acts">${callBtn(l.phone)}<button class="btn sm" id="dCopy">${ic("copy")}Copy phone</button><button class="btn sm" id="dSite"${l.website===NA?" disabled":""}>${ic("globe")}Website</button></div></div>
+  <div id="gdSlot">${guardBanner(l)}</div>
   <div class="facts">
    <div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span style="font-size:13.5px;font-weight:700;color:#FFD60A">${esc(reviewTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="dOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
    <div class="fact"><div class="k">Google rating</div><div class="v">${l.rating===NA?NA:esc(l.rating)+" ★"}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${l.reviews===NA?"":esc(num(l.reviews))+" reviews"}</span></div></div>
+   ${scoreFactHTML(l)}
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="dNotes" rows="3" placeholder="What was said, when to call back..." maxlength="2000" style="margin-top:4px;background:var(--bg)">${esc(l.notes)}</textarea></div></div>
   <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn sm" id="dRem">${ic("clock")}Set reminder</button><button class="btn sm" id="dSave">Save owner &amp; notes</button></div>
   <div class="mark"><div class="t" id="markT">${n?`Mark ${n} selected business${n===1?"":"es"} as`:"Mark this business as"}</div>
@@ -2821,6 +2918,7 @@ const prevStatus=()=>"none";
 /* ---------------- CALLED board ---------------- */
 function leadModal(l){
   const close=openModal(`<div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div></div>
+   <div id="gdSlotM" data-id="${esc(l.id)}">${guardBanner(l)}</div>
    <div class="facts"><div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span class="pacts">${callBtn(l.phone)}<button class="btn sm" data-copy>${ic("copy")}Copy</button></span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="mOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
@@ -2831,13 +2929,14 @@ function leadModal(l){
    <div class="mark" style="margin-top:6px"><div class="t">Change result</div><div class="sb">${ORDER.map(k=>`<button class="st ${ST[k].cls}${l.status===k?" cur":""}" data-res="${k}">${ST[k].label}</button>`).join("")}</div></div>
    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><button class="btn" data-rem>${ic("clock")}Set reminder</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
   (ov,close)=>{
-    wireMtgLine(ov,l);
+    wireMtgLine(ov,l);guardLoad([l],true);
     const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim();if((ow||NA)!==l.owner||no!==l.notes){try{await api("save_lead",l.id,ow,no)}catch(e){toast("Couldn't save",{bad:1});return false}}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
     $("[data-x]",ov).onclick=close;$("[data-copy]",ov).onclick=()=>copyText(l.phone);$("[data-site]",ov).onclick=()=>api("open_site",l.id);
     $("[data-rem]",ov).onclick=()=>{const own=$("#mOwner",ov).value.trim(),nts=$("#mNotes",ov).value;save();close();setTimeout(()=>remSet({...l,owner:own,notes:nts}),220)};
     wireCredit(ov,"lead",l.id,()=>{close();reload()});
     $("[data-save]",ov).onclick=async()=>{if(await save()){close();toast("Saved");reload()}};
-    $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status)}});
+    $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status);
+      if(b.dataset.res!==l.status)autoFollow(b.dataset.res==="orange"?"no_answer":b.dataset.res==="yellow"?"interested":"",[fl]).catch(()=>{})}});
     $("[data-back]",ov).onclick=async()=>{if(await save()){close();await changeStatus([l.id],"none",l.status)}};
   });
 }
@@ -3073,7 +3172,7 @@ function costsCard(today){
 }
 function renderProfits(q){
   const st=S.stats,pg=$("#pg-profits");if(!st||!st.money)return;
-  const m=st.money,wk=m.week,mo=m.month,al=m.all,sig=JSON.stringify([S.deals,m,COSTS.list,COSTS.missing,isAdmin()]);
+  const m=st.money,wk=m.week,mo=m.month,al=m.all,sig=JSON.stringify([S.deals,m,COSTS.list,COSTS.missing,isAdmin(),splitSig()]);
   const [cm0,cm1]=monthOf(m.today),mcost=costSum(costsIn(cm0,cm1)),madeNet=Math.round((mo.made-mcost)*100)/100;
   if(q&&S.lastSig.profits===sig)return;S.lastSig.profits=sig;
   const sc=pg.scrollTop,mname=mo.label.split(" ")[0];
@@ -3088,7 +3187,7 @@ function renderProfits(q){
     :(p.due===undefined?p.date<=m.today:p.due)?`<button class="cfm" data-pay="${p.deal_id}|${esc(p.date)}|${esc(p.kind)}|1" aria-label="Confirm ${usd(p.amount)} from ${esc(p.client)} was received">${ic("check")}Confirm</button>`
     :`<span class="pill unknown">Upcoming</span>`;
   const todo=al.to_confirm||[];
-  const plist=wk.payments.length?wk.payments.map(p=>`<div class="prow"><div style="min-width:0;flex:1"><b>${esc(p.client)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||p.kind}</span></div><b class="num">${usd(p.amount)}</b>${payBtn(p)}</div>`).join(""):
+  const plist=wk.payments.length?wk.payments.map(p=>`<div class="prow"><div style="min-width:0;flex:1"><b>${esc(p.client)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||p.kind}</span></div><b class="num">${usd(p.amount)}</b>${payBtn(p)}${p.paid?splitChip(p.deal_id,p.date,p.kind):""}</div>`).join(""):
     `<div class="empty" style="padding:22px 10px"><div class="bub">${ic("dollar")}</div><b>Nothing due this week</b>Payments from your deals show up here.</div>`;
   const rows=S.deals.map(d=>`<div class="dr" data-id="${d.id}" tabindex="0"><div style="min-width:0"><b>${esc(d.client)}</b>${d.notes?`<span class="sub">${esc(d.notes)}</span>`:""}</div><div>${esc(terms(d))}</div><div>${esc(dayFmt(d.closed_at))}</div><div class="num">${usd(d.collected)}${d.unconfirmed_count?`<span class="sub" style="color:#FFE36B">${num(d.unconfirmed_count)} to confirm</span>`:""}</div><div class="num">${d.remaining===null?"Ongoing":usd(d.remaining)}</div><div>${d.next_date?`<b>${esc(dayFmt(d.next_date))}</b><span class="sub">${usd(d.next_amount)}</span>`:`<span class="muted">All paid</span>`}</div><div><button class="ib" data-edit aria-label="Edit ${esc(d.client)}" tabindex="-1">${ic("edit")}</button></div></div>`).join("");
   pg.innerHTML=`
@@ -3108,7 +3207,8 @@ function renderProfits(q){
   $$("[data-cdel]",pg).forEach(b=>b.onclick=()=>{const c=(COSTS.list||[]).find(x=>x.id===b.dataset.cdel);c&&removeCost(c)});
   loadCosts();
   $$("[data-add]",pg).forEach(b=>b.onclick=()=>dealModal(null));
-  wirePay(pg);
+  wirePay(pg);wireSplitChips(pg);
+  if(!B.data)ensureBoard().then(()=>{if(S.page==="profits"&&B.data)renderProfits(true)}).catch(()=>{});
   $$(".dr[data-id]",pg).forEach(r=>{r.onclick=()=>{const d=S.deals.find(x=>String(x.id)===r.dataset.id);d&&dealModal(d)};r.onkeydown=e=>{if(e.key==="Enter")r.click()}});
   const fire=()=>$$("[data-n]",pg).forEach(e=>{if(q)e.dataset.q=1;countTo(e,+e.dataset.n,+e.dataset.d,"")});
   if(q){quiet(pg);fire()}else setTimeout(fire,350);
@@ -3124,7 +3224,8 @@ async function confirmPay(id,day,kind,on,btn){
     setTimeout(reload,on&&btn?380:0);
   }catch(e){if(btn)btn.disabled=false;toast("Couldn't save: "+e.message,{bad:1})}
 }
-function wirePay(root){$$("[data-pay]",root).forEach(b=>b.onclick=e=>{e.stopPropagation();const [id,day,kind,on]=b.dataset.pay.split("|");confirmPay(id,day,kind,on==="1",b)})}
+function wirePay(root){$$("[data-pay]",root).forEach(b=>b.onclick=e=>{e.stopPropagation();const [id,day,kind,on]=b.dataset.pay.split("|");
+  if(on==="1")splitModal(id,day,kind,"confirm");else confirmPay(id,day,kind,false,b)})}   // Confirm: choose who gets credit (profit splits)
 function dealModal(d){
   const isNew=!d,t0=isoDay(new Date());d=d||{id:0,client:"",upfront:0,monthly:0,months:0,closed_at:t0,first_bill:"",notes:""};
   const val=v=>v?v:"";
@@ -3137,12 +3238,12 @@ function dealModal(d){
     <div><label class="l" for="dClosed">Date closed (upfront is paid)</label><input class="inp" id="dClosed" type="date" value="${esc(d.closed_at)}"></div>
     <div><label class="l" for="dFirst">First monthly payment</label><input class="inp" id="dFirst" type="date" value="${esc(d.first_bill||d.closed_at)}"></div>
     <div><label class="l" for="dNotes">Notes (optional)</label><input class="inp" id="dNotes" maxlength="500" value="${esc(d.notes)}" placeholder="e.g. website + hosting"></div>
-    ${isNew?"":`<div style="grid-column:1/3">${creditField("deal",null)}</div>`}
+    ${isNew?"":`<div style="grid-column:1/3">${creditField("deal",null)}</div>${dealSplitHTML(d)}`}
    </div>
    <div class="note" id="dHint" style="min-height:20px"></div>
    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">${isNew?"":`<button class="btn" data-del style="color:#FF9AA0">${ic("trash")}Delete</button><button class="btn" data-inv>${ic("receipt")}Create invoice</button>`}<span style="flex:1"></span><button class="btn" data-x>Cancel</button><button class="btn pri" data-save>Save deal</button></div>`,
   (ov,close)=>{
-    if(!isNew){wireCredit(ov,"deal",d.id,()=>{close();reload()});api("get_credit","deal",d.id).then(r=>{const sel=$("#crWho",ov);if(sel&&r&&r.ok){sel.value=r.owner||"";sel.dataset.cur=r.owner||""}}).catch(()=>{})}
+    if(!isNew){wireDealSplit(ov,d);wireCredit(ov,"deal",d.id,()=>{close();reload()});api("get_credit","deal",d.id).then(r=>{const sel=$("#crWho",ov);if(sel&&r&&r.ok){sel.value=r.owner||"";sel.dataset.cur=r.owner||""}}).catch(()=>{})}
     const g=id=>$("#"+id,ov),pn=v=>parseFloat(String(v).replace(/[$,\s]/g,""))||0;
     let touched=!isNew&&!!d.first_bill&&d.first_bill!==d.closed_at;
     const hint=()=>{const up=pn(g("dUp").value),mo=pn(g("dMo").value),n=parseInt(g("dN").value)||0;
@@ -3753,7 +3854,8 @@ function logCallModal(lead){
       const l=pool.find(x=>x.name===g("lcBiz").value);
       const r=await api("log_call",{lead_id:l?l.id:(lead?lead.id:""),phone:g("lcPhone").value,when:g("lcWhen").value,outcome:out,notes:g("lcNotes").value});
       if(!r.ok)return toast(r.error||"Couldn't save.",{bad:1});
-      close();toast("Call logged");if(S.page==="calls")renderCalls(true)};
+      close();toast("Call logged");if(S.page==="calls")renderCalls(true);
+      const fl=l||lead;if(fl)autoFollow(out==="no_answer"?"no_answer":out==="voicemail"?"voicemail":(out==="interested"||out==="follow_up")?"interested":"",[{...fl,notes:g("lcNotes").value||fl.notes||""}]).catch(()=>{})};
   });
 }
 setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))renderCalls(true)},20000);
@@ -3834,6 +3936,7 @@ function renderAccount(){
    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><button class="btn pri" id="xSave">Save profile</button><button class="btn" id="xCard">${ic("briefcase")}Team card details</button><span class="note" id="xNote"></span></div></div>
   <div class="card form pop" id="themeCard"><h3>Appearance</h3><div class="note">Pick a colour for Leafline. Your choice follows you to every device you sign in on.</div>
    <div class="lgt big" data-lgt aria-label="Theme" role="radiogroup" style="margin-top:14px"></div>${glassRowHTML()}</div>
+  ${callingCardHTML()}
   ${leadgenCard()}
   <div class="card form pop" id="updCard"><h3>App &amp; updates</h3>
    <div class="upd"><div><b id="updVer">Version</b><div class="note" id="updNote"></div><div class="bar" id="updBar"><i></i></div></div><button class="btn" id="updBtn">Check for updates</button></div>
@@ -3846,7 +3949,7 @@ function renderAccount(){
   $("#avUp").onclick=()=>$("#avFile").click();
   $("#avFile").onchange=e=>{const f=e.target.files[0];e.target.value="";mediaDialog("avatar",f)};
   $("#avDel").onclick=()=>clearMedia("avatar");
-  paintLgt();wireGlassSwitch(pg);wireLeadgen(pg);
+  paintLgt();wireGlassSwitch(pg);wireCallingCard(pg);wireLeadgen(pg);
   ["aName","aRole","aCo"].forEach(i=>$("#"+i).oninput=live);
   $$(".sw button",pg).forEach(b=>b.onclick=()=>{$$(".sw button",pg).forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-checked",x===b)});S.profile.color=b.dataset.c;profileUI();bump(b)});
   $("#aSave").onclick=()=>saveAccount(false);
@@ -4321,7 +4424,7 @@ function thPop(anchor){
 }
 
 /* ---------- phone: "More" sheet ---------- */
-const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["invoices","receipt","Invoices"],["admin","shield","Admin"],["account","gear","Settings"]];
+const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["pipeline","pipe","Pipeline"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["invoices","receipt","Invoices"],["admin","shield","Admin"],["account","gear","Settings"]];
 function openSheet(){
   const sh=$("#msheet"),adm=S.me&&S.me.role==="admin";
   $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n==="Announcements"?"News":n}">${ic(i)}${n==="Announcements"?`<span>News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
@@ -4427,11 +4530,11 @@ function dealPays(d,upto){
   const out=[],up=+d.upfront||0,mo=+d.monthly||0,n=+d.months||0;
   /* with the 7th database update, only payments someone confirmed count as money made */
   const cs="confirmed" in d?new Set(String(d.confirmed||"").split(",")):null,ok=(ds,k)=>!cs||cs.has(ds+":"+k);
-  if(d.closed_at&&up>0&&d.closed_at<=upto&&ok(d.closed_at,"upfront"))out.push([d.closed_at,up]);
+  if(d.closed_at&&up>0&&d.closed_at<=upto&&ok(d.closed_at,"upfront"))out.push([d.closed_at,up,"upfront"]);
   const f=d.first_bill||d.closed_at;
   if(f&&mo>0){const [y,m,dd]=f.split("-").map(Number);
     for(let k=0;n===0||k<n;k++){const t=y*12+(m-1)+k,yy=Math.floor(t/12),mm=t%12,dim=new Date(yy,mm+1,0).getDate();
-      const ds=`${yy}-${String(mm+1).padStart(2,"0")}-${String(Math.min(dd,dim)).padStart(2,"0")}`;if(ds>upto)break;if(ok(ds,"monthly"))out.push([ds,mo])}}
+      const ds=`${yy}-${String(mm+1).padStart(2,"0")}-${String(Math.min(dd,dim)).padStart(2,"0")}`;if(ds>upto)break;if(ok(ds,"monthly"))out.push([ds,mo,"monthly"])}}
   return out;
 }
 const dayShift=(iso,n)=>{const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return isoDay(d)};
@@ -4440,7 +4543,8 @@ function tally(d,from,to){
   const m={};d.people.forEach(p=>m[p.id]={calls:0,meetings:0,money:0,sales:0,days:{}});
   for(const r of d.stats||[]){const x=m[r.employee_id],day=String(r.day).slice(0,10);if(!x||day<from||day>to)continue;
     x.calls+=+r.calls||0;x.meetings+=+r.meetings||0;x.sales+=+r.sales||0;x.days[day]=(x.days[day]||0)+(+r.calls||0)}
-  for(const dl of d.deals||[]){const x=m[dl.owner_id];if(!x)continue;for(const [ds,a] of dealPays(dl,to))if(ds>=from)x.money+=a}
+  for(const dl of d.deals||[])for(const [ds,a,k] of dealPays(dl,to)){if(ds<from)continue;   // profit splits: each teammate gets their share
+    for(const s of payShares(d,dl,ds+":"+k)){const x=m[s.id];if(x)x.money+=a*s.pct/100}}
   for(const c of COSTS.list||[]){const x=m[c.charged_to];if(x&&c.spent_on>=from&&c.spent_on<=to)x.money-=+c.amount||0}
   for(const k in m)m[k].money=Math.round(m[k].money*100)/100;
   return m;
@@ -4464,7 +4568,7 @@ function computeBadges(d){
   ids.forEach(i=>{
     if(wds.every(x=>(m30[i].days[x]||0)>0))out[i].push("consistency");
     const a=w[i].calls,b=pw[i].calls;if(a>=20&&a>=b*1.25&&a>b)out[i].push("rising");
-    if((d.deals||[]).some(x=>x.owner_id===i&&x.closed_at&&x.closed_at>=from30&&x.closed_at<=T))out[i].push("closer");
+    if((d.deals||[]).some(x=>x.closed_at&&x.closed_at>=from30&&x.closed_at<=T&&(x.owner_id===i||payShares(d,x,"").some(s=>s.id===i))))out[i].push("closer");
     if(Object.values(m30[i].days).some(v=>v>=100))out[i].push("century");
     if(["top_caller","meetings","revenue"].filter(b=>out[i].includes(b)).length>=2)out[i].unshift("mvp");
   });
@@ -4543,7 +4647,7 @@ function drawRanks(anim){
     <div class="pods">${pod(top[1],"p2")}${pod(top[0],"p1")}${pod(top[2],"p3")}</div>
     <div class="lbl" style="margin-top:18px">${rest.map(r=>`<div class="lbr${r.p.id===me?" me":""}" data-lbid="${esc(r.p.id)}" data-pid="${esc(r.p.id)}" tabindex="0" role="button"><span class="rk">#${r.rank}</span>${avHTML(r.p.name,r.p.avatar,r.p.media)}
       <div class="nm"><b>${esc(r.p.name)}</b>${bdgSlot(r.p.id,5)}</div><div class="lbar"><i data-w="${Math.round(100*r.v/mx)}"></i></div><span class="v">${fmt(r.v)}</span></div>`).join("")}</div>
-    <div class="lb-note" style="margin-top:12px">${metric==="money"?"Money = payments collected on deals each person owns (upfront + monthly payments that are due), minus company costs charged to them. ":metric==="meetings"?"Meetings = calls logged with the result “Meeting booked”. ":"Calls = every call logged in the app. "}Updated ${esc(d.fetched||"just now")}.</div>
+    <div class="lb-note" style="margin-top:12px">${metric==="money"?"Money = each person's share of the payments collected on their deals (a deal can be split by percent when a payment is confirmed) (upfront + monthly payments that are due), minus company costs charged to them. ":metric==="meetings"?"Meetings = calls logged with the result “Meeting booked”. ":"Calls = every call logged in the app. "}Updated ${esc(d.fetched||"just now")}.</div>
     <div class="card lb-badges pop" style="margin-top:18px"><h3>Badges</h3><div class="note">Earned automatically from the team's real numbers. They update every few minutes.</div>
      <div class="grid">${Object.entries(BADGES).map(([k,b])=>{const who=d.people.filter(p=>(B.badges[p.id]||[]).includes(k));return `<div class="bi"><span class="badge-i b-${k}">${ic(b.i)}</span><div style="min-width:0"><b>${esc(b.n)}</b><small>${esc(b.d)}</small></div><div class="who">${who.slice(0,4).map(p=>`<span data-au="${esc(p.id)}" title="${esc(p.name)}">${avHTML(p.name,p.avatar,p.media)}</span>`).join("")}</div></div>`}).join("")}</div></div>`;
   hydrateIcons(body);
@@ -4927,6 +5031,19 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.19.0",t:"Pipeline, follow-ups and smarter calling",items:[
+  "New Pipeline page: every business you've called, from Called to Interested, Meeting, Proposal sent, Won and Lost. Drag a card to move it. Cards with no change for 7 days are marked Stale.",
+  "Automatic follow-ups: mark No answer and a reminder is set for the next workday at a different time of day. Voicemail (Call Log) sets one 3 workdays later, and Interested opens the reminder. Turn it off in Settings > Calling.",
+  "Before you call a business a teammate called in the last 14 days, or one that said not interested, Leafline warns you first.",
+  "Find Leads can sort by Best prospects. Each business gets a score from its website, reviews, rating and owner name.",
+  "Save a search and run it again in one click. Saved searches are due again every 7 days, and only new businesses are added.",
+  "Admins: Admin now shows System health, with each person's app version and sync, and which database updates have been run.",
+  "Moving pipeline cards, the call warnings and System health need the 17th database update."]},
+ {v:"11.18.0",t:"Profit splits",items:[
+  "When you confirm a payment on Profits, you can now split who gets credit for it, for example Omar 60% and Jay 40%. Each person's share counts for them on the leaderboard.",
+  "The split is kept for that payment and becomes the deal's split, so later payments follow it until you change it. Click the split under a received payment, or Profit split in the deal, to change it.",
+  "Only an admin or the person the deal is credited to can change a split. The percents must add up to 100.",
+  "Needs the 16th database update. Until an admin runs it, confirming payments works as before."]},
  {v:"11.17.0",t:"Liquid glass",items:[
   "New in Settings > Appearance: turn on Liquid glass. The sidebar, cards, buttons, the bottom bar and pop-ups become real glass that bends the light behind it at the edges, with a thin rainbow fringe and a highlight that follows your pointer.",
   "It works with every theme and takes its colours from the one you pick. Turn it off any time with the same switch.",
@@ -6678,6 +6795,351 @@ function glassRowHTML(){
 }
 function wireGlassSwitch(root){const b=$("#lgTgl",root);if(!b)return;paintGlassSwitch();b.onclick=()=>setGlass(!glassOn(),true)}
 if(glassOn())LG.enable();
+
+/* ================= Profit splits (11.18) =================
+   A payment's money can be shared between teammates by percent. Saved for that payment and as the deal's
+   default (later payments follow it). With no split: 100% to whoever the deal is credited to. */
+const SPL_COL=["#4ADE8B","#8FC7F0","#EBC15C","#F0A3C8","#B7A4FF","#EE9A5A","#7FE0D2","#D6E26B"];
+function splitIndex(bd){
+  bd=bd||B.data;if(!bd)return {};if(bd._spx)return bd._spx;
+  const ix={};for(const r of bd.splits||[])(ix[r.deal_id]=ix[r.deal_id]||{})[r.pay_key||""]=r.shares;
+  Object.defineProperty(bd,"_spx",{value:ix,enumerable:false,configurable:true});return ix;
+}
+/* who gets this payment's money: the payment's own split, else the deal's default, else 100% to the deal's owner */
+function payShares(bd,dl,key){
+  const s=dl&&dl.id?splitIndex(bd)[dl.id]:null,sh=s&&((key&&s[key])||s[""]);
+  if(sh&&sh.length)return sh.map(x=>({id:x.id,pct:+x.pct}));
+  return dl&&dl.owner_id?[{id:dl.owner_id,pct:100}]:[];
+}
+const boardDeal=rid=>rid&&B.data?(B.data.deals||[]).find(x=>x.id===rid)||null:null;
+const splitName=id=>{const t=teamList().find(x=>x[0]===id);return t?t[1]:"Former teammate"};
+const pctTxt=v=>(Math.round(v*100)/100).toString();
+function splitText(sh){if(!sh.length)return "Not credited";if(sh.length===1)return splitName(sh[0].id);return sh.map(s=>splitName(s.id).split(" ")[0]+" "+pctTxt(s.pct)+"%").join(" · ")}
+/* the chip on a confirmed payment (or a deal) showing who it counts for */
+function splitChip(localId,day,kind){
+  const d=(S.deals||[]).find(x=>String(x.id)===String(localId)),bd=boardDeal(d&&d.rid);if(!bd)return "";
+  const sh=payShares(B.data,bd,day?day+":"+kind:"");
+  return `<button class="spl-chip${sh.length>1?" multi":""}" data-split="${esc(localId)}|${esc(day||"")}|${esc(kind||"")}" title="Who gets credit: ${esc(splitText(sh))}. Click to change." aria-label="Credit split: ${esc(splitText(sh))}">${ic("users")}<span>${esc(splitText(sh))}</span></button>`;
+}
+function splitSig(){return B.data?JSON.stringify([B.data.splits||[],(B.data.deals||[]).map(x=>[x.id,x.owner_id])]):""}
+function wireSplitChips(root){$$("[data-split]",root).forEach(b=>b.onclick=e=>{e.stopPropagation();const [id,day,kind]=b.dataset.split.split("|");splitModal(id,day||"",kind||"","edit")})}
+/* the pop-up. mode "confirm": confirm the payment (and set the split); "edit": change the split only */
+async function splitModal(localId,day,kind,mode){
+  await ensureBoard().catch(()=>null);
+  const d=(S.deals||[]).find(x=>String(x.id)===String(localId));if(!d)return toast("That deal was not found.",{bad:1});
+  const key=day?day+":"+kind:"",amount=!day?0:kind==="upfront"?+d.upfront||0:+d.monthly||0,bd=boardDeal(d.rid);
+  const ready=!!(B.data&&B.data.splits_ready!==false),owner=bd&&bd.owner_id,canEdit=!!(bd&&ready&&(isAdmin()||(S.me&&owner===S.me.id)));
+  const cur=bd?payShares(B.data,bd,key):[];let rows=cur.length?cur.map(x=>({...x})):[{id:(S.me&&S.me.id)||"",pct:100}];
+  const why=!B.data?"The split will show once the team's numbers load. You can confirm the payment now.":
+    !ready?"Splitting a payment between teammates needs the 16th database update. Ask an admin to run it (see SETUP_SUPABASE.md).":
+    !d.rid||!bd?"This deal is still uploading to the shared database. Once it says Synced, you can split it.":
+    !canEdit?`Only an admin or ${esc(owner?splitName(owner):"the person this deal is credited to")} can change who gets credit.`:"";
+  const KIND={upfront:"Upfront",monthly:"Monthly"};
+  const title=mode==="confirm"?"Confirm payment":day?"Who gets credit for this payment":"Who gets credit for this deal";
+  openModal(`<h2>${title}</h2>
+   <div class="spl-head"><b>${esc(d.client)}</b>${day?`<span>${esc(dayFmt(day))} · ${KIND[kind]||kind}</span><span>${usd(amount)}</span>`:`<span>Every payment of this deal follows this split unless one is changed on its own.</span>`}</div>
+   ${mode==="confirm"?`<p class="muted" style="margin:10px 0 0;font-size:13px;line-height:1.5">Confirm once the money is really in. It then counts as made, on Profits and the Dashboard.</p>`:""}
+   <div class="spl-sec">${mode==="confirm"?"<h3>Who gets credit</h3>":""}
+    <div class="note">${canEdit?"Split it between teammates by percent. It counts for each of them on the leaderboard."+(day?" Later payments of this deal use the same split until it's changed.":""):why}</div>
+    <div id="splBody"></div><div class="spl-err" id="splErr" role="alert"></div></div>
+   <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap"><span style="flex:1"></span><button class="btn" data-x>Cancel</button><button class="btn pri" data-splok>${mode==="confirm"?ic("check")+"Confirm payment":"Save split"}</button></div>`,
+  (ov,close)=>{
+    const body=$("#splBody",ov),err=$("#splErr",ov),go=$("[data-splok]",ov),team=teamList();
+    const sum=()=>Math.round(rows.reduce((a,r)=>a+(+r.pct||0),0)*100)/100;
+    const problem=()=>{if(!rows.length)return "Add at least one teammate.";if(rows.some(r=>!r.id))return "Pick a teammate on every line.";
+      if(new Set(rows.map(r=>r.id)).size!==rows.length)return "Each teammate can only be in the split once.";
+      if(rows.some(r=>!(+r.pct>0)||+r.pct>100||Math.abs(Math.round(+r.pct*100)-(+r.pct*100))>1e-6))return "Each percent must be more than 0 and at most 100 (up to 2 decimals).";
+      const s=sum();return s!==100?`The percents add up to ${pctTxt(s)}%. They need to add up to 100%.`:""};
+    const paint=()=>{
+      if(!canEdit){body.innerHTML=cur.length?`<div class="spl-ro">${cur.map(s=>`<div><span>${esc(splitName(s.id))}</span><b>${pctTxt(s.pct)}%${amount?" · "+usd(amount*s.pct/100):""}</b></div>`).join("")}</div>`:"";return}
+      const s=sum(),ok=s===100;
+      body.innerHTML=`<div class="spl-rows">${rows.map((r,i)=>`<div class="spl-row" data-i="${i}">
+          <select class="inp" data-who aria-label="Teammate ${i+1}"><option value="">Pick a teammate</option>${team.map(([id,n])=>`<option value="${esc(id)}"${id===r.id?" selected":""}>${esc(n)}</option>`).join("")}</select>
+          <div class="spl-pct"><input class="inp" data-pct inputmode="decimal" value="${esc(r.pct===""?"":pctTxt(+r.pct||0))}" aria-label="Percent for teammate ${i+1}"></div>
+          <div class="spl-amt">${amount?usd(Math.round(amount*(+r.pct||0))/100):""}</div>
+          <button type="button" class="spl-rm" data-rm aria-label="Remove this teammate"${rows.length<2?" disabled":""}>×</button></div>`).join("")}</div>
+        <div class="spl-bar" aria-hidden="true">${rows.map((r,i)=>`<i style="width:${Math.max(0,Math.min(100,+r.pct||0))}%;background:${SPL_COL[i%SPL_COL.length]}"></i>`).join("")}</div>
+        <div class="spl-tools"><button type="button" class="btn sm" data-add${rows.length>=8?" disabled":""}>${ic("plus")}Add teammate</button><button type="button" class="btn sm" data-even${rows.length<2?" disabled":""}>Split evenly</button>
+          <span class="spl-sum ${ok?"ok":"bad"}">${ok?"100% ✓":pctTxt(s)+"% of 100%"}</span></div>`;
+      hydrateIcons(body);
+      $$("[data-who]",body).forEach(sel=>sel.onchange=()=>{rows[+sel.closest(".spl-row").dataset.i].id=sel.value;err.textContent="";paint()});
+      $$("[data-pct]",body).forEach(inp=>{inp.oninput=()=>{const i=+inp.closest(".spl-row").dataset.i;rows[i].pct=inp.value.trim()===""?"":parseFloat(inp.value.replace(",","."));err.textContent="";
+          const row=inp.closest(".spl-row");row.querySelector(".spl-amt").textContent=amount?usd(Math.round(amount*(+rows[i].pct||0))/100):"";
+          const t=sum(),b=$(".spl-sum",body);b.className="spl-sum "+(t===100?"ok":"bad");b.textContent=t===100?"100% ✓":pctTxt(t)+"% of 100%";
+          $$(".spl-bar i",body).forEach((x,j)=>x.style.width=Math.max(0,Math.min(100,+rows[j].pct||0))+"%")}});
+      $$("[data-rm]",body).forEach(b=>b.onclick=()=>{rows.splice(+b.closest(".spl-row").dataset.i,1);paint()});
+      const add=$("[data-add]",body);if(add)add.onclick=()=>{const left=Math.max(0,Math.round((100-sum())*100)/100);const free=team.find(([id])=>!rows.some(r=>r.id===id));
+        rows.push({id:free?free[0]:"",pct:left||""});paint();const ins=$$("[data-who]",body);ins[ins.length-1].focus()};
+      const ev=$("[data-even]",body);if(ev)ev.onclick=()=>{const n=rows.length,each=Math.floor(10000/n)/100;rows.forEach((r,i)=>r.pct=i===n-1?Math.round((100-each*(n-1))*100)/100:each);paint()};
+    };
+    paint();
+    $("[data-x]",ov).onclick=close;
+    if(mode!=="confirm"&&!canEdit){go.style.display="none";$("[data-x]",ov).textContent="Close";return}   // read-only: nothing to save
+    go.onclick=async()=>{
+      const changed=canEdit&&JSON.stringify(rows.map(r=>[r.id,+r.pct]))!==JSON.stringify(cur.map(r=>[r.id,+r.pct]));
+      if(canEdit){const p=problem();if(p){err.textContent=p;return}}
+      go.disabled=true;
+      try{
+        if(changed){
+          const r=await api("sb_rpc","deal_split_set",{p_deal:d.rid,p_key:key,p_shares:rows.map(r=>({id:r.id,pct:+r.pct})),p_default:true});
+          if(!r||!r.ok){go.disabled=false;err.textContent=(r&&r.missing)?"Splitting needs the 16th database update. Ask an admin to run it.":((r&&r.error)||"Couldn't save the split.");return}
+          logNote("Split "+d.client+(day?" ("+dayFmt(day)+")":"")+": "+splitText(rows));
+        }
+        if(mode==="confirm"){
+          const r=await api("confirm_payment",+localId,day,kind,true);
+          if(!r||!r.ok){go.disabled=false;err.textContent=(r&&r.error)||"Couldn't confirm the payment.";return}
+          logNote("Confirmed a "+kind+" payment ("+dayFmt(day)+")");
+        }
+        close();
+        toast(mode==="confirm"?(rows.length>1&&canEdit?"Payment confirmed and split: "+splitText(rows):"Payment confirmed. It now counts as made."):changed?"Split saved: "+splitText(rows):"Nothing changed");
+        if(changed){B.at=0;await ensureBoard(true).catch(()=>null);computeAndPaintBadges()}
+        reload();
+      }catch(x){go.disabled=false;err.textContent="Couldn't save: "+x.message}
+    };
+  });
+}
+function computeAndPaintBadges(){if(B.data){B.badges=computeBadges(B.data);paintBadges()}if(S.page==="board"&&typeof drawRanks==="function")drawRanks(false)}
+/* the deal pop-up: who the deal's payments count for */
+function dealSplitHTML(d){return `<div style="grid-column:1/3"><div class="fact span"><div class="k">Profit split</div><div class="v spl-deal" id="dSplit">${splitChip(d.id,"","")||'<span class="muted">Loading...</span>'}</div>
+  <div class="note" style="margin-top:6px">Who each payment of this deal counts for. You can also split a payment when you confirm it.</div></div></div>`}
+function wireDealSplit(ov,d){const el=$("#dSplit",ov);if(!el)return;const fill=()=>{const h=splitChip(d.id,"","");el.innerHTML=h||'<span class="muted">Available once this deal is synced.</span>';hydrateIcons(el);wireSplitChips(el)};
+  fill();if(!B.data)ensureBoard().then(fill).catch(()=>{})}
+
+/* ================= productivity pack (11.19) ================= */
+const PPdays=n=>n===1?"1 day":n+" days";
+const PPago=iso=>{if(!iso)return "";const t=new Date(String(iso).replace(" ","T")).getTime();if(!isFinite(t))return "";const d=Math.floor((Date.now()-t)/864e5);
+  if(d<=0){const h=Math.floor((Date.now()-t)/36e5);return h<=0?"just now":h===1?"1 hour ago":h+" hours ago"}return d===1?"yesterday":d+" days ago"};
+const PPkey=ph=>String(ph||"").replace(/\D/g,"").slice(-10);
+const OUTC={no_answer:"No answer",voicemail:"Voicemail",interested:"Interested",not_interested:"Not interested",follow_up:"Follow up",meeting_booked:"Meeting booked",sale_completed:"Sale"};
+
+/* ---------- lead score: how good a prospect a business looks, from what we already know ---------- */
+function leadScore(l){
+  const why=[];let s=0;const has=v=>v&&v!==NA;
+  if(!has(l.website)){s+=40;why.push("No website")}
+  const rv=parseInt(String(l.reviews).replace(/\D/g,""),10),rt=parseFloat(l.rating);
+  if(!has(l.reviews)||!isFinite(rv)){s+=10;why.push("No Google reviews yet")}
+  else if(rv<10){s+=25;why.push(`Very few reviews (${rv})`)}else if(rv<30){s+=15;why.push(`Few reviews (${rv})`)}else if(rv<100)s+=5;
+  if(isFinite(rt)){if(rt>=4.5){s+=15;why.push(`Great rating (${rt}★)`)}else if(rt>=4){s+=10;why.push(`Good rating (${rt}★)`)}else if(rt<3.5){s+=5;why.push(`Low rating (${rt}★): could use help`)}}
+  if(has(l.owner)){s+=10;why.push("Owner's name known")}
+  if(has(l.email)){s+=5;why.push("Email known")}
+  s=Math.min(100,s);return {s,lvl:s>=70?"hot":s>=45?"warm":"cool",why};
+}
+function scorePill(l){const c=leadScore(l);return `<span class="sc-pill ${c.lvl}" title="Prospect score ${c.s}/100${c.why.length?": "+c.why.join(", "):""}">${c.s}</span>`}
+function scoreFactHTML(l){const c=leadScore(l);
+  return `<div class="fact span"><div class="k">Prospect score</div><div class="v">${scorePill(l)}<span style="font-size:13px;font-weight:600;color:var(--text2)">${c.lvl==="hot"?"Strong prospect":c.lvl==="warm"?"Worth a call":"Lower priority"}</span></div>
+    ${c.why.length?`<div class="sc-why">${c.why.map(w=>`<span>${esc(w)}</span>`).join("")}</div>`:""}</div>`}
+function paintScore(n,l){const t=$(".lt",n);if(!t)return;let p=$(".sc-pill",t);const h=scorePill(l);if(!p){t.insertAdjacentHTML("beforeend",h);return}if(p.outerHTML!==h)p.outerHTML=h}
+(function(){const sel=$("#sort");if(sel&&!sel.querySelector('option[value="score"]'))sel.insertAdjacentHTML("beforeend",'<option value="score">Best prospects</option>');})();
+
+/* ---------- duplicate / do-not-call guard (17th update) ---------- */
+const GUARD={by:{},key:{},at:{},missing:false,busy:false,ack:{}};
+async function guardLoad(leads,force){
+  if(GUARD.missing||!S.me||!leads||!leads.length)return;
+  const now=Date.now(),want=leads.filter(l=>l&&l.id&&(force||!GUARD.at[l.id]||now-GUARD.at[l.id]>120000)).slice(0,300);
+  if(!want.length||GUARD.busy)return;GUARD.busy=true;
+  try{const r=await api("sb_rpc","lead_guard",{p_leads:want.map(l=>({id:l.id,key:PPkey(l.phone)}))});
+    if(r&&r.missing){GUARD.missing=true;return}if(!r||!r.ok)return;
+    want.forEach(l=>{GUARD.at[l.id]=now;delete GUARD.by[l.id];const k=PPkey(l.phone);if(k)delete GUARD.key[k]});
+    (r.data||[]).forEach(g=>{GUARD.by[g.id]=g;const l=want.find(x=>x.id===g.id),k=l&&PPkey(l.phone);if(k)GUARD.key[k]=Object.assign({name:l.name},g)});
+    guardPaint();
+  }catch(e){}finally{GUARD.busy=false}
+}
+function guardText(g){if(!g)return null;
+  if(g.dnc_at)return {dnc:true,title:"Said not interested",line:`${g.dnc_name?esc(g.dnc_name)+" was told":"They said"} "not interested" ${esc(PPago(g.dnc_at))}.`+(g.last_at?` ${esc(g.last_name||"A teammate")} also called ${esc(PPago(g.last_at))} (${esc(OUTC[g.last_outcome]||g.last_outcome)}).`:"")};
+  return {dnc:false,title:"A teammate called recently",line:`${esc(g.last_name||"A teammate")} called ${esc(PPago(g.last_at))} (${esc(OUTC[g.last_outcome]||g.last_outcome)}).`};
+}
+function guardBanner(l){const t=guardText(l&&GUARD.by[l.id]);if(!t)return "";
+  return `<div class="gd-ban${t.dnc?" dnc":""}" role="note"><span class="gd-ic${t.dnc?" dnc":""}" aria-hidden="true">!</span><div><b>${t.title}</b>${t.line} Check before calling again.</div></div>`}
+function guardIcon(l){const t=guardText(l&&GUARD.by[l.id]);return t?`<span class="gd-ic${t.dnc?" dnc":""}" title="${esc(t.title)}" aria-label="${esc(t.title)}">!</span>`:""}
+function paintGuardRow(n,l){const t=$(".lt",n);if(!t)return;let g=$(".gd-ic",t);const h=guardIcon(l);if(!h){g&&g.remove();return}if(!g){const b=$("b",t);b?b.insertAdjacentHTML("afterend",h):t.insertAdjacentHTML("afterbegin",h);return}if(g.outerHTML!==h)g.outerHTML=h}
+function guardPaint(){
+  $$("#list .li[data-id]").forEach(n=>{const l=S.find.find(x=>x.id===n.dataset.id);if(l)paintGuardRow(n,l)});
+  const d=$("#detail"),l=d&&S.find.find(x=>x.id===d.dataset.id),slot=d&&$("#gdSlot",d);if(l&&slot){const h=guardBanner(l);if(slot.innerHTML!==h)slot.innerHTML=h}
+  const ms=$(".ov.on #gdSlotM");if(ms&&ms.dataset.id){const lead=(S.called||[]).find(x=>x.id===ms.dataset.id)||S.find.find(x=>x.id===ms.dataset.id);if(lead)ms.innerHTML=guardBanner(lead)}
+}
+/* ask before calling a business that's flagged */
+document.addEventListener("click",e=>{
+  const a=e.target.closest&&e.target.closest("a.tel");if(!a||!S.me)return;const k=PPkey(a.dataset.ph||a.getAttribute("href"));const g=k&&GUARD.key[k];
+  if(!g||(GUARD.ack[k]&&Date.now()-GUARD.ack[k]<600000))return;
+  e.preventDefault();e.stopImmediatePropagation();const t=guardText(g);
+  openModal(`<h2>${t.dnc?"They said not interested":"Called recently"}</h2><p class="muted" style="margin:10px 0 0;line-height:1.55"><b style="color:var(--text)">${esc(g.name||"This business")}</b>: ${t.line}</p>
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-x>Don't call</button><button class="btn pri" data-ok>${ic("phone")}Call anyway</button></div>`,(ov,close)=>{
+    $("[data-x]",ov).onclick=close;$("[data-ok]",ov).onclick=()=>{GUARD.ack[k]=Date.now();close();setTimeout(()=>a.click(),60)}});
+},true);
+setInterval(()=>{if(!S.ready||document.hidden)return;if(S.page==="find")guardLoad(S.find.slice(0,300));else if(S.page==="called"||S.page==="pipeline")guardLoad((S.called||[]).slice(0,300))},30000);
+
+/* ---------- automatic follow-ups ---------- */
+const autoFollowOn=()=>getP("autoFollow",true)!==false;
+function nextWorkday(from,days){const d=new Date(from);let n=days;while(n>0){d.setDate(d.getDate()+1);if(d.getDay()%6)n--}return d}
+function followAt(days){const now=new Date(),d=nextWorkday(now,days);d.setHours(now.getHours()<12?14:10,0,0,0);return d}   // a different time of day than this call
+async function autoFollow(kind,leads){
+  if(!autoFollowOn()||!leads.length||typeof remSet!=="function")return;
+  if(kind==="interested"){if(leads.length===1)setTimeout(()=>remSet(leads[0]),450);return}
+  const days=kind==="voicemail"?3:1,at=followAt(days);
+  try{await loadRem(true)}catch(e){}
+  /* one open reminder per business is enough (matched by business, or by phone when it hasn't uploaded yet) */
+  const openR=((typeof REM!=="undefined"&&REM.list)||[]).filter(r=>!r.done_at),open=new Set(openR.map(r=>r.lead_id).filter(Boolean)),openK=new Set(openR.map(r=>PPkey(r.phone)).filter(k=>k.length>=7));
+  const todo=leads.filter(l=>!open.has(l.id)&&!openK.has(PPkey(l.phone))).slice(0,20);if(!todo.length)return;
+  const made=[];
+  for(const l of todo){const r=await api("sb_rpc","rem_save",{p:{lead_id:l.id,remind_at:at.toISOString(),company:l.name||"",owner_name:l.owner&&l.owner!==NA?l.owner:"",phone:l.phone||"",
+      address:l.address&&l.address!==NA?l.address:"",website:l.website&&l.website!==NA?l.website:"",btype:l.btype||"",notes:l.notes||""}}).catch(()=>null);
+    if(r&&r.missing)return;if(r&&r.ok&&r.data&&r.data.id)made.push(r.data.id)}
+  if(!made.length)return;
+  try{await loadRem(true)}catch(e){}
+  const when=at.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"})+" at "+at.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  setTimeout(()=>toast(`Follow-up set for ${when}${made.length>1?" ("+made.length+" businesses)":""}`,{action:{label:"Undo",fn:async()=>{for(const id of made)await api("sb_rpc","rem_delete",{p_id:id}).catch(()=>null);try{await loadRem(true)}catch(e){}toast("Follow-up removed")}}}),2600);
+}
+/* marking a result in Find Leads / Called Leads */
+{const base=markLeads;markLeads=async function(status,fromBoard){
+  const ids=fromBoard||(S.sel.size?[...S.sel]:S.active?[S.active]:[]);
+  const before=ids.map(id=>S.find.find(x=>x.id===id)||(S.called||[]).find(x=>x.id===id)).filter(Boolean).map(l=>({...l}));
+  const det=$("#detail"),o=$("#dOwner"),nt=$("#dNotes");if(det&&before.length===1&&det.dataset.id===before[0].id){if(o)before[0].owner=o.value.trim()||NA;if(nt)before[0].notes=nt.value}
+  await base(status,fromBoard);
+  autoFollow(status==="orange"?"no_answer":status==="yellow"?"interested":"",before).catch(()=>{});
+}}
+
+/* ---------- saved searches ---------- */
+const SS_WEEK=7*864e5;
+const ssList=()=>{const v=getP("savedSearches",[]);return Array.isArray(v)?v:[]};
+const ssSave=v=>setP("savedSearches",v.slice(0,20));
+const ssLabel=s=>[s.type,[s.city,s.state,s.country].filter(Boolean).join(", ")].filter(Boolean).join(" in ");
+const ssDue=s=>!s.last||Date.now()-s.last>=SS_WEEK;
+let SSrun=null;const SSq=[];
+function ssPaint(){
+  const box=$("#ssBar");if(!box)return;const L=ssList(),sig=JSON.stringify([L,L.map(ssDue)]);if(box.dataset.sig===sig)return;box.dataset.sig=sig;
+  box.innerHTML=`<button class="btn sm" id="ssAdd" title="Save the area and business type above">${ic("plus")}Save this search</button>`+L.map(s=>`<span class="ss-chip${ssDue(s)?" due":""}">
+    <button class="ss-run" data-ss="${esc(s.id)}" title="${esc(ssLabel(s))}${s.last?" · last run "+esc(PPago(new Date(s.last).toISOString()))+(s.lastNew!=null?" · "+s.lastNew+" new":""):" · not run yet"}">${esc(ssLabel(s))}${s.last&&s.lastNew!=null?`<small>${s.lastNew} new</small>`:""}</button>
+    <button class="ss-x" data-ssdel="${esc(s.id)}" aria-label="Remove saved search ${esc(ssLabel(s))}">×</button></span>`).join("")+
+    (L.some(ssDue)&&L.length>1?`<button class="btn sm" id="ssDueAll">Run ${L.filter(ssDue).length} due</button>`:"");
+  hydrateIcons(box);
+  $("#ssAdd",box).onclick=()=>{const v=id=>($("#"+id)||{}).value?.trim()||"",s={id:Math.random().toString(36).slice(2,10),country:v("fCountry"),state:v("fState"),city:v("fCity"),type:v("fType"),last:0,lastNew:null};
+    if(!s.type||!(s.country||s.state||s.city))return toast("Fill in a business type and an area first.",{bad:1});
+    const L2=ssList();if(L2.some(x=>ssLabel(x).toLowerCase()===ssLabel(s).toLowerCase()))return toast("That search is already saved.");
+    if(L2.length>=20)return toast("You can keep up to 20 saved searches.",{bad:1});
+    ssSave([...L2,s]);ssPaint();toast("Saved. Run it again any time; it's due again every 7 days.")};
+  $$("[data-ss]",box).forEach(b=>b.onclick=()=>ssRun(b.dataset.ss));
+  $$("[data-ssdel]",box).forEach(b=>b.onclick=()=>{ssSave(ssList().filter(x=>x.id!==b.dataset.ssdel));ssPaint()});
+  const all=$("#ssDueAll",box);if(all)all.onclick=()=>{SSq.length=0;ssList().filter(ssDue).forEach(s=>SSq.push(s.id));ssNext()};
+}
+function ssRun(id){
+  const s=ssList().find(x=>x.id===id);if(!s)return;if(S.running)return toast("A search is already running. Wait for it to finish.",{bad:1});
+  const set=(k,v)=>{const e=$("#"+k);if(e)e.value=v||""};set("fCountry",s.country);set("fState",s.state);set("fCity",s.city);set("fType",s.type);
+  SSrun=id;if(S.page!=="find")go("find");setTimeout(()=>startSearch(),S.page==="find"?0:500);
+}
+function ssNext(){const id=SSq.shift();if(id)ssRun(id)}
+function ssDone(d){
+  if(!SSrun)return;const id=SSrun;SSrun=null;
+  if(!d||!d.stopped){const L=ssList().map(x=>x.id===id?{...x,last:Date.now(),lastNew:+d.n||0}:x);ssSave(L);ssPaint()}
+  if(SSq.length&&!(d&&d.stopped))setTimeout(ssNext,1500);else SSq.length=0;
+}
+{const base=window.onPy;window.onPy=function(m){const r=base(m);try{if(m&&m.e==="search_done")ssDone(m.d||{});else if(m&&m.e==="search_error"&&SSrun){SSrun=null;SSq.length=0}}catch(e){}return r}}
+(function(){const form=$("#pg-find .fcard .sline");if(form&&!$("#ssBar"))form.insertAdjacentHTML("beforebegin",'<div class="ss-bar" id="ssBar" aria-label="Saved searches"></div>')})();
+let ssNudged=false;
+setInterval(()=>{if(!S.ready||!S.me||ssNudged)return;ssPaint();const due=ssList().filter(ssDue).filter(s=>s.last);if(!due.length){ssNudged=true;return}
+  if($(".ov.on"))return;ssNudged=true;
+  toast(`${due.length} saved search${due.length===1?" is":"es are"} due for their weekly refresh`,{action:{label:"Run now",fn:()=>{SSq.length=0;due.forEach(s=>SSq.push(s.id));ssNext()}}})},6000);
+
+/* ---------- Pipeline ---------- */
+const PL=[["called","Called","#EE9A5A"],["interested","Interested","#EBC15C"],["meeting","Meeting","#5BE39A"],["proposal","Proposal sent","#8FC7F0"],["won","Won","#4ADE8B"],["lost","Lost","#F08A8A"]];
+const PLauto={orange:"called",yellow:"interested",green:"meeting",red:"lost"};
+const PLs={list:[],at:0,missing:false,busy:null,hold:0};
+const plTime=v=>{if(!v)return 0;const t=new Date(String(v).replace(" ","T")).getTime();return isFinite(t)?t:0};
+async function plLoad(force){
+  if(PLs.hold)return;   // a move is being saved: don't let an older copy from the database put the card back
+  if(PLs.busy)return PLs.busy;if(!force&&Date.now()-PLs.at<20000)return;
+  PLs.busy=api("sb_rpc","lead_stage_list",{}).then(r=>{if(r&&r.missing){PLs.missing=true;PLs.list=[]}else if(r&&r.ok){PLs.missing=false;PLs.list=r.data||[]}PLs.at=Date.now()}).catch(()=>{}).finally(()=>{PLs.busy=null});
+  return PLs.busy;
+}
+function plStage(l){
+  const o=PLs.list.find(x=>x.lead_id===l.id),ct=plTime(l.called_at);
+  if(o&&plTime(o.updated_at)>=ct-60000)return {st:o.stage,hand:true,at:Math.max(plTime(o.updated_at),ct)};
+  const won=(S.deals||[]).some(d=>String(d.client||"").trim().toLowerCase()===String(l.name||"").trim().toLowerCase());
+  return {st:won?"won":(PLauto[l.status]||"called"),hand:false,at:ct};
+}
+async function renderPipeline(q){
+  const pg=$("#pg-pipeline");if(!pg)return;
+  if(!pg.querySelector(".pl-cols"))pg.innerHTML=`<div class="card empty pop" style="margin-top:30px"><b>Loading the pipeline…</b></div>`;
+  await plLoad(!q);if(S.page!=="pipeline")return;
+  const me=S.me&&S.me.id,mine=getP("plMine",false),staleOnly=!!PLs.stale;
+  const rows=(S.called||[]).filter(l=>l.status!=="none"&&(!mine||l.called_by===me)&&(typeof match!=="function"||match(l))).map(l=>{const s=plStage(l),age=s.at?Math.floor((Date.now()-s.at)/864e5):0;
+      return {l,...s,age,stale:!["won","lost"].includes(s.st)&&age>=7}});
+  const nStale=rows.filter(r=>r.stale).length,show=staleOnly?rows.filter(r=>r.stale):rows;
+  const sig=JSON.stringify([show.map(r=>[r.l.id,r.st,r.hand,r.age,r.l.called_by]),mine,staleOnly,PLs.missing,Object.keys(GUARD.by).length]);
+  if(q&&pg.dataset.sig===sig)return;pg.dataset.sig=sig;
+  const card=r=>`<div class="pl-card" draggable="true" data-pl="${esc(r.l.id)}" tabindex="0" role="button" aria-label="${esc(r.l.name)}, ${esc((PL.find(x=>x[0]===r.st)||[])[1]||"")}">
+      <b>${esc(r.l.name)}</b><div class="pl-sub">${esc(r.l.btype||"")}${r.l.phone?" · "+esc(r.l.phone):""}</div>
+      <div class="pl-meta">${guardIcon(r.l)}<span>${esc(r.l.called_by?splitName(r.l.called_by).split(" ")[0]:"Unassigned")}</span><span>· ${r.age?PPdays(r.age)+" ago":"today"}</span>${r.stale?'<span class="pl-stale">Stale</span>':""}${r.hand?'<span class="pl-hand" title="Moved here by hand">Moved</span>':""}</div>
+      <select class="inp pl-mv" data-mv="${esc(r.l.id)}" aria-label="Move ${esc(r.l.name)} to another stage"><option value="">Move to…</option>${PL.filter(x=>x[0]!==r.st).map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("")}</select></div>`;
+  pg.innerHTML=`<div class="pl-top pop"><div class="note">Every business you've called, by where it stands. Drag a card to move it (or use <b>Move to</b>). Cards with no change for 7 days are marked <b>Stale</b>.${PLs.missing?" <b>Moving cards by hand needs the 17th database update.</b>":""}</div>
+     <div style="display:flex;gap:6px" role="group" aria-label="Whose businesses"><button class="chip${mine?"":" on"}" data-plm="0" aria-pressed="${!mine}">Everyone</button><button class="chip${mine?" on":""}" data-plm="1" aria-pressed="${mine}">Mine</button></div>
+     <button class="chip${staleOnly?" on":""}" id="plStale">Stale only${nStale?` (${nStale})`:""}</button></div>
+    <div class="pl-cols">${PL.map(([k,n,c])=>{const list=show.filter(r=>r.st===k).sort((a,b)=>b.stale-a.stale||a.age-b.age);
+      return `<div class="pl-col" data-col="${k}"><div class="pl-ch"><i style="background:${c}"></i>${n}<span>${list.length}</span></div><div class="pl-list">${list.length?list.map(card).join(""):'<div class="pl-empty">Nothing here</div>'}</div></div>`}).join("")}</div>`;
+  hydrateIcons(pg);
+  $$("[data-plm]",pg).forEach(b=>b.onclick=()=>{setP("plMine",b.dataset.plm==="1");renderPipeline(false)});
+  $("#plStale",pg).onclick=()=>{PLs.stale=!PLs.stale;renderPipeline(false)};
+  $$(".pl-card",pg).forEach(c=>{
+    c.onclick=e=>{if(e.target.closest(".pl-mv"))return;const l=(S.called||[]).find(x=>x.id===c.dataset.pl);l&&leadModal(l)};
+    c.onkeydown=e=>{if(e.key==="Enter"&&!e.target.closest(".pl-mv"))c.click()};
+    c.ondragstart=e=>{e.dataTransfer.setData("text/plain",c.dataset.pl);e.dataTransfer.effectAllowed="move";c.classList.add("drag")};
+    c.ondragend=()=>c.classList.remove("drag")});
+  $$(".pl-col",pg).forEach(col=>{col.ondragover=e=>{e.preventDefault();col.classList.add("over")};col.ondragleave=e=>{if(!col.contains(e.relatedTarget))col.classList.remove("over")};
+    col.ondrop=e=>{e.preventDefault();col.classList.remove("over");const id=e.dataTransfer.getData("text/plain");if(id)plMove(id,col.dataset.col)}});
+  $$("[data-mv]",pg).forEach(s=>s.onchange=()=>{if(s.value)plMove(s.dataset.mv,s.value)});
+  guardLoad((S.called||[]).slice(0,300));
+}
+async function plMove(id,stage){
+  const l=(S.called||[]).find(x=>x.id===id);if(!l)return;const cur=plStage(l);if(cur.st===stage)return;
+  if(PLs.missing)return toast("Moving cards by hand needs the 17th database update. Ask an admin to run it (see SETUP_SUPABASE.md).",{bad:1,ms:7000});
+  const auto=(()=>{const save=PLs.list;PLs.list=PLs.list.filter(x=>x.lead_id!==id);const a=plStage(l).st;PLs.list=save;return a})();
+  const send=stage===auto?"":stage,prev=PLs.list.slice(),pg=$("#pg-pipeline");
+  PLs.hold++;await PLs.busy;   // wait for any load already on its way, then keep the list as we set it
+  PLs.list=PLs.list.filter(x=>x.lead_id!==id);if(send)PLs.list.push({lead_id:id,stage,updated_by:S.me&&S.me.id,updated_at:new Date().toISOString()});
+  if(pg)pg.dataset.sig="";renderPipeline(true);
+  const r=await api("sb_rpc","lead_stage_set",{p_lead:id,p_stage:send}).catch(e=>({ok:false,error:e.message}));
+  PLs.hold--;
+  if(!r||!r.ok){PLs.list=prev;if(pg)pg.dataset.sig="";renderPipeline(true);return toast((r&&r.missing)?"Moving cards by hand needs the 17th database update.":((r&&r.error)||"Couldn't move it."),{bad:1})}
+  PLs.at=Date.now();
+  const n=(PL.find(x=>x[0]===stage)||[])[1];toast(`${l.name} moved to ${n}`);logNote(`Pipeline: ${l.name} moved to ${n}`);
+}
+setInterval(()=>{if(S.ready&&S.page==="pipeline"&&!document.hidden&&!$(".ov.on")&&!$(".pl-card.drag"))renderPipeline(true)},30000);
+
+/* ---------- health: each app reports its version + sync state; admins see everyone ---------- */
+const HL={missing:false,last:0,sig:""};
+async function reportStatus(force){
+  if(HL.missing||!S.me||typeof UPS==="undefined")return;
+  const s=S.sync||{},p={version:UPS.version||"",platform:UPS.platform||(window.LF_API?"web":"desktop"),sync_state:s.state||"",pending:+s.pending||0,last_error:String(s.error||"").slice(0,300)};
+  const sig=JSON.stringify(p);if(!force&&sig===HL.sig&&Date.now()-HL.last<600000)return;if(!force&&Date.now()-HL.last<30000)return;
+  HL.sig=sig;HL.last=Date.now();
+  const r=await api("sb_rpc","me_status_report",{p}).catch(()=>null);if(r&&r.missing)HL.missing=true;
+}
+setInterval(()=>{if(S.ready&&!document.hidden)reportStatus(false)},30000);
+const vcmp=(a,b)=>{const x=String(a||"0").split(".").map(Number),y=String(b||"0").split(".").map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)-(y[i]||0)}return 0};
+async function healthCard(){
+  const pg=$("#pg-admin");if(!pg||!isAdmin())return;let el=$("#hlCard",pg);
+  if(!el){el=document.createElement("div");el.className="card form";el.id="hlCard";el.style.marginTop="16px";(pg.querySelector(".ad")||pg).appendChild(el)}
+  el.innerHTML=`<h3>System health</h3><div class="note">Checking…</div>`;
+  const r=await api("sb_rpc","team_health",{}).catch(e=>({ok:false,error:e.message}));if(S.page!=="admin")return;
+  if(!r||!r.ok){el.innerHTML=`<h3>System health</h3><div class="note">${(r&&r.missing)?"This needs the 17th database update. Run <b>RUN_IN_SUPABASE.sql</b> in Supabase (see SETUP_SUPABASE.md).":esc((r&&r.error)||"Couldn't load it.")}</div>`;return}
+  const d=r.data||{},U=d.updates||{},nums=Object.keys(U).map(Number).sort((a,b)=>a-b),miss=nums.filter(n=>U[n]===false);
+  const latest=[UPS&&UPS.latest,UPS&&UPS.version,...(d.people||[]).map(p=>p.version)].filter(Boolean).reduce((a,b)=>vcmp(a,b)>=0?a:b,"0");
+  const ppl=(d.people||[]).filter(p=>p.active);
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3>System health</h3><button class="btn sm" id="hlRe">Refresh</button></div>
+    <div class="note">${miss.length?`<span class="hl-bad">Database update${miss.length===1?"":"s"} ${miss.join(", ")} ${miss.length===1?"has":"have"} not been run.</span> Paste <b>RUN_IN_SUPABASE.sql</b> into Supabase &gt; SQL Editor and press Run (safe to run again).`:"Every database update has been run."}</div>
+    <div class="hl-ups">${nums.map(n=>`<div class="hl-up${U[n]===false?" no":U[n]==null?" unk":""}" title="${U[n]==null?"Can't be checked from here (storage setting)":U[n]?"Installed":"Not run yet"}">#${n} ${U[n]===false?"✗":U[n]==null?"?":"✓"}</div>`).join("")}</div>
+    <div class="hl-wrap"><table class="hl-tbl"><tr><th>Person</th><th>App</th><th>Sync</th><th>Last seen</th></tr>${ppl.map(p=>{const old=p.version&&vcmp(p.version,latest)<0;
+      return `<tr><td><b>${esc(p.name||p.username)}</b><div class="muted" style="font-size:12px">${p.role==="admin"?"Admin":"Rep"}</div></td>
+        <td>${p.version?`<span class="${old?"hl-old":""}">${esc(p.version)}</span> <span class="muted">${esc(p.platform==="web"?"website":p.platform||"")}</span>${old?`<div class="hl-old" style="font-size:12px">Behind (latest ${esc(latest)})</div>`:""}`:'<span class="muted">Not reported yet</span>'}</td>
+        <td>${p.sync_state?`<span class="${p.sync_state==="synced"?"hl-ok":["error","attention"].includes(p.sync_state)?"hl-bad":""}">${esc({synced:"Synced",syncing:"Syncing",offline:"Offline",error:"Sync problem",attention:"Needs attention",signed_out:"Signed out"}[p.sync_state]||p.sync_state)}</span>${p.pending?` · ${num(p.pending)} waiting`:""}${p.last_error?`<div class="hl-bad" style="font-size:12px">${esc(p.last_error)}</div>`:""}${p.reported_at?`<div class="muted" style="font-size:12px">reported ${esc(PPago(p.reported_at))}</div>`:""}`:'<span class="muted">—</span>'}</td>
+        <td>${p.last_seen?esc(PPago(p.last_seen)):'<span class="muted">Never</span>'}</td></tr>`}).join("")}</table></div>`;
+  $("#hlRe",el).onclick=()=>healthCard();
+}
+{const base=renderAdmin;renderAdmin=async function(){await base.apply(this,arguments);if(S.page==="admin"&&isAdmin())healthCard()}}
+
+/* ---------- Settings: automatic follow-ups switch ---------- */
+function callingCardHTML(){return `<div class="card form pop" id="callCard"><h3>Calling</h3>
+  <div class="lfg-row" style="margin-top:12px"><div><b>Automatic follow-ups</b><div class="note">Mark "No answer" and Leafline sets a reminder for the next workday at a different time of day. "Voicemail" in the Call Log sets one 3 workdays later. "Interested" opens the reminder so you can pick the time.</div></div><button type="button" class="tgl${autoFollowOn()?" on":""}" id="afTgl" role="switch" aria-checked="${autoFollowOn()}" aria-label="Automatic follow-ups"></button></div></div>`}
+function wireCallingCard(root){const b=$("#afTgl",root);if(!b)return;b.onclick=()=>{const on=!autoFollowOn();setP("autoFollow",on);b.classList.toggle("on",on);b.setAttribute("aria-checked",on);toast(on?"Automatic follow-ups on":"Automatic follow-ups off")}}
 </script>
 </body>
 </html>

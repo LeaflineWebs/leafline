@@ -95,6 +95,36 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.19: pipeline, follow-ups and smarter calling
+- `backend/leafline_productivity_ui.py` (added to the shared page like the other modules):
+  - **Pipeline** page (sidebar and More): Called > Interested > Meeting > Proposal sent > Won > Lost. Stages come from
+    the call result (a closed deal with the same name = Won); drag a card or use **Move to** to place it by hand
+    (shared). No change for 7 days = **Stale**. Everyone / Mine / Stale only.
+  - **Automatic follow-ups** (Settings > Calling, on by default): No answer = reminder next workday at a different
+    time of day; Voicemail (Call Log) = 3 workdays later; Interested opens the reminder pop-up. One per business.
+  - **Call warnings**: a flag in the list, a note in the details, and a question before calling a business a
+    teammate called in the last 14 days or one that said "not interested".
+  - **Lead scores**: Find Leads > Sort > Best prospects (no website, few reviews, good rating, owner/email known).
+    It doesn't look at how old a website is.
+  - **Saved searches**: save the area + business type; one click runs it again (only new businesses are added); due
+    again every 7 days, with a reminder when the app opens.
+  - **System health** (Admin): which database updates have been run, and each person's app version and sync.
+- 17th database update (`supabase/migrations/20261116000017_pipeline_health.sql`): `lead_stages`, `lead_guard`,
+  `app_status`, `team_health`.
+- Tests: `tests/test_productivity.py` (website PC + phone, and the PC app) and `tests/pg/test_pipeline_health_sql.mjs`.
+
+## What is new in 11.18: profit splits
+- `backend/leafline_splits_ui.py` (added to the shared page like the other modules): pressing **Confirm** on a payment
+  (Profits or Calendar) opens a pop-up to confirm it and choose who gets credit, by percent. A confirmed payment shows
+  its split as a chip; click it to change it. The deal pop-up has **Profit split** for the deal's default.
+- 16th database update (`supabase/migrations/20261113000016_deal_splits.sql`): table `deal_splits` (read by everyone
+  signed in) and `deal_split_set` (admin or the deal's credited person; percents add up to exactly 100; active
+  teammates only). Activity shows who split what (percents, never amounts).
+- The leaderboard (money), Revenue Champion and Deal Closer count each person's share. A payment's own split wins,
+  then the deal's default, then 100% for the person the deal is credited to.
+- Tests: `tests/test_splits.py` (PC app + website, PC and phone sizes) and `tests/pg/test_splits_sql.mjs` (the real
+  rules on a real Postgres).
+
 ## What is new in 11.17: liquid glass
 - `backend/leafline_glass_ui.py` (added to the shared page like Messages, Invoices and Reminders): an optional look,
   switched on and off in **Settings > Appearance > Liquid glass**. Off by default; the choice is saved on the device

@@ -12,7 +12,7 @@ import _env  # noqa: F401
 URL = os.environ["SUPABASE_URL"].rstrip("/"); SECRET = os.environ["SUPABASE_SERVICE_KEY"]
 PUB = os.environ.get("SUPABASE_PUBLISHABLE_KEY") or "sb_publishable_6ssgQB4Z9D3lYtBtL3m8uA_B4w0fFiQ"
 DOM = os.environ.get("LEAFLINE_EMAIL_DOMAIN") or "leaflineweb.com"
-TABLES = ["profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "invoices", "invoice_templates"]
+TABLES = ["profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "invoices", "invoice_templates", "deal_splits", "lead_stages", "app_status"]
 ROLES = {"james": "admin", "omar": "admin", "akbar": "admin", "gio": "employee", "jaylen": "employee", "tim": "employee", "kyle": "employee", "mubaraq": "employee"}
 bad = 0
 

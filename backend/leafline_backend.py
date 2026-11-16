@@ -1197,6 +1197,8 @@ class Api:
         for d in self._deals():
             d.update(deal_summary(d, today))
             d["confirmed"] = sorted(d["confirmed"])
+            try: d["rid"] = self._sync.remote_id("deals", d["id"])   # the shared database's id (profit splits use it); None until uploaded
+            except Exception: d["rid"] = None
             out.append(d)
         return out
 
@@ -3162,6 +3164,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
       <button class="nv" data-go="msgs"><i class="ic" data-ic="chat"></i>Messages<span class="badge" id="msgBadge" style="display:none">0</span></button>
       <button class="nv" data-go="find"><i class="ic" data-ic="search"></i>Find Leads</button>
       <button class="nv" data-go="called"><i class="ic" data-ic="phone"></i>Called Leads<span class="badge" id="calledBadge">0</span></button>
+      <button class="nv" data-go="pipeline"><i class="ic" data-ic="pipe"></i>Pipeline</button>
       <button class="nv" data-go="calendar"><i class="ic" data-ic="cal"></i>Calendar</button>
       <button class="nv" data-go="calls"><i class="ic" data-ic="log"></i>Call Log</button>
       <button class="nv" data-go="notes"><i class="ic" data-ic="note"></i>Notes</button>
@@ -3251,6 +3254,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
       <!-- PROFITS -->
       <div class="page" id="pg-profits"></div>
       <div class="page" id="pg-invoices"></div>
+      <div class="page" id="pg-pipeline"></div>
 
       <div class="page" id="pg-calls"></div>
       <div class="page flex" id="pg-notes"></div>
@@ -3306,6 +3310,7 @@ const REDUCE=matchMedia("(prefers-reduced-motion: reduce)").matches;
    final state. CSS animations are switched off by the stylesheet rule. */
 if(REDUCE&&Element.prototype.animate){const A=Element.prototype.animate;Element.prototype.animate=function(k,o){const opt=typeof o==="number"?{}:Object.assign({},o);opt.duration=1;opt.delay=0;opt.endDelay=0;if(!isFinite(opt.iterations))opt.iterations=1;return A.call(this,k,opt)}}
 const ICONS={
+ pipe:'<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>',
  receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
  download:'<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
  building:'<path d="M4 21V5a1 1 0 011-1h9a1 1 0 011 1v16M15 9h4a1 1 0 011 1v11M3 21h18"/><path d="M8 8h3M8 12h3M8 16h3"/>',
@@ -3588,7 +3593,8 @@ function wireFlt(){
 function visibleFind(){
   const fl=fltOn(S.flt)?S.flt:null;let a=S.find.filter(l=>match(l)&&fltMatch(l,fl));if(S.openOnly)a=a.filter(l=>l.open==="open");
   const rv=l=>parseInt(l.reviews)||0,rank={open:0,unknown:1,closed:2};
-  if(S.sort==="name")a.sort((x,y)=>x.name.localeCompare(y.name));
+  if(S.sort==="score"){const sc=new Map(a.map(l=>[l.id,leadScore(l).s]));a.sort((x,y)=>(sc.get(y.id)-sc.get(x.id))||(rv(x)-rv(y))||x.name.localeCompare(y.name))}
+  else if(S.sort==="name")a.sort((x,y)=>x.name.localeCompare(y.name));
   else if(S.sort==="open")a.sort((x,y)=>(rank[x.open]-rank[y.open])||(rv(y)-rv(x))||x.name.localeCompare(y.name));
   else a.sort((x,y)=>(rv(y)-rv(x))||x.name.localeCompare(y.name));
   return a;
@@ -3648,7 +3654,7 @@ function movePills(){
     const fp=$("#fpill");if(fp.scrollWidth>fp.clientWidth+2)fp.scrollTo({left:Math.max(0,fb.offsetLeft-(fp.clientWidth-fb.offsetWidth)/2),behavior:"smooth"})}
 }
 const pageTitle=p=>p==="posts"&&matchMedia("(max-width:860px)").matches?"News":TITLES[p];
-const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",invoices:"Invoices",admin:"Admin",account:"Settings"};
+const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",pipeline:"Pipeline",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",invoices:"Invoices",admin:"Admin",account:"Settings"};
 let navToken=0;
 async function go(p,force){
   if(p===S.page&&!force)return;
@@ -3662,7 +3668,7 @@ async function go(p,force){
   if(my!==navToken)return;
   if(old){old.getAnimations().forEach(a=>a.cancel());old.classList.remove("on")}
   S.lastSig={};
-  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="invoices")renderInvoices(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
+  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="invoices")renderInvoices(false);if(p==="pipeline")renderPipeline(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
   arm(next);next.classList.add("on");applyDock();
   if(!REDUCE)next.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:480,easing:EASE.out});
   history.replaceState(null,"","#"+p);
@@ -3764,6 +3770,7 @@ function fillItem(n,l){
   hr.hidden=/N\/A/.test(h)&&/N\/A/.test(pl);            /* no hours known: the pill already says so */
   n.classList.toggle("act",S.active===l.id);n.classList.toggle("sel",S.sel.has(l.id));n.setAttribute("aria-selected",S.active===l.id);
   const sep=n.querySelector(".ls");sep.title=l.btype+" · "+(l.hours||"");
+  paintScore(n,l);paintGuardRow(n,l);   // prospect score + "called recently / not interested" flag (11.19)
 }
 function renderFind(){
   const arr=visibleFind(),list=$("#list"),have=new Map($$(".li",list).map(n=>[n.dataset.id,n]));
@@ -3787,6 +3794,7 @@ function renderFind(){
   paintSelBar();
   const allOn=arr.length&&arr.every(l=>S.sel.has(l.id));$("#allChk").style.cssText=allOn?"background:var(--accent);border-color:var(--accent);color:var(--accent-text)":"";
   renderDetail();
+  guardLoad(arr.slice(0,300));ssPaint();
 }
 function paintSelBar(){let b=$("#selBar");const n=S.sel.size;
   if(!b){b=document.createElement("div");b.id="selBar";b.className="selbar";b.setAttribute("role","region");b.setAttribute("aria-label","Selected businesses");
@@ -3807,11 +3815,13 @@ function renderDetail(){
   const n=S.sel.size;
   d.innerHTML=`<div class="${changed?"dsw":""}"><button class="btn sm dclose" id="dClose" aria-label="Back to the list">${ic("back")}Back</button><div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div>
    <div class="acts">${callBtn(l.phone)}<button class="btn sm" id="dCopy">${ic("copy")}Copy phone</button><button class="btn sm" id="dSite"${l.website===NA?" disabled":""}>${ic("globe")}Website</button></div></div>
+  <div id="gdSlot">${guardBanner(l)}</div>
   <div class="facts">
    <div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span style="font-size:13.5px;font-weight:700;color:#FFD60A">${esc(reviewTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="dOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
    <div class="fact"><div class="k">Google rating</div><div class="v">${l.rating===NA?NA:esc(l.rating)+" ★"}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${l.reviews===NA?"":esc(num(l.reviews))+" reviews"}</span></div></div>
+   ${scoreFactHTML(l)}
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="dNotes" rows="3" placeholder="What was said, when to call back..." maxlength="2000" style="margin-top:4px;background:var(--bg)">${esc(l.notes)}</textarea></div></div>
   <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn sm" id="dRem">${ic("clock")}Set reminder</button><button class="btn sm" id="dSave">Save owner &amp; notes</button></div>
   <div class="mark"><div class="t" id="markT">${n?`Mark ${n} selected business${n===1?"":"es"} as`:"Mark this business as"}</div>
@@ -3847,6 +3857,7 @@ const prevStatus=()=>"none";
 /* ---------------- CALLED board ---------------- */
 function leadModal(l){
   const close=openModal(`<div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div></div>
+   <div id="gdSlotM" data-id="${esc(l.id)}">${guardBanner(l)}</div>
    <div class="facts"><div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span class="pacts">${callBtn(l.phone)}<button class="btn sm" data-copy>${ic("copy")}Copy</button></span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="mOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
@@ -3857,13 +3868,14 @@ function leadModal(l){
    <div class="mark" style="margin-top:6px"><div class="t">Change result</div><div class="sb">${ORDER.map(k=>`<button class="st ${ST[k].cls}${l.status===k?" cur":""}" data-res="${k}">${ST[k].label}</button>`).join("")}</div></div>
    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><button class="btn" data-rem>${ic("clock")}Set reminder</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
   (ov,close)=>{
-    wireMtgLine(ov,l);
+    wireMtgLine(ov,l);guardLoad([l],true);
     const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim();if((ow||NA)!==l.owner||no!==l.notes){try{await api("save_lead",l.id,ow,no)}catch(e){toast("Couldn't save",{bad:1});return false}}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
     $("[data-x]",ov).onclick=close;$("[data-copy]",ov).onclick=()=>copyText(l.phone);$("[data-site]",ov).onclick=()=>api("open_site",l.id);
     $("[data-rem]",ov).onclick=()=>{const own=$("#mOwner",ov).value.trim(),nts=$("#mNotes",ov).value;save();close();setTimeout(()=>remSet({...l,owner:own,notes:nts}),220)};
     wireCredit(ov,"lead",l.id,()=>{close();reload()});
     $("[data-save]",ov).onclick=async()=>{if(await save()){close();toast("Saved");reload()}};
-    $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status)}});
+    $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status);
+      if(b.dataset.res!==l.status)autoFollow(b.dataset.res==="orange"?"no_answer":b.dataset.res==="yellow"?"interested":"",[fl]).catch(()=>{})}});
     $("[data-back]",ov).onclick=async()=>{if(await save()){close();await changeStatus([l.id],"none",l.status)}};
   });
 }
@@ -4099,7 +4111,7 @@ function costsCard(today){
 }
 function renderProfits(q){
   const st=S.stats,pg=$("#pg-profits");if(!st||!st.money)return;
-  const m=st.money,wk=m.week,mo=m.month,al=m.all,sig=JSON.stringify([S.deals,m,COSTS.list,COSTS.missing,isAdmin()]);
+  const m=st.money,wk=m.week,mo=m.month,al=m.all,sig=JSON.stringify([S.deals,m,COSTS.list,COSTS.missing,isAdmin(),splitSig()]);
   const [cm0,cm1]=monthOf(m.today),mcost=costSum(costsIn(cm0,cm1)),madeNet=Math.round((mo.made-mcost)*100)/100;
   if(q&&S.lastSig.profits===sig)return;S.lastSig.profits=sig;
   const sc=pg.scrollTop,mname=mo.label.split(" ")[0];
@@ -4114,7 +4126,7 @@ function renderProfits(q){
     :(p.due===undefined?p.date<=m.today:p.due)?`<button class="cfm" data-pay="${p.deal_id}|${esc(p.date)}|${esc(p.kind)}|1" aria-label="Confirm ${usd(p.amount)} from ${esc(p.client)} was received">${ic("check")}Confirm</button>`
     :`<span class="pill unknown">Upcoming</span>`;
   const todo=al.to_confirm||[];
-  const plist=wk.payments.length?wk.payments.map(p=>`<div class="prow"><div style="min-width:0;flex:1"><b>${esc(p.client)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||p.kind}</span></div><b class="num">${usd(p.amount)}</b>${payBtn(p)}</div>`).join(""):
+  const plist=wk.payments.length?wk.payments.map(p=>`<div class="prow"><div style="min-width:0;flex:1"><b>${esc(p.client)}</b><span class="sub">${esc(dayFmt(p.date))} · ${KIND[p.kind]||p.kind}</span></div><b class="num">${usd(p.amount)}</b>${payBtn(p)}${p.paid?splitChip(p.deal_id,p.date,p.kind):""}</div>`).join(""):
     `<div class="empty" style="padding:22px 10px"><div class="bub">${ic("dollar")}</div><b>Nothing due this week</b>Payments from your deals show up here.</div>`;
   const rows=S.deals.map(d=>`<div class="dr" data-id="${d.id}" tabindex="0"><div style="min-width:0"><b>${esc(d.client)}</b>${d.notes?`<span class="sub">${esc(d.notes)}</span>`:""}</div><div>${esc(terms(d))}</div><div>${esc(dayFmt(d.closed_at))}</div><div class="num">${usd(d.collected)}${d.unconfirmed_count?`<span class="sub" style="color:#FFE36B">${num(d.unconfirmed_count)} to confirm</span>`:""}</div><div class="num">${d.remaining===null?"Ongoing":usd(d.remaining)}</div><div>${d.next_date?`<b>${esc(dayFmt(d.next_date))}</b><span class="sub">${usd(d.next_amount)}</span>`:`<span class="muted">All paid</span>`}</div><div><button class="ib" data-edit aria-label="Edit ${esc(d.client)}" tabindex="-1">${ic("edit")}</button></div></div>`).join("");
   pg.innerHTML=`
@@ -4134,7 +4146,8 @@ function renderProfits(q){
   $$("[data-cdel]",pg).forEach(b=>b.onclick=()=>{const c=(COSTS.list||[]).find(x=>x.id===b.dataset.cdel);c&&removeCost(c)});
   loadCosts();
   $$("[data-add]",pg).forEach(b=>b.onclick=()=>dealModal(null));
-  wirePay(pg);
+  wirePay(pg);wireSplitChips(pg);
+  if(!B.data)ensureBoard().then(()=>{if(S.page==="profits"&&B.data)renderProfits(true)}).catch(()=>{});
   $$(".dr[data-id]",pg).forEach(r=>{r.onclick=()=>{const d=S.deals.find(x=>String(x.id)===r.dataset.id);d&&dealModal(d)};r.onkeydown=e=>{if(e.key==="Enter")r.click()}});
   const fire=()=>$$("[data-n]",pg).forEach(e=>{if(q)e.dataset.q=1;countTo(e,+e.dataset.n,+e.dataset.d,"")});
   if(q){quiet(pg);fire()}else setTimeout(fire,350);
@@ -4150,7 +4163,8 @@ async function confirmPay(id,day,kind,on,btn){
     setTimeout(reload,on&&btn?380:0);
   }catch(e){if(btn)btn.disabled=false;toast("Couldn't save: "+e.message,{bad:1})}
 }
-function wirePay(root){$$("[data-pay]",root).forEach(b=>b.onclick=e=>{e.stopPropagation();const [id,day,kind,on]=b.dataset.pay.split("|");confirmPay(id,day,kind,on==="1",b)})}
+function wirePay(root){$$("[data-pay]",root).forEach(b=>b.onclick=e=>{e.stopPropagation();const [id,day,kind,on]=b.dataset.pay.split("|");
+  if(on==="1")splitModal(id,day,kind,"confirm");else confirmPay(id,day,kind,false,b)})}   // Confirm: choose who gets credit (profit splits)
 function dealModal(d){
   const isNew=!d,t0=isoDay(new Date());d=d||{id:0,client:"",upfront:0,monthly:0,months:0,closed_at:t0,first_bill:"",notes:""};
   const val=v=>v?v:"";
@@ -4163,12 +4177,12 @@ function dealModal(d){
     <div><label class="l" for="dClosed">Date closed (upfront is paid)</label><input class="inp" id="dClosed" type="date" value="${esc(d.closed_at)}"></div>
     <div><label class="l" for="dFirst">First monthly payment</label><input class="inp" id="dFirst" type="date" value="${esc(d.first_bill||d.closed_at)}"></div>
     <div><label class="l" for="dNotes">Notes (optional)</label><input class="inp" id="dNotes" maxlength="500" value="${esc(d.notes)}" placeholder="e.g. website + hosting"></div>
-    ${isNew?"":`<div style="grid-column:1/3">${creditField("deal",null)}</div>`}
+    ${isNew?"":`<div style="grid-column:1/3">${creditField("deal",null)}</div>${dealSplitHTML(d)}`}
    </div>
    <div class="note" id="dHint" style="min-height:20px"></div>
    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">${isNew?"":`<button class="btn" data-del style="color:#FF9AA0">${ic("trash")}Delete</button><button class="btn" data-inv>${ic("receipt")}Create invoice</button>`}<span style="flex:1"></span><button class="btn" data-x>Cancel</button><button class="btn pri" data-save>Save deal</button></div>`,
   (ov,close)=>{
-    if(!isNew){wireCredit(ov,"deal",d.id,()=>{close();reload()});api("get_credit","deal",d.id).then(r=>{const sel=$("#crWho",ov);if(sel&&r&&r.ok){sel.value=r.owner||"";sel.dataset.cur=r.owner||""}}).catch(()=>{})}
+    if(!isNew){wireDealSplit(ov,d);wireCredit(ov,"deal",d.id,()=>{close();reload()});api("get_credit","deal",d.id).then(r=>{const sel=$("#crWho",ov);if(sel&&r&&r.ok){sel.value=r.owner||"";sel.dataset.cur=r.owner||""}}).catch(()=>{})}
     const g=id=>$("#"+id,ov),pn=v=>parseFloat(String(v).replace(/[$,\s]/g,""))||0;
     let touched=!isNew&&!!d.first_bill&&d.first_bill!==d.closed_at;
     const hint=()=>{const up=pn(g("dUp").value),mo=pn(g("dMo").value),n=parseInt(g("dN").value)||0;
@@ -4779,7 +4793,8 @@ function logCallModal(lead){
       const l=pool.find(x=>x.name===g("lcBiz").value);
       const r=await api("log_call",{lead_id:l?l.id:(lead?lead.id:""),phone:g("lcPhone").value,when:g("lcWhen").value,outcome:out,notes:g("lcNotes").value});
       if(!r.ok)return toast(r.error||"Couldn't save.",{bad:1});
-      close();toast("Call logged");if(S.page==="calls")renderCalls(true)};
+      close();toast("Call logged");if(S.page==="calls")renderCalls(true);
+      const fl=l||lead;if(fl)autoFollow(out==="no_answer"?"no_answer":out==="voicemail"?"voicemail":(out==="interested"||out==="follow_up")?"interested":"",[{...fl,notes:g("lcNotes").value||fl.notes||""}]).catch(()=>{})};
   });
 }
 setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))renderCalls(true)},20000);
@@ -4860,6 +4875,7 @@ function renderAccount(){
    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><button class="btn pri" id="xSave">Save profile</button><button class="btn" id="xCard">${ic("briefcase")}Team card details</button><span class="note" id="xNote"></span></div></div>
   <div class="card form pop" id="themeCard"><h3>Appearance</h3><div class="note">Pick a colour for Leafline. Your choice follows you to every device you sign in on.</div>
    <div class="lgt big" data-lgt aria-label="Theme" role="radiogroup" style="margin-top:14px"></div>${glassRowHTML()}</div>
+  ${callingCardHTML()}
   ${leadgenCard()}
   <div class="card form pop" id="updCard"><h3>App &amp; updates</h3>
    <div class="upd"><div><b id="updVer">Version</b><div class="note" id="updNote"></div><div class="bar" id="updBar"><i></i></div></div><button class="btn" id="updBtn">Check for updates</button></div>
@@ -4872,7 +4888,7 @@ function renderAccount(){
   $("#avUp").onclick=()=>$("#avFile").click();
   $("#avFile").onchange=e=>{const f=e.target.files[0];e.target.value="";mediaDialog("avatar",f)};
   $("#avDel").onclick=()=>clearMedia("avatar");
-  paintLgt();wireGlassSwitch(pg);wireLeadgen(pg);
+  paintLgt();wireGlassSwitch(pg);wireCallingCard(pg);wireLeadgen(pg);
   ["aName","aRole","aCo"].forEach(i=>$("#"+i).oninput=live);
   $$(".sw button",pg).forEach(b=>b.onclick=()=>{$$(".sw button",pg).forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-checked",x===b)});S.profile.color=b.dataset.c;profileUI();bump(b)});
   $("#aSave").onclick=()=>saveAccount(false);
@@ -5347,7 +5363,7 @@ function thPop(anchor){
 }
 
 /* ---------- phone: "More" sheet ---------- */
-const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["invoices","receipt","Invoices"],["admin","shield","Admin"],["account","gear","Settings"]];
+const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["pipeline","pipe","Pipeline"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["invoices","receipt","Invoices"],["admin","shield","Admin"],["account","gear","Settings"]];
 function openSheet(){
   const sh=$("#msheet"),adm=S.me&&S.me.role==="admin";
   $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n==="Announcements"?"News":n}">${ic(i)}${n==="Announcements"?`<span>News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
@@ -5453,11 +5469,11 @@ function dealPays(d,upto){
   const out=[],up=+d.upfront||0,mo=+d.monthly||0,n=+d.months||0;
   /* with the 7th database update, only payments someone confirmed count as money made */
   const cs="confirmed" in d?new Set(String(d.confirmed||"").split(",")):null,ok=(ds,k)=>!cs||cs.has(ds+":"+k);
-  if(d.closed_at&&up>0&&d.closed_at<=upto&&ok(d.closed_at,"upfront"))out.push([d.closed_at,up]);
+  if(d.closed_at&&up>0&&d.closed_at<=upto&&ok(d.closed_at,"upfront"))out.push([d.closed_at,up,"upfront"]);
   const f=d.first_bill||d.closed_at;
   if(f&&mo>0){const [y,m,dd]=f.split("-").map(Number);
     for(let k=0;n===0||k<n;k++){const t=y*12+(m-1)+k,yy=Math.floor(t/12),mm=t%12,dim=new Date(yy,mm+1,0).getDate();
-      const ds=`${yy}-${String(mm+1).padStart(2,"0")}-${String(Math.min(dd,dim)).padStart(2,"0")}`;if(ds>upto)break;if(ok(ds,"monthly"))out.push([ds,mo])}}
+      const ds=`${yy}-${String(mm+1).padStart(2,"0")}-${String(Math.min(dd,dim)).padStart(2,"0")}`;if(ds>upto)break;if(ok(ds,"monthly"))out.push([ds,mo,"monthly"])}}
   return out;
 }
 const dayShift=(iso,n)=>{const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return isoDay(d)};
@@ -5466,7 +5482,8 @@ function tally(d,from,to){
   const m={};d.people.forEach(p=>m[p.id]={calls:0,meetings:0,money:0,sales:0,days:{}});
   for(const r of d.stats||[]){const x=m[r.employee_id],day=String(r.day).slice(0,10);if(!x||day<from||day>to)continue;
     x.calls+=+r.calls||0;x.meetings+=+r.meetings||0;x.sales+=+r.sales||0;x.days[day]=(x.days[day]||0)+(+r.calls||0)}
-  for(const dl of d.deals||[]){const x=m[dl.owner_id];if(!x)continue;for(const [ds,a] of dealPays(dl,to))if(ds>=from)x.money+=a}
+  for(const dl of d.deals||[])for(const [ds,a,k] of dealPays(dl,to)){if(ds<from)continue;   // profit splits: each teammate gets their share
+    for(const s of payShares(d,dl,ds+":"+k)){const x=m[s.id];if(x)x.money+=a*s.pct/100}}
   for(const c of COSTS.list||[]){const x=m[c.charged_to];if(x&&c.spent_on>=from&&c.spent_on<=to)x.money-=+c.amount||0}
   for(const k in m)m[k].money=Math.round(m[k].money*100)/100;
   return m;
@@ -5490,7 +5507,7 @@ function computeBadges(d){
   ids.forEach(i=>{
     if(wds.every(x=>(m30[i].days[x]||0)>0))out[i].push("consistency");
     const a=w[i].calls,b=pw[i].calls;if(a>=20&&a>=b*1.25&&a>b)out[i].push("rising");
-    if((d.deals||[]).some(x=>x.owner_id===i&&x.closed_at&&x.closed_at>=from30&&x.closed_at<=T))out[i].push("closer");
+    if((d.deals||[]).some(x=>x.closed_at&&x.closed_at>=from30&&x.closed_at<=T&&(x.owner_id===i||payShares(d,x,"").some(s=>s.id===i))))out[i].push("closer");
     if(Object.values(m30[i].days).some(v=>v>=100))out[i].push("century");
     if(["top_caller","meetings","revenue"].filter(b=>out[i].includes(b)).length>=2)out[i].unshift("mvp");
   });
@@ -5569,7 +5586,7 @@ function drawRanks(anim){
     <div class="pods">${pod(top[1],"p2")}${pod(top[0],"p1")}${pod(top[2],"p3")}</div>
     <div class="lbl" style="margin-top:18px">${rest.map(r=>`<div class="lbr${r.p.id===me?" me":""}" data-lbid="${esc(r.p.id)}" data-pid="${esc(r.p.id)}" tabindex="0" role="button"><span class="rk">#${r.rank}</span>${avHTML(r.p.name,r.p.avatar,r.p.media)}
       <div class="nm"><b>${esc(r.p.name)}</b>${bdgSlot(r.p.id,5)}</div><div class="lbar"><i data-w="${Math.round(100*r.v/mx)}"></i></div><span class="v">${fmt(r.v)}</span></div>`).join("")}</div>
-    <div class="lb-note" style="margin-top:12px">${metric==="money"?"Money = payments collected on deals each person owns (upfront + monthly payments that are due), minus company costs charged to them. ":metric==="meetings"?"Meetings = calls logged with the result “Meeting booked”. ":"Calls = every call logged in the app. "}Updated ${esc(d.fetched||"just now")}.</div>
+    <div class="lb-note" style="margin-top:12px">${metric==="money"?"Money = each person's share of the payments collected on their deals (a deal can be split by percent when a payment is confirmed) (upfront + monthly payments that are due), minus company costs charged to them. ":metric==="meetings"?"Meetings = calls logged with the result “Meeting booked”. ":"Calls = every call logged in the app. "}Updated ${esc(d.fetched||"just now")}.</div>
     <div class="card lb-badges pop" style="margin-top:18px"><h3>Badges</h3><div class="note">Earned automatically from the team's real numbers. They update every few minutes.</div>
      <div class="grid">${Object.entries(BADGES).map(([k,b])=>{const who=d.people.filter(p=>(B.badges[p.id]||[]).includes(k));return `<div class="bi"><span class="badge-i b-${k}">${ic(b.i)}</span><div style="min-width:0"><b>${esc(b.n)}</b><small>${esc(b.d)}</small></div><div class="who">${who.slice(0,4).map(p=>`<span data-au="${esc(p.id)}" title="${esc(p.name)}">${avHTML(p.name,p.avatar,p.media)}</span>`).join("")}</div></div>`}).join("")}</div></div>`;
   hydrateIcons(body);
@@ -5953,6 +5970,19 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.19.0",t:"Pipeline, follow-ups and smarter calling",items:[
+  "New Pipeline page: every business you've called, from Called to Interested, Meeting, Proposal sent, Won and Lost. Drag a card to move it. Cards with no change for 7 days are marked Stale.",
+  "Automatic follow-ups: mark No answer and a reminder is set for the next workday at a different time of day. Voicemail (Call Log) sets one 3 workdays later, and Interested opens the reminder. Turn it off in Settings > Calling.",
+  "Before you call a business a teammate called in the last 14 days, or one that said not interested, Leafline warns you first.",
+  "Find Leads can sort by Best prospects. Each business gets a score from its website, reviews, rating and owner name.",
+  "Save a search and run it again in one click. Saved searches are due again every 7 days, and only new businesses are added.",
+  "Admins: Admin now shows System health, with each person's app version and sync, and which database updates have been run.",
+  "Moving pipeline cards, the call warnings and System health need the 17th database update."]},
+ {v:"11.18.0",t:"Profit splits",items:[
+  "When you confirm a payment on Profits, you can now split who gets credit for it, for example Omar 60% and Jay 40%. Each person's share counts for them on the leaderboard.",
+  "The split is kept for that payment and becomes the deal's split, so later payments follow it until you change it. Click the split under a received payment, or Profit split in the deal, to change it.",
+  "Only an admin or the person the deal is credited to can change a split. The percents must add up to 100.",
+  "Needs the 16th database update. Until an admin runs it, confirming payments works as before."]},
  {v:"11.17.0",t:"Liquid glass",items:[
   "New in Settings > Appearance: turn on Liquid glass. The sidebar, cards, buttons, the bottom bar and pop-ups become real glass that bends the light behind it at the edges, with a thin rainbow fringe and a highlight that follows your pointer.",
   "It works with every theme and takes its colours from the one you pick. Turn it off any time with the same switch.",
@@ -6099,7 +6129,11 @@ UI_HTML = _invui.inject(UI_HTML)
 import leafline_reminders_ui as _remui
 UI_HTML = _remui.inject(UI_HTML)
 import leafline_glass_ui as _glassui
-UI_HTML = _glassui.inject(UI_HTML)        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
+UI_HTML = _glassui.inject(UI_HTML)
+import leafline_splits_ui as _splitui
+UI_HTML = _splitui.inject(UI_HTML)
+import leafline_productivity_ui as _produi
+UI_HTML = _produi.inject(UI_HTML)         # 11.19: follow-ups, call guard, lead scores, saved searches, Pipeline, health        # Profit splits (11.18): who gets credit for each confirmed payment        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
 
 
 API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",
