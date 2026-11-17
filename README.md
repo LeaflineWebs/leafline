@@ -95,6 +95,23 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.20: AI email writer
+- `backend/leafline_email_ui.py` (added to the shared page like the other modules): a "Write email" pop-up for one
+  business. Type a quick request or tap a quick pick, choose Friendly / Professional / Short, and it writes a subject and
+  a full email using the business's name, kind, reviews, website (or lack of one), contact name and call notes. Your
+  signature is added at the bottom (editable, remembered). Send with your email app (mailto), Gmail, or Copy.
+  - Find Leads: **Email** in a business's details. Called Leads: **Write email** in the pop-up.
+  - After a call (No answer / Interested / Meeting, or a logged call) a small card offers to write it, after any
+    reminder or meeting pop-up; from there it writes straight away from the call result and notes.
+  - Not set up yet, or offline: a plain template is filled in and the pop-up says so.
+- `supabase/functions/email-draft/index.ts`: the Supabase Edge Function that calls Claude (`claude-opus-4-8`, structured
+  output: subject + body). The Anthropic key is a Supabase secret only. Each request is checked with the person's own
+  sign-in through `email_quota_take()` (active teammates only, 150 a day).
+- 18th database update (`supabase/migrations/20261117000018_email_drafts.sql`): `email_drafts`, `email_quota_take`.
+  Setup: SETUP_SUPABASE.md > "Eighteenth migration + Email writer".
+- Tests: `tests/test_email.py` (website PC + phone, PC app), `tests/fn/test_email_draft.mjs` (the function, in Node),
+  `tests/pg/test_email_sql.mjs` (database rules).
+
 ## What is new in 11.19: pipeline, follow-ups and smarter calling
 - `backend/leafline_productivity_ui.py` (added to the shared page like the other modules):
   - **Pipeline** page (sidebar and More): Called > Interested > Meeting > Proposal sent > Won > Lost. Stages come from

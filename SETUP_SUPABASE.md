@@ -130,6 +130,27 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
 
+## Eighteenth migration + Email writer (Leafline 11.20: AI emails)
+**1. Database.** Supabase > SQL Editor > New query > paste `supabase/migrations/20261117000018_email_drafts.sql` > Run
+(`RUN_IN_SUPABASE.sql` already contains it). Safe to run twice. Nothing existing is changed or removed.
+- `email_drafts` + `email_quota_take()`: before each email, the email writer checks AS THE PERSON ASKING that they are
+  signed in and active, and keeps each person to 150 emails in 24 hours. Only the time and the business id are kept
+  (30 days), never the email. People see their own rows; admins see everyone's; nobody can write the table directly.
+- `team_health()` now also reports update 18.
+
+**2. The AI key (admin, once).** Get an API key at console.anthropic.com > API Keys (the account needs billing set up).
+Then Supabase > Edge Functions > Secrets > Add new secret: name `ANTHROPIC_API_KEY`, value = the key > Save.
+The key lives only in Supabase. Never put it in the app, `tools/.env`, GitHub or a chat.
+
+**3. The function (admin, once).** Supabase > Edge Functions > Deploy a new function > Via Editor. Name it exactly
+`email-draft`, replace the sample code with everything in `supabase/functions/email-draft/index.ts`, and press Deploy.
+(With the Supabase CLI instead: `supabase functions deploy email-draft --project-ref yvpmgmuthrmzievgdifw`.)
+- If emails say "Your sign-in has expired" for everyone right after deploying, open the function > Details and turn
+  off "Enforce JWT verification" (or "Verify JWT"). The function checks each person's sign-in itself, through the
+  database, so this is safe.
+- Cost: each email is one request to Claude Opus 4.8, roughly 1 to 2 cents. The 150-a-day limit per person caps it.
+- Until steps 1 to 3 are done, the app fills in a plain template instead and says the email writer isn't set up.
+
 ## Seventeenth migration (Leafline 11.19: pipeline, call warnings, system health)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261116000017_pipeline_health.sql` > Run. Safe to run
 twice. (`RUN_IN_SUPABASE.sql` already contains it.) Nothing existing is changed or removed.

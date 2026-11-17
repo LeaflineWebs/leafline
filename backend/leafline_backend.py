@@ -3814,7 +3814,7 @@ function renderDetail(){
   lastDetail={id:l.id,sig};d.dataset.id=l.id;
   const n=S.sel.size;
   d.innerHTML=`<div class="${changed?"dsw":""}"><button class="btn sm dclose" id="dClose" aria-label="Back to the list">${ic("back")}Back</button><div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div>
-   <div class="acts">${callBtn(l.phone)}<button class="btn sm" id="dCopy">${ic("copy")}Copy phone</button><button class="btn sm" id="dSite"${l.website===NA?" disabled":""}>${ic("globe")}Website</button></div></div>
+   <div class="acts">${callBtn(l.phone)}<button class="btn sm" id="dMail">${ic("mail")}Email</button><button class="btn sm" id="dCopy">${ic("copy")}Copy phone</button><button class="btn sm" id="dSite"${l.website===NA?" disabled":""}>${ic("globe")}Website</button></div></div>
   <div id="gdSlot">${guardBanner(l)}</div>
   <div class="facts">
    <div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span style="font-size:13.5px;font-weight:700;color:#FFD60A">${esc(reviewTxt(l))}</span></div></div>
@@ -3866,16 +3866,17 @@ function leadModal(l){
    ${l.status!=="none"?creditField("lead",l.called_by):""}
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="mNotes" rows="3" maxlength="2000" style="margin-top:4px;background:var(--bg)" placeholder="What was said, when to call back...">${esc(l.notes)}</textarea></div></div>
    <div class="mark" style="margin-top:6px"><div class="t">Change result</div><div class="sb">${ORDER.map(k=>`<button class="st ${ST[k].cls}${l.status===k?" cur":""}" data-res="${k}">${ST[k].label}</button>`).join("")}</div></div>
-   <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><button class="btn" data-rem>${ic("clock")}Set reminder</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
+   <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><button class="btn" data-rem>${ic("clock")}Set reminder</button><button class="btn" data-mail>${ic("mail")}Write email</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
   (ov,close)=>{
     wireMtgLine(ov,l);guardLoad([l],true);
     const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim();if((ow||NA)!==l.owner||no!==l.notes){try{await api("save_lead",l.id,ow,no)}catch(e){toast("Couldn't save",{bad:1});return false}}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
     $("[data-x]",ov).onclick=close;$("[data-copy]",ov).onclick=()=>copyText(l.phone);$("[data-site]",ov).onclick=()=>api("open_site",l.id);
     $("[data-rem]",ov).onclick=()=>{const own=$("#mOwner",ov).value.trim(),nts=$("#mNotes",ov).value;save();close();setTimeout(()=>remSet({...l,owner:own,notes:nts}),220)};
     wireCredit(ov,"lead",l.id,()=>{close();reload()});
+    $("[data-mail]",ov).onclick=()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};save();close();setTimeout(()=>emailModal(fl,{kind:EM_FROM_STATUS[l.status]||""}),220)};
     $("[data-save]",ov).onclick=async()=>{if(await save()){close();toast("Saved");reload()}};
     $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status);
-      if(b.dataset.res!==l.status)autoFollow(b.dataset.res==="orange"?"no_answer":b.dataset.res==="yellow"?"interested":"",[fl]).catch(()=>{})}});
+      if(b.dataset.res!==l.status){autoFollow(b.dataset.res==="orange"?"no_answer":b.dataset.res==="yellow"?"interested":"",[fl]).catch(()=>{});emailNudge(fl,EM_FROM_STATUS[b.dataset.res])}}});
     $("[data-back]",ov).onclick=async()=>{if(await save()){close();await changeStatus([l.id],"none",l.status)}};
   });
 }
@@ -4794,7 +4795,8 @@ function logCallModal(lead){
       const r=await api("log_call",{lead_id:l?l.id:(lead?lead.id:""),phone:g("lcPhone").value,when:g("lcWhen").value,outcome:out,notes:g("lcNotes").value});
       if(!r.ok)return toast(r.error||"Couldn't save.",{bad:1});
       close();toast("Call logged");if(S.page==="calls")renderCalls(true);
-      const fl=l||lead;if(fl)autoFollow(out==="no_answer"?"no_answer":out==="voicemail"?"voicemail":(out==="interested"||out==="follow_up")?"interested":"",[{...fl,notes:g("lcNotes").value||fl.notes||""}]).catch(()=>{})};
+      const fl=l||lead;if(fl)autoFollow(out==="no_answer"?"no_answer":out==="voicemail"?"voicemail":(out==="interested"||out==="follow_up")?"interested":"",[{...fl,notes:g("lcNotes").value||fl.notes||""}]).catch(()=>{});
+      if(fl)emailNudge({...fl,notes:g("lcNotes").value||fl.notes||""},{no_answer:"no_answer",voicemail:"voicemail",interested:"interested",follow_up:"follow_up",meeting_booked:"meeting",sale_completed:"sale"}[out])};
   });
 }
 setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))renderCalls(true)},20000);
@@ -5970,6 +5972,12 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.20.0",t:"Write emails with AI",items:[
+  "New: write an email to any business in seconds. Type a quick request (or tap a quick pick), choose Friendly, Professional or Short, and Leafline writes a full email made for that company: its name, the kind of business, its reviews, whether it has a website and your call notes.",
+  "Find it in Find Leads (the Email button in a business's details) and in Called Leads (Write email).",
+  "Right after a call (No answer, Interested, Meeting, or a logged call), a small card offers to write the email. It starts writing straight away.",
+  "Change anything before you send it. Open it in your email app or Gmail, or copy it. Your signature is added at the bottom; edit it once and it's saved.",
+  "The AI part needs the 18th database update and a one-time setup in Supabase (admins: SETUP_SUPABASE.md > Email writer). Until then you get a plain template."]},
  {v:"11.19.0",t:"Pipeline, follow-ups and smarter calling",items:[
   "New Pipeline page: every business you've called, from Called to Interested, Meeting, Proposal sent, Won and Lost. Drag a card to move it. Cards with no change for 7 days are marked Stale.",
   "Automatic follow-ups: mark No answer and a reminder is set for the next workday at a different time of day. Voicemail (Call Log) sets one 3 workdays later, and Interested opens the reminder. Turn it off in Settings > Calling.",
@@ -6133,7 +6141,9 @@ UI_HTML = _glassui.inject(UI_HTML)
 import leafline_splits_ui as _splitui
 UI_HTML = _splitui.inject(UI_HTML)
 import leafline_productivity_ui as _produi
-UI_HTML = _produi.inject(UI_HTML)         # 11.19: follow-ups, call guard, lead scores, saved searches, Pipeline, health        # Profit splits (11.18): who gets credit for each confirmed payment        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
+UI_HTML = _produi.inject(UI_HTML)
+import leafline_email_ui as _emailui
+UI_HTML = _emailui.inject(UI_HTML)        # 11.20: the AI email writer (Find Leads, Called Leads, after a call)         # 11.19: follow-ups, call guard, lead scores, saved searches, Pipeline, health        # Profit splits (11.18): who gets credit for each confirmed payment        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
 
 
 API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",

@@ -12,8 +12,9 @@ from urllib.parse import urlparse, parse_qs
 class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
-        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests", "meeting_checks", "deal_splits", "lead_stages", "app_status")}
+        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests", "meeting_checks", "deal_splits", "lead_stages", "app_status", "email_drafts")}
         self.mtg_cap = True; self.split_cap = True; self.p17_cap = True
+        self.email_cap = True; self.email_fn = "ok"; self.email_reqs = []   # 18th update + the email-draft Edge Function ("ok" | "none" = not deployed | "nokey" | "busy")
         self.lead = dict(key="", cap=900, used=0); self.lead_cap = True; self.google_calls = 0
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
@@ -69,6 +70,7 @@ class Fake:
                     bearer = (s.headers.get("Authorization") or "")[7:]
                     uid = "service" if bearer == "sb_secret_test" else F.tokens.get(bearer)
                     if not uid or F.expire_tokens: return s.reply(401, {"message": "JWT expired"})
+                    if u.path == "/functions/v1/email-draft" and method == "POST": return s.email_draft(body, uid)
                     if u.path == "/auth/v1/user":
                         for v in F.users.values():
                             if v["uid"] == uid: v["pw"] = body["password"]
@@ -141,7 +143,33 @@ class Fake:
                 F.expire_tokens = False
                 s.reply(200, {"access_token": at, "refresh_token": rt, "expires_in": 3600, "user": {"id": uid}})
 
+            def email_draft(s, body, uid):
+                """Stand-in for supabase/functions/email-draft (its real request handling is tested in tests/fn/test_email_draft.mjs)."""
+                if F.email_fn == "none": return s.reply(404, {"code": "NOT_FOUND", "message": "Requested function was not found"})
+                F.email_reqs.append(dict(uid=uid, body=body))
+                if F.email_fn == "nokey": return s.reply(503, {"ok": False, "code": "no_key", "error": "The email writer isn't set up yet: the AI key is missing in Supabase."})
+                if not F.email_cap: return s.reply(503, {"ok": False, "code": "no_db", "error": "The email writer needs the 18th database update (RUN_IN_SUPABASE.sql)."})
+                q = s.quota(uid, (body or {}).get("lead", {}).get("id", ""))
+                if not q["ok"]: return s.reply(429 if q.get("limit_reached") else 403, {"ok": False, "code": "limit" if q.get("limit_reached") else "auth", "error": q["error"]})
+                if F.email_fn == "busy": return s.reply(503, {"ok": False, "code": "busy", "error": "The AI is busy right now. Try again in a minute."})
+                l = body["lead"]; first = (l.get("owner") or "").split(" ")[0] if l.get("owner") not in (None, "", "N/A") else ""
+                return s.reply(200, {"ok": True, "subject": "A new website for " + l.get("name", ""), "used": q["used"], "limit": q["limit"],
+                                     "body": ("Hi " + first + "," if first else "Hi " + l.get("name", "") + " team,") + "\n\nAI email about: " + (body.get("prompt") or "(no request)") + " [" + (body.get("tone") or "") + "/" + (body.get("kind") or "") + "]\n\nBest,"})
+
+            def quota(s, uid, lead):
+                """Mirrors email_quota_take() (18th update); the real rules are tested in tests/pg/test_email_sql.mjs."""
+                p = next((p for p in F.t["profiles"] if p["id"] == uid), None)
+                if not p or not p["active"]: return dict(ok=False, error="Sign in first.")
+                now = datetime.now(timezone.utc); E = F.t["email_drafts"]
+                n = sum(1 for r in E if r["user_id"] == uid and (now - datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))).total_seconds() < 86400)
+                if n >= 150: return dict(ok=False, limit_reached=True, used=n, limit=150, error="You've written 150 emails in the last 24 hours, the most allowed. Try again later.")
+                E.append(dict(id=len(E) + 1, user_id=uid, lead_id=str(lead or "")[:80], created_at=F.now()))
+                return dict(ok=True, used=n + 1, limit=150)
+
             def rest(s, method, tbl, q, body, uid):
+                if tbl == "rpc/email_quota_take":
+                    if not F.email_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public.email_quota_take"})
+                    return s.reply(200, s.quota(uid, (body or {}).get("p_lead", "")))
                 if tbl in ("rpc/lead_stage_list", "rpc/lead_stage_set", "rpc/lead_guard", "rpc/me_status_report", "rpc/team_health"):   # mirrors migration 17; real rules in tests/pg/test_pipeline_health_sql.mjs
                     if not F.p17_cap: return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                     prof = {p["id"]: p for p in F.t["profiles"]}
@@ -184,8 +212,8 @@ class Fake:
                     if tbl == "rpc/team_health":
                         if F.role(uid) != "admin": return s.reply(400, {"code": "P0001", "message": "Administrators only"})
                         st = {r["user_id"]: r for r in F.t["app_status"]}
-                        ups = {str(n): True for n in range(2, 18)}
-                        ups.update({"7": F.paid_cap, "13": F.mtg_cap, "16": F.split_cap})
+                        ups = {str(n): True for n in range(2, 19)}
+                        ups.update({"7": F.paid_cap, "13": F.mtg_cap, "16": F.split_cap, "18": F.email_cap})
                         people = [dict(id=p["id"], name=p["display_name"], username=p["username"], role=p["role"], active=p["active"], last_seen=p.get("last_seen"),
                                        version=st.get(p["id"], {}).get("version"), platform=st.get(p["id"], {}).get("platform"), sync_state=st.get(p["id"], {}).get("sync_state"),
                                        pending=st.get(p["id"], {}).get("pending"), last_error=st.get(p["id"], {}).get("last_error"), reported_at=st.get(p["id"], {}).get("updated_at")) for p in F.t["profiles"]]
