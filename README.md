@@ -95,6 +95,15 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 11.22: emails found on business websites
+- `enrich()` / `find_email()` in `backend/leafline_backend.py`: the same homepage + contact/about pages the PC app already
+  reads for owner names now also give the business's email (mailto links, text, Cloudflare `data-cfemail`, "name [at]
+  shop [dot] com"). Own-domain addresses win; images, placeholders, no-reply, builder and tracking addresses are skipped.
+- Saved in the existing `leads.email` column (no database update needed), synced both ways; a known email is never
+  replaced by "N/A" from a computer that hasn't seen it yet (`merge3`). Editable in Find Leads and Called Leads, saved
+  from the email pop-up's To box, used to fill the To box, and exported in CSV.
+- The website's own Google searches can't read other websites from a browser, so emails come from PC searches (and typing).
+
 ## What is new in 11.20: AI email writer
 - `backend/leafline_email_ui.py` (added to the shared page like the other modules): a "Write email" pop-up for one
   business. Type a quick request or tap a quick pick, choose Friendly / Professional / Short, and it writes a subject and

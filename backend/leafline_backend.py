@@ -12,7 +12,7 @@ import base64, calendar, csv, heapq, hmac, html, json, os, queue, random, re, se
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import date, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from urllib.parse import quote_plus, urljoin, urlparse
+from urllib.parse import quote_plus, unquote, urljoin, urlparse
 import requests
 import leafline_sync as lsync
 
@@ -232,6 +232,65 @@ def fetch(url):
     return ""
 
 
+# ---------------- email addresses on the business's own website (11.22) ----------------
+EMAIL_RX = re.compile(r"(?<![\w.%+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}(?![\w-])")
+EMAIL_JUNK_DOMAINS = ("example.com", "example.org", "domain.com", "email.com", "yourdomain.com", "yoursite.com", "website.com",
+                      "sentry.io", "sentry-next.wixpress.com", "wixpress.com", "wix.com", "squarespace.com", "godaddy.com",
+                      "cloudflare.com", "schema.org", "w3.org", "googleapis.com", "gstatic.com", "jquery.com", "wordpress.com",
+                      "wordpress.org", "shopify.com", "sentry.wixpress.com", "mysite.com", "company.com", "test.com")
+EMAIL_JUNK_LOCAL = re.compile(r"^(no-?reply|do-?not-?reply|donotreply|noreply|mailer-daemon|postmaster|abuse|webmaster|privacy|"
+                              r"example|test|your-?(name|email)|name|email|user(name)?|someone|john\.?doe|jane\.?doe|first\.?last)$", re.I)
+FREE_MAIL = ("gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "yahoo.ca", "icloud.com", "live.com", "msn.com", "aol.com",
+             "rogers.com", "bell.net", "shaw.ca", "telus.net", "sympatico.ca", "proton.me", "protonmail.com", "me.com")
+
+
+def _cf_email(hexs):
+    """Cloudflare hides addresses as data-cfemail="<hex>": the first byte is the key for the rest."""
+    try:
+        b = bytes.fromhex(hexs); return "".join(chr(c ^ b[0]) for c in b[1:])
+    except ValueError:
+        return ""
+
+
+def find_email(raw, site=""):
+    """The best contact email on these pages, or N/A. Prefers the business's own domain, then a mailto link, then a
+    common contact box (info@, contact@, hello@...). Skips image names, placeholders, no-reply and website-builder addresses."""
+    host = urlparse(site if "//" in site else "http://" + site).netloc.lower().split(":")[0]
+    host = host[4:] if host.startswith("www.") else host
+    found = {}
+    def add(e, how):
+        e = unquote(html.unescape(str(e))).strip().strip(".,;:'\"()<>[]").lower()
+        e = e.split("?")[0]
+        if not EMAIL_RX.fullmatch(e) or len(e) > 80: return
+        local, dom = e.rsplit("@", 1)
+        if re.search(r"\.(png|jpe?g|gif|webp|svg|bmp|ico|css|js|php|html?)$", dom) or re.search(r"@\d+x\.", e): return
+        if any(dom == d or dom.endswith("." + d) for d in EMAIL_JUNK_DOMAINS) or EMAIL_JUNK_LOCAL.match(local): return
+        if re.fullmatch(r"[0-9a-f]{16,}", local): return                       # tracking ids (Sentry and similar)
+        s = found.get(e, 0)
+        s = max(s, 2 if how == "mailto" else 1)
+        if host and (dom == host or dom.endswith("." + host) or host.endswith("." + dom)): s += 4
+        elif dom in FREE_MAIL: s += 1
+        if re.match(r"(info|contact|hello|office|admin|sales|service|bookings?|appointments?|enquiries|inquiries|team|mail)$", local): s += 1
+        found[e] = s
+    for m in re.finditer(r"""mailto:([^"'?\s>]+)""", raw, re.I): add(m.group(1), "mailto")
+    for m in re.finditer(r"""data-cfemail=["']([0-9a-fA-F]{6,})["']""", raw): add(_cf_email(m.group(1)), "mailto")
+    for m in re.finditer(r"/cdn-cgi/l/email-protection#([0-9a-fA-F]{6,})", raw): add(_cf_email(m.group(1)), "mailto")
+    txt = re.sub(r"(?is)<(script|style|noscript)\b.*?</\1>", " ", raw)
+    txt = html.unescape(re.sub(r"<[^>]+>", " ", txt))
+    txt = re.sub(r"\s*[\[(]\s*at\s*[\])]\s*", "@", txt, flags=re.I)              # name [at] shop.com
+    txt = re.sub(r"(?<=\w)\s*[\[(]\s*dot\s*[\])]\s*(?=\w)", ".", txt, flags=re.I)
+    for m in EMAIL_RX.finditer(txt): add(m.group(0), "text")
+    if not found: return NA
+    return sorted(found.items(), key=lambda kv: (-kv[1], len(kv[0])))[0][0]
+
+
+def clean_email(v):
+    """A typed email: N/A when empty, False when it isn't an address."""
+    v = str(v or "").strip()
+    if not v or v.upper() == NA: return NA
+    return v[:120] if EMAIL_RX.fullmatch(v) else False
+
+
 def enrich(site):
     base = site if site.lower().startswith("http") else "http://" + site
     pages = [fetch(base)]
@@ -247,7 +306,7 @@ def enrich(site):
     txt = re.sub(r"(?is)<(script|style|noscript)\b.*?</\1>", " ", raw)
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", txt)))
     rating, reviews = find_rating(raw)
-    return find_owner(txt), rating, reviews
+    return find_owner(txt), rating, reviews, find_email(raw, base)
 
 
 # ---------------- opening hours -> "open now?" ----------------
@@ -337,8 +396,10 @@ def open_db(path):
     db.execute("""CREATE TABLE IF NOT EXISTS leads(id TEXT PRIMARY KEY, name TEXT, phone TEXT, pdigits TEXT DEFAULT '',
         btype TEXT DEFAULT '', owner TEXT DEFAULT 'N/A', rating TEXT DEFAULT 'N/A', reviews TEXT DEFAULT 'N/A',
         website TEXT DEFAULT 'N/A', address TEXT DEFAULT 'N/A', search TEXT, status TEXT DEFAULT 'none',
-        notes TEXT DEFAULT '', called_at TEXT, enriched INTEGER DEFAULT 0, hours TEXT DEFAULT '', added_at TEXT DEFAULT '', meeting_at TEXT DEFAULT '')""")
+        notes TEXT DEFAULT '', called_at TEXT, enriched INTEGER DEFAULT 0, hours TEXT DEFAULT '', added_at TEXT DEFAULT '', meeting_at TEXT DEFAULT '',
+        email TEXT DEFAULT 'N/A')""")
     cols = {r[1] for r in db.execute("PRAGMA table_info(leads)")}
+    if "email" not in cols: db.execute("ALTER TABLE leads ADD COLUMN email TEXT DEFAULT 'N/A'")   # 11.22
     for c in ("pdigits", "btype", "hours", "added_at", "meeting_at"):  # upgrade older databases in place
         if c not in cols:
             db.execute(f"ALTER TABLE leads ADD COLUMN {c} TEXT DEFAULT ''")
@@ -361,14 +422,15 @@ def open_db(path):
     return db
 
 
-LEAD_COLS = "id,name,btype,phone,owner,rating,reviews,address,website,notes,status,called_at,hours,search,meeting_at"
+LEAD_COLS = "id,name,btype,phone,owner,rating,reviews,address,website,notes,status,called_at,hours,search,meeting_at,email"
 
 
 def lead_dict(r, now=None):
     st, today, note = open_status(r[12], now)
     return dict(id=r[0], name=r[1] or "", btype=r[2] or "Other", phone=r[3] or "", owner=r[4] or NA, rating=r[5] or NA,
                 reviews=r[6] or NA, address=r[7] or NA, website=r[8] or NA, notes=r[9] or "", status=r[10] or "none",
-                called_at=r[11] or "", open=st, hours=today, open_note=note, search=r[13] or "", meeting_at=r[14] or "")
+                called_at=r[11] or "", open=st, hours=today, open_note=note, search=r[13] or "", meeting_at=r[14] or "",
+                email=(r[15] if len(r) > 15 else "") or NA)
 
 
 # ---------------- deals / profits (every amount is typed in by hand) ----------------
@@ -1408,12 +1470,23 @@ class Api:
         except Exception: pass
         return dict(ok=True, n=len(ids))
 
-    def save_lead(self, id, owner, notes):
+    def save_lead(self, id, owner, notes, email=None):
+        em = None if email is None else clean_email(email)
+        if em is False: return dict(ok=False, error="That email address doesn't look right.")
         with self._lock:
             self._db.execute("UPDATE leads SET owner=?, notes=? WHERE id=?",
                              ((owner or "").strip()[:80] or NA, (notes or "").strip()[:2000], str(id)))
+            if em is not None: self._db.execute("UPDATE leads SET email=? WHERE id=?", (em, str(id)))
             self._db.commit()
-        return dict(ok=True, owner=(owner or "").strip()[:80] or NA)
+        return dict(ok=True, owner=(owner or "").strip()[:80] or NA, **({} if em is None else {"email": em}))
+
+    def save_email(self, id, email):
+        """Just the business's email (typed in the email pop-up's To box)."""
+        em = clean_email(email)
+        if em is False: return dict(ok=False, error="That email address doesn't look right.")
+        with self._lock:
+            self._db.execute("UPDATE leads SET email=? WHERE id=?", (em, str(id))); self._db.commit()
+        return dict(ok=True, email=em)
 
     def open_site(self, id):
         rows = self._rows("id=?", (str(id),))
@@ -1437,14 +1510,14 @@ class Api:
         try:
             with open(path, "w", newline="", encoding="utf-8-sig") as fh:
                 w = csv.writer(fh)
-                head = ["Business type", "Company", "Phone", "Owner", "Open now", "Hours today", "Rating", "Reviews", "Website", "Address", "Notes"]
+                head = ["Business type", "Company", "Phone", "Owner", "Open now", "Hours today", "Rating", "Reviews", "Website", "Address", "Notes", "Email"]
                 w.writerow((["Result"] if called else []) + (head[:4] + ["Last called"] + head[4:] if called else head))
                 for l in leads:
                     row = [l["btype"], l["name"], l["phone"], l["owner"]]
                     if called:
                         row.append(l["called_at"])
                     row += [{"open": "Open", "closed": "Closed"}.get(l["open"], NA), l["hours"], l["rating"], l["reviews"],
-                            extra.get(l["id"], NA), l["address"], l["notes"]]
+                            extra.get(l["id"], NA), l["address"], l["notes"], l.get("email", NA)]
                     w.writerow(([STATUS_LABELS[l["status"]]] if called else []) + row)
         except OSError as e:
             return dict(ok=False, error=str(e))
@@ -1580,7 +1653,7 @@ class Api:
             try:
                 return r[0], enrich(r[1])
             except Exception:
-                return r[0], (NA, NA, NA)
+                return r[0], (NA, NA, NA, NA)
         with ThreadPoolExecutor(8) as ex:
             futs, n = [ex.submit(one, r) for r in todo], 0
             for f in as_completed(futs):
@@ -1589,14 +1662,15 @@ class Api:
                         x.cancel()
                     break
                 n += 1
-                id_, (o, rt, rv) = f.result()
+                id_, (o, rt, rv, em) = f.result()
                 with self._lock:
                     self._db.execute("""UPDATE leads SET enriched=1,
                         owner=CASE WHEN owner='N/A' THEN ? ELSE owner END, rating=CASE WHEN rating='N/A' THEN ? ELSE rating END,
-                        reviews=CASE WHEN reviews='N/A' THEN ? ELSE reviews END WHERE id=?""", (o, rt, rv, id_))
+                        reviews=CASE WHEN reviews='N/A' THEN ? ELSE reviews END,
+                        email=CASE WHEN COALESCE(email,'N/A')='N/A' THEN ? ELSE email END WHERE id=?""", (o, rt, rv, em, id_))
                     if n % 10 == 0:
                         self._db.commit()
-                self._say(f"Got {self._n} businesses. Checked {n}/{len(todo)} websites for owner names...", 0.9 + 0.1 * n / len(todo))
+                self._say(f"Got {self._n} businesses. Checked {n}/{len(todo)} websites for owner names and emails...", 0.9 + 0.1 * n / len(todo))
                 if n % 10 == 0:
                     self._emit("refresh")
         with self._lock:
@@ -2931,7 +3005,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   .chk{width:28px;height:28px;position:relative}.chk:after{content:"";position:absolute;inset:-9px}
   /* lead pop-up: the owner box gets a full row, results become a 2 x 2 grid */
   .facts{gap:10px}
-  .fact:has(#mOwner),.fact:has(#dOwner),.fact:has(#mOwner)+.fact,.fact:has(#dOwner)+.fact{grid-column:1/-1}
+  .fact:has(#mOwner),.fact:has(#dOwner),.fact:has(#mOwner)+.fact,.fact:has(#dOwner)+.fact,.fact:has(#dEmail)+.fact,.fact:has(#mEmail)+.fact{grid-column:1/-1}
   .sb{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.sb .st{height:48px}
   /* Find Leads: city gets a full row like business type */
   .frow>div:nth-child(3){grid-column:1/3}
@@ -3810,7 +3884,7 @@ function renderDetail(){
   if(!l){lastDetail=null;d.innerHTML=`<div class="empty" style="height:100%"><div class="bub">${ic("user")}</div><b>Select a business</b>Details, hours and call buttons show up here.</div>`;hydrateIcons(d);return}
   const sig=JSON.stringify([l,[...S.sel].length]);if(lastDetail&&lastDetail.sig===sig&&d.dataset.id===l.id)return;
   const changed=!lastDetail||lastDetail.id!==l.id;
-  if(!changed){const o=$("#dOwner"),nt=$("#dNotes");if(o&&(document.activeElement===o||document.activeElement===nt)){lastDetail={id:l.id,sig};patchDetail(l);return}}
+  if(!changed){const o=$("#dOwner"),nt=$("#dNotes"),de=$("#dEmail");if(o&&(document.activeElement===o||document.activeElement===nt||(de&&document.activeElement===de))){lastDetail={id:l.id,sig};patchDetail(l);return}}
   lastDetail={id:l.id,sig};d.dataset.id=l.id;
   const n=S.sel.size;
   d.innerHTML=`<div class="${changed?"dsw":""}"><button class="btn sm dclose" id="dClose" aria-label="Back to the list">${ic("back")}Back</button><div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div>
@@ -3820,6 +3894,7 @@ function renderDetail(){
    <div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span style="font-size:13.5px;font-weight:700;color:#FFD60A">${esc(reviewTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="dOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
+   <div class="fact"><div class="k">Email</div><input class="inp" id="dEmail" type="email" value="${esc(!l.email||l.email===NA?"":l.email)}" placeholder="N/A - type an email" maxlength="120" autocomplete="off"></div>
    <div class="fact"><div class="k">Google rating</div><div class="v">${l.rating===NA?NA:esc(l.rating)+" ★"}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${l.reviews===NA?"":esc(num(l.reviews))+" reviews"}</span></div></div>
    ${scoreFactHTML(l)}
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="dNotes" rows="3" placeholder="What was said, when to call back..." maxlength="2000" style="margin-top:4px;background:var(--bg)">${esc(l.notes)}</textarea></div></div>
@@ -3830,9 +3905,11 @@ function renderDetail(){
 }
 function patchDetail(l){const n=S.sel.size,t=$("#markT");if(t)t.textContent=n?`Mark ${n} selected business${n===1?"":"es"} as`:"Mark this business as"}
 async function saveDetail(silent){
-  const l=S.find.find(x=>x.id===S.active),o=$("#dOwner"),nt=$("#dNotes");if(!l||!o||!nt)return;
-  const ow=o.value.trim(),no=nt.value.trim();if((ow||NA)===l.owner&&no===l.notes)return;
-  try{const r=await api("save_lead",l.id,ow,no);l.owner=r.owner;l.notes=no;
+  const l=S.find.find(x=>x.id===S.active),o=$("#dOwner"),nt=$("#dNotes"),de=$("#dEmail");if(!l||!o||!nt)return;
+  const ow=o.value.trim(),no=nt.value.trim(),em=de?de.value.trim():null;
+  if((ow||NA)===l.owner&&no===l.notes&&(em===null||(em||NA)===(l.email||NA)))return;
+  try{const r=await api("save_lead",l.id,ow,no,em);if(r&&r.ok===false){if(!silent)toast(r.error||"Couldn't save.",{bad:1});return}
+    l.owner=r.owner;l.notes=no;if(r.email)l.email=r.email;
     /* the panel already shows what was saved: don't redraw it, or the notes you're still typing (or the button you're
        pressing) get replaced underneath you */
     if(lastDetail&&lastDetail.id===l.id)lastDetail.sig=JSON.stringify([l,[...S.sel].length]);
@@ -3861,6 +3938,7 @@ function leadModal(l){
    <div class="facts"><div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span class="pacts">${callBtn(l.phone)}<button class="btn sm" data-copy>${ic("copy")}Copy</button></span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="mOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
+   <div class="fact"><div class="k">Email</div><input class="inp" id="mEmail" type="email" value="${esc(!l.email||l.email===NA?"":l.email)}" placeholder="N/A - type an email" maxlength="120" autocomplete="off"></div>
    <div class="fact"><div class="k">Last called</div><div class="v">${esc(fmtDate(l.called_at)||NA)}</div></div>
    ${l.status==="green"?`<div class="fact span"><div class="k">Meeting date &amp; time</div><input class="inp" id="mWhen" type="datetime-local" value="${esc((l.meeting_at||"").replace(" ","T"))}">${mtgLine(l)}</div>`:""}
    ${l.status!=="none"?creditField("lead",l.called_by):""}
@@ -3869,11 +3947,13 @@ function leadModal(l){
    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><button class="btn" data-rem>${ic("clock")}Set reminder</button><button class="btn" data-mail>${ic("mail")}Write email</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
   (ov,close)=>{
     wireMtgLine(ov,l);guardLoad([l],true);
-    const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim();if((ow||NA)!==l.owner||no!==l.notes){try{await api("save_lead",l.id,ow,no)}catch(e){toast("Couldn't save",{bad:1});return false}}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
+    const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim(),em=$("#mEmail",ov).value.trim();
+      if((ow||NA)!==l.owner||no!==l.notes||(em||NA)!==(l.email||NA)){let r;try{r=await api("save_lead",l.id,ow,no,em)}catch(e){toast("Couldn't save",{bad:1});return false}
+        if(r&&r.ok===false){toast(r.error||"Couldn't save",{bad:1});$("#mEmail",ov).focus();return false}if(r&&r.email)l.email=r.email}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
     $("[data-x]",ov).onclick=close;$("[data-copy]",ov).onclick=()=>copyText(l.phone);$("[data-site]",ov).onclick=()=>api("open_site",l.id);
     $("[data-rem]",ov).onclick=()=>{const own=$("#mOwner",ov).value.trim(),nts=$("#mNotes",ov).value;save();close();setTimeout(()=>remSet({...l,owner:own,notes:nts}),220)};
     wireCredit(ov,"lead",l.id,()=>{close();reload()});
-    $("[data-mail]",ov).onclick=()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};save();close();setTimeout(()=>emailModal(fl,{kind:EM_FROM_STATUS[l.status]||""}),220)};
+    $("[data-mail]",ov).onclick=()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value,email:$("#mEmail",ov).value.trim()||l.email||NA};save();close();setTimeout(()=>emailModal(fl,{kind:EM_FROM_STATUS[l.status]||""}),220)};
     $("[data-save]",ov).onclick=async()=>{if(await save()){close();toast("Saved");reload()}};
     $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status);
       if(b.dataset.res!==l.status){autoFollow(b.dataset.res==="orange"?"no_answer":b.dataset.res==="yellow"?"interested":"",[fl]).catch(()=>{});emailNudge(fl,EM_FROM_STATUS[b.dataset.res])}}});
@@ -5972,6 +6052,12 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.22.0",t:"Emails found for you",items:[
+  "When the PC app checks a business's website after a search, it now also finds its email address (the contact page, mailto links, and addresses Cloudflare hides). It prefers the business's own address and skips no-reply and placeholder ones.",
+  "The email shows in Find Leads and Called Leads, where you can also type or fix it. It's shared with the whole team.",
+  "The email writer fills in the To box with it, so Open in Gmail opens with the address already there. An address you type in the To box is saved on the business for next time.",
+  "Exported CSV files now include the email.",
+  "Businesses without a website have no page to find an email on, so type those in when you get them."]},
  {v:"11.21.0",t:"Send emails in one click, and smoother reminders",items:[
   "Write an email and send it in one click: press Open in Gmail and Leafline writes the email, then opens it in Gmail with the subject and everything filled in, ready to send. On an iPhone it opens the Gmail app.",
   "Email app and Copy work straight away too. If nothing has been written yet, they write the email first.",

@@ -72,7 +72,7 @@ def now_iso(): return datetime.now(timezone.utc).isoformat()
 
 
 # ------------------------------------------------------------------ table specs (local row <-> remote row)
-LEAD_L = "id,name,phone,owner,rating,reviews,website,address,search,btype,hours,status,notes,enriched,added_at,called_at,meeting_at"
+LEAD_L = "id,name,phone,owner,rating,reviews,website,address,search,btype,hours,status,notes,enriched,added_at,called_at,meeting_at,email"
 TS_FIELDS = {"added_at", "called_at", "meeting_at"}
 
 
@@ -82,7 +82,8 @@ def lead_out(r):
             "rating": d["rating"] or "N/A", "reviews": d["reviews"] or "N/A", "website": d["website"] or "N/A",
             "address": d["address"] or "N/A", "search": d["search"], "btype": d["btype"] or "", "hours": d["hours"] or "",
             "status": d["status"] or "none", "notes": d["notes"] or "", "enriched": bool(d["enriched"]),
-            "added_at": to_iso(d["added_at"]), "called_at": to_iso(d["called_at"]), "meeting_at": to_iso(d["meeting_at"])}
+            "added_at": to_iso(d["added_at"]), "called_at": to_iso(d["called_at"]), "meeting_at": to_iso(d["meeting_at"]),
+            "email": d.get("email") or "N/A"}
 
 
 def lead_in(R):
@@ -90,7 +91,7 @@ def lead_in(R):
             "reviews": R["reviews"], "website": R["website"], "address": R["address"], "search": R["search"],
             "btype": R["btype"], "hours": R["hours"], "status": R["status"], "notes": R["notes"],
             "enriched": 1 if R["enriched"] else 0, "added_at": from_iso(R["added_at"]),
-            "called_at": from_iso(R["called_at"]) or None, "meeting_at": from_iso(R["meeting_at"])}
+            "called_at": from_iso(R["called_at"]) or None, "meeting_at": from_iso(R["meeting_at"]), "email": R.get("email") or "N/A"}
 
 
 DEAL_L = "id,client,upfront,monthly,months,closed_at,first_bill,notes,created_at,confirmed"
@@ -143,7 +144,7 @@ def note_in(R):
 
 
 SPEC = {
-    "leads": dict(cols=LEAD_L, out=lead_out, inn=lead_in, rank=0, keys=[k for k in lead_out((None,) * 17) if k != "id"]),
+    "leads": dict(cols=LEAD_L, out=lead_out, inn=lead_in, rank=0, keys=[k for k in lead_out((None,) * 18) if k != "id"]),
     "deals": dict(cols=DEAL_L, out=deal_out, inn=deal_in, rank=1, keys=[k for k in deal_out((None,) * 10) if k != "id"]),
     "events": dict(cols=EVENT_L, out=event_out, inn=event_in, rank=2, keys=[k for k in event_out((None,) * 15) if k not in ("id", "created_by")]),
     "notes": dict(cols=NOTE_L, out=note_out, inn=note_in, rank=3, keys=[k for k in note_out((None,) * 8) if k not in ("id", "owner_id")]),
@@ -159,11 +160,15 @@ def same(a, b, k=None):
     return (a if a not in ("", None) else None) == (b if b not in ("", None) else None)
 
 
+def unknown(v): return v in (None, "", "N/A")
+
+
 def merge3(base, local, remote, local_newer):
     """Per-field 3-way merge. Returns (merged, lost); lost lists fields changed on BOTH sides."""
     out, lost = {}, []
     for k, l in local.items():
         r, b = remote.get(k), (base or {}).get(k)
+        if k == "email" and unknown(l) and not unknown(r): out[k] = r; continue     # a found email is never replaced by "unknown"
         if same(l, r, k): out[k] = l
         elif base is not None and same(l, b, k): out[k] = r
         elif base is not None and same(r, b, k): out[k] = l
@@ -193,6 +198,8 @@ def ensure_schema(db):
     CREATE TABLE IF NOT EXISTS call_queue(op_id TEXT PRIMARY KEY, payload TEXT, actor TEXT DEFAULT '', queued_at TEXT,
         attempts INTEGER DEFAULT 0, last_error TEXT DEFAULT '', blocked INTEGER DEFAULT 0);
     """)
+    lc = {r[1] for r in db.execute("PRAGMA table_info(leads)")}
+    if lc and "email" not in lc: db.execute("ALTER TABLE leads ADD COLUMN email TEXT DEFAULT 'N/A'")   # 11.22: found on the business's website
     cols = {r[1] for r in db.execute("PRAGMA table_info(events)")}
     for c, typ in (("assigned_to", "TEXT"), ("created_by", "TEXT"), ("done", "INTEGER"), ("done_at", "TEXT")):   # upgrade the cache in place
         if c not in cols: db.execute(f"ALTER TABLE events ADD COLUMN {c} {typ} DEFAULT {'0' if typ == 'INTEGER' else chr(39)*2}")

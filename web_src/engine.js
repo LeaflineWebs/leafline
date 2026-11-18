@@ -180,7 +180,7 @@
   // ------------------------------------------------------------------ remote row <-> local row
   const leadIn = (R) => ({
     id: R.id, name: R.name || "", phone: R.phone || "", owner: R.owner_name || NA, rating: R.rating || NA, reviews: R.reviews || NA, website: R.website || NA,
-    address: R.address || NA, search: R.search || "", btype: R.btype || "", hours: R.hours || "", status: R.status || "none", notes: R.notes || "",
+    address: R.address || NA, search: R.search || "", btype: R.btype || "", hours: R.hours || "", status: R.status || "none", notes: R.notes || "", email: R.email || NA,
     enriched: R.enriched ? 1 : 0, added_at: isoToLocal(R.added_at), called_at: isoToLocal(R.called_at), meeting_at: isoToLocal(R.meeting_at), called_by: R.called_by || "", version: R.version || 1,
   });
   const dealIn = (R) => ({ uuid: R.id, id: lidOf("deals", R.id), client: R.client || "", upfront: Number(R.upfront || 0), monthly: Number(R.monthly || 0), months: R.months || 0, closed_at: R.closed_at || "", first_bill: R.first_bill || R.closed_at || "", notes: R.notes || "", confirmed: R.confirmed || "", created_at: R.created_at || "" });
@@ -492,7 +492,9 @@
   const netErr = (e) => e instanceof Offline ? "You're offline." : e instanceof AuthLost ? "Signed out." : String(e.message || e).slice(0, 160);
   const isAdmin = () => ((meOf() || {}).role === "admin");
   const names = () => Object.fromEntries((st.people || []).map((p) => [p.id, p.display_name]));
-  const leadDict = (l) => { const [o, h, n] = openStatus(l.hours); return { id: l.id, name: l.name, btype: l.btype || "Other", phone: l.phone, owner: l.owner || NA, rating: l.rating || NA, reviews: l.reviews || NA, address: l.address || NA, website: l.website || NA, notes: l.notes, status: l.status || "none", called_at: l.called_at || "", open: o, hours: h, open_note: n, search: l.search || "", meeting_at: l.meeting_at || "", called_by: l.called_by || "", called_by_name: (l.called_by && names()[l.called_by]) || "" }; };
+  const leadDict = (l) => { const [o, h, n] = openStatus(l.hours); return { id: l.id, name: l.name, btype: l.btype || "Other", phone: l.phone, owner: l.owner || NA, rating: l.rating || NA, reviews: l.reviews || NA, address: l.address || NA, website: l.website || NA, notes: l.notes, status: l.status || "none", called_at: l.called_at || "", open: o, hours: h, open_note: n, search: l.search || "", meeting_at: l.meeting_at || "", called_by: l.called_by || "", called_by_name: (l.called_by && names()[l.called_by]) || "", email: l.email || NA }; };
+  /* a typed email: N/A when empty, false when it isn't an address (same rule as the PC app) */
+  const cleanEmail = (v) => { v = String(v || "").trim(); if (!v || v.toUpperCase() === NA) return NA; return /^[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}$/.test(v) ? v.slice(0, 120) : false; };
   const revNum = (l) => { const n = parseInt(String(l.reviews).replace(/\D/g, ""), 10); return isNaN(n) ? 0 : n; };
   const cmpName = (a, b) => String(a).toLowerCase() < String(b).toLowerCase() ? -1 : String(a).toLowerCase() > String(b).toLowerCase() ? 1 : 0;
 
@@ -815,10 +817,19 @@
       saveCache();
       return { ok: true, n: ids.length };
     },
-    save_lead(id, owner, notes) {
+    save_lead(id, owner, notes, email) {
+      const em = email === undefined || email === null ? null : cleanEmail(email);
+      if (em === false) return { ok: false, error: "That email address doesn't look right." };
       const l = st.leads.get(String(id)); const ow = (owner || "").trim().slice(0, 80) || NA;
-      if (l) { l.owner = ow; l.notes = (notes || "").trim().slice(0, 2000); enqueue({ kind: "patch", table: "leads", id: l.id, body: { owner_name: l.owner, notes: l.notes } }); saveCache(); }
-      return { ok: true, owner: ow };
+      if (l) { l.owner = ow; l.notes = (notes || "").trim().slice(0, 2000); if (em !== null) l.email = em;
+        enqueue({ kind: "patch", table: "leads", id: l.id, body: { owner_name: l.owner, notes: l.notes, ...(em !== null ? { email: em } : {}) } }); saveCache(); }
+      return em === null ? { ok: true, owner: ow } : { ok: true, owner: ow, email: em };
+    },
+    save_email(id, email) {
+      const em = cleanEmail(email); if (em === false) return { ok: false, error: "That email address doesn't look right." };
+      const l = st.leads.get(String(id));
+      if (l) { l.email = em; enqueue({ kind: "patch", table: "leads", id: l.id, body: { email: em } }); saveCache(); }
+      return { ok: true, email: em };
     },
     set_meeting(id, when) {
       let w = String(when || "").trim().replace("T", " ");
@@ -846,11 +857,11 @@
     export_csv(called, scope) {
       const rows = called ? API.get_called() : API.get_find(scope), extra = (id) => (st.leads.get(id) || {}).website || NA;
       const lab = { none: "Not called yet", green: "Called - Meeting set up", yellow: "Called - Interested", orange: "Called - No answer", red: "Called - Not interested" };
-      const head = ["Business type", "Company", "Phone", "Owner", "Open now", "Hours today", "Rating", "Reviews", "Website", "Address", "Notes"];
+      const head = ["Business type", "Company", "Phone", "Owner", "Open now", "Hours today", "Rating", "Reviews", "Website", "Address", "Notes", "Email"];
       const table = [(called ? ["Result"] : []).concat(called ? head.slice(0, 4).concat(["Last called"], head.slice(4)) : head)];
       for (const l of rows) {
         const r = [l.btype, l.name, l.phone, l.owner]; if (called) r.push(l.called_at);
-        r.push({ open: "Open", closed: "Closed" }[l.open] || NA, l.hours, l.rating, l.reviews, extra(l.id), l.address, l.notes);
+        r.push({ open: "Open", closed: "Closed" }[l.open] || NA, l.hours, l.rating, l.reviews, extra(l.id), l.address, l.notes, l.email || NA);
         table.push((called ? [lab[l.status]] : []).concat(r));
       }
       download(called ? "leafline_called_leads.csv" : "leafline_leads.csv", toCsv(table));

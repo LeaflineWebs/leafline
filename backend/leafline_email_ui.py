@@ -137,7 +137,7 @@ function emailModal(l,o={}){
    <div class="em-wait" id="emWait" role="status" aria-live="polite"><i></i>Writing an email for ${esc(l.name)}...</div>
    <div class="em-out" id="emOut" hidden>
     <div id="emMsg" role="status" aria-live="polite"></div>
-    <div class="em-f"><label class="l" for="emTo">To</label><input class="inp" id="emTo" type="email" maxlength="160" placeholder="their email address (you can also add it in your email app)" value="${esc(o.to||"")}"></div>
+    <div class="em-f"><label class="l" for="emTo">To</label><input class="inp" id="emTo" type="email" maxlength="160" placeholder="their email address (you can also add it in your email app)" value="${esc(o.to||(emHas(l.email)?l.email:""))}"></div>
     <div class="em-f"><label class="l" for="emSub">Subject</label><input class="inp" id="emSub" maxlength="150"></div>
     <div class="em-f"><label class="l" for="emBody">Email</label><textarea class="inp" id="emBody" rows="12" maxlength="8000"></textarea></div>
     <details class="em-sig"><summary>Your signature</summary><textarea class="inp" id="emSig" rows="4" maxlength="400" style="width:100%">${esc(emSig())}</textarea>
@@ -177,7 +177,9 @@ function emailModal(l,o={}){
     };
     go.onclick=write;
     ask.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();write()}});
-    const full=()=>({to:to.value.trim(),s:subj.value.trim(),b:body.value});
+    const keepTo=()=>{const v=to.value.trim();if(!v||!l.id||v.toLowerCase()===String(l.email||"").toLowerCase()||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v))return;
+      api("save_email",l.id,v).then(r=>{if(r&&r.ok){l.email=r.email;for(const x of [...(S.find||[]),...(S.called||[])])if(x.id===l.id)x.email=r.email}}).catch(()=>{})};
+    const full=()=>{keepTo();return {to:to.value.trim(),s:subj.value.trim(),b:body.value}};
     /* each send button works straight away: with no email yet it writes one first, then sends it on */
     const need=async()=>body.value.trim()?true:await write();
     g("emCopy").onclick=async()=>{if(!await need())return;const f=full();copyText((f.s?"Subject: "+f.s+"\n\n":"")+f.b)};
@@ -224,12 +226,12 @@ function emNudgeShow(l,kind){
 {const _mk=markLeads;markLeads=async function(status,fromBoard){
   const ids=fromBoard||(S.sel.size?[...S.sel]:S.active?[S.active]:[]);
   const one=!fromBoard&&ids.length===1?S.find.find(x=>x.id===ids[0]):null,o=$("#dOwner"),nt=$("#dNotes");
-  const snap=one?{...one,owner:(o&&o.value.trim())||one.owner,notes:nt?nt.value:one.notes}:null;
+  const de=$("#dEmail"),snap=one?{...one,owner:(o&&o.value.trim())||one.owner,notes:nt?nt.value:one.notes,email:(de&&de.value.trim())||one.email}:null;
   const r=await _mk.apply(this,arguments);
   if(snap&&EM_FROM_STATUS[status]&&!S.find.some(x=>x.id===snap.id))emailNudge(snap,EM_FROM_STATUS[status]);
   return r}}
 $("#detail").addEventListener("click",e=>{if(!e.target.closest("#dMail"))return;const l=S.find.find(x=>x.id===S.active);if(!l)return;
-  const o=$("#dOwner"),nt=$("#dNotes");saveDetail(true);emailModal({...l,owner:(o&&o.value.trim())||l.owner,notes:nt?nt.value:l.notes})});
+  const o=$("#dOwner"),nt=$("#dNotes"),de=$("#dEmail");saveDetail(true);emailModal({...l,owner:(o&&o.value.trim())||l.owner,notes:nt?nt.value:l.notes,email:(de&&de.value.trim())||l.email})});
 '''
 
 

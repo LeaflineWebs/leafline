@@ -11,8 +11,8 @@ F = Fake(); os.environ["SUPABASE_URL"] = F.url
 ids = {n: F.add_user(n, n.title() + "123", "admin" if n == "james" else "employee") for n in ("gio", "tim", "james")}
 for p in F.t["profiles"]: p["must_change_password"] = False
 NOW = datetime.now(timezone.utc); iso = lambda d: d.isoformat()
-def lead(i, name, phone, status="none", web="N/A", owner="N/A", notes="", by=None, ago=None, meeting=None):
-    F.t["leads"].append(dict(id=i, name=name, phone=phone, owner_name=owner, email="N/A", rating="4.8", reviews="3", website=web, address="1 King St, London ON",
+def lead(i, name, phone, status="none", web="N/A", owner="N/A", notes="", by=None, ago=None, meeting=None, email="N/A"):
+    F.t["leads"].append(dict(id=i, name=name, phone=phone, owner_name=owner, email=email, rating="4.8", reviews="3", website=web, address="1 King St, London ON",
         search="Roofers | London", btype="Roofer", hours="", status=status, notes=notes, enriched=False, added_at=iso(NOW - timedelta(days=30)),
         called_at=iso(NOW - timedelta(days=ago)) if ago is not None else None, meeting_at=meeting, called_by=by and ids[by], version=1, updated_at=F.now(), created_at=F.now(),
         phone_key="".join(c for c in phone if c.isdigit())[-10:]))
@@ -21,6 +21,8 @@ lead("L2", "Oak Roofing", "519-555-0102", web="https://oak.ca")
 lead("L3", "Cedar Roofing", "519-555-0103")
 lead("L4", "Elm Roofing", "519-555-0104")
 lead("L5", "Fir Roofing", "519-555-0105")
+lead("L7", "Spruce Roofing", "519-555-0107")
+lead("L6", "Birch Roofing", "519-555-0106", web="https://birchroofing.ca", email="hello@birchroofing.ca")
 lead("P1", "Pine Roofing", "519-555-0201", "yellow", owner="Ana Ruiz", notes="Wants a quote by Friday", by="gio", ago=1)
 import build_web
 site = tempfile.mkdtemp(); build_web.build(site)
@@ -190,6 +192,41 @@ with sync_playwright() as p:
     check(f"the after-call card sits inside the screen, above the bottom bar ({box})", box["l"] >= 0 and box["r"] <= box["w"] and box["b"] < box["h"] - 100)
     ctx.close()
 
+    print("7. Emails found on business websites")
+    ctx, pg = page(br, "gio"); find_all(pg); pick(pg, "L6")
+    check("Find Leads shows the email found on the business's website", pg.input_value("#detail #dEmail") == "hello@birchroofing.ca")
+    pg.click("#dMail"); pg.wait_for_selector(".ov.on .em-dlg"); pg.click("#emGo"); pg.wait_for_function("()=>!$('#emOut').hidden&&$('#emBody').value", timeout=20000)
+    check("...and the email pop-up's To box is already filled in with it", pg.input_value("#emTo") == "hello@birchroofing.ca")
+    pg.evaluate("()=>{window.__open=[]}"); pg.click("#emGmail"); pg.wait_for_timeout(300)
+    check("...so Open in Gmail has the address too", "to=hello%40birchroofing.ca" in (pg.evaluate("()=>window.__open[0]||''")))
+    pg.click(".ov.on [data-x]"); pg.wait_for_timeout(400)
+    lr = lambda i: next(l for l in F.t["leads"] if l["id"] == i)
+    pick(pg, "L2"); pg.fill("#dEmail", "not an email"); pg.evaluate("async()=>{await saveDetail(false)}"); pg.wait_for_timeout(1500)
+    check("typing something that isn't an email is refused with a message, nothing saved", "doesn't look right" in pg.inner_text("#toast") and lr("L2")["email"] == "N/A")
+    pg.fill("#dEmail", "owner@oakroofing.ca"); pg.evaluate("async()=>{await saveDetail(false)}")
+    t0 = time.time()
+    while lr("L2")["email"] != "owner@oakroofing.ca" and time.time() - t0 < 20: time.sleep(.3)
+    check("typing an email in Find Leads saves it to the shared database", lr("L2")["email"] == "owner@oakroofing.ca", lr("L2")["email"])
+    pick(pg, "L7"); pg.click("#dMail"); pg.wait_for_selector(".ov.on .em-dlg")
+    check("no email known: the To box starts empty", pg.input_value("#emTo") == "")
+    pg.click("#emGo"); pg.wait_for_function("()=>!$('#emOut').hidden&&$('#emBody').value", timeout=20000)
+    pg.fill("#emTo", "info@spruceroofing.ca"); pg.evaluate("()=>{window.__mail=[]}"); pg.click("#emSend")
+    t0 = time.time()
+    while lr("L7")["email"] != "info@spruceroofing.ca" and time.time() - t0 < 20: time.sleep(.3)
+    check("an address typed in the To box is saved on the business for next time", lr("L7")["email"] == "info@spruceroofing.ca", lr("L7")["email"])
+    pg.click(".ov.on [data-x]"); pg.wait_for_timeout(400)
+    pg.evaluate("async()=>{await go('called',true)}"); pg.wait_for_timeout(1000)
+    pg.evaluate("()=>leadModal(S.called.find(x=>x.id==='P1'))"); pg.wait_for_selector(".ov.on #mEmail")
+    pg.fill("#mEmail", "ana@pineroofing.ca"); pg.click(".ov.on [data-save]")
+    t0 = time.time()
+    while lr("P1")["email"] != "ana@pineroofing.ca" and time.time() - t0 < 20: time.sleep(.3)
+    check("Called Leads has an Email box too, and it saves", lr("P1")["email"] == "ana@pineroofing.ca", lr("P1")["email"])
+    ctx.close()
+    ctx, pg = page(br, "tim", phone=True); find_all(pg); pick(pg, "L6"); pg.evaluate("()=>openDetailSheet()"); pg.wait_for_timeout(400)
+    ph = pg.evaluate("()=>({v:($('#detail #dEmail')||{}).value,w:document.documentElement.scrollWidth,iw:innerWidth,act:S.active})")
+    check("on a phone the Email box is there and fits", ph["v"] == "hello@birchroofing.ca" and ph["w"] <= ph["iw"], ph)
+    ctx.close()
+
     print("6. The PC app (desktop engine)")
     os.environ["HOME"] = tempfile.mkdtemp(); os.environ["USERPROFILE"] = os.environ["HOME"]
     import leafline_backend as B
@@ -201,6 +238,37 @@ with sync_playwright() as p:
     r = requests.post(s["url"] + "/functions/v1/email-draft", json={"lead": {"id": "L1", "name": "Maple Roofing", "owner": "Sam Lee"}, "prompt": "hi"},
                       headers={"Authorization": "Bearer " + s["token"], "apikey": s["key"] or ""}, timeout=10).json()
     check("...which the email writer accepts", r.get("ok") and r["body"].startswith("Hi Sam,"), r)
+    # finding emails on a business's website (the PC app checks each website after a search)
+    hidden = "5a" + bytes(c ^ 0x5a for c in b"service@elmauto.ca").hex()
+    class Site(http.server.BaseHTTPRequestHandler):
+        def log_message(s, *a): pass
+        def do_GET(s):
+            pages = {"/": '<html><body><h1>Elm Auto</h1><img src="logo@2x.png"><a href="/contact-us">Contact</a><script>var e="dev@example.com"</script></body></html>',
+                     "/contact-us": '<p>Owner: Dave Smith</p><a href="/cdn-cgi/l/email-protection" data-cfemail="' + hidden + '">[email protected]</a> noreply@elmauto.ca'}
+            b = pages.get(s.path, "").encode(); s.send_response(200 if b else 404); s.send_header("Content-Type", "text/html"); s.end_headers(); s.wfile.write(b)
+    ws = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Site); threading.Thread(target=ws.serve_forever, daemon=True).start()
+    got = B.enrich(f"http://127.0.0.1:{ws.server_address[1]}/")
+    check(f"a business website's contact page gives up its email, even when Cloudflare hides it ({got})", got[3] == "service@elmauto.ca")
+    cases = {('<a href="mailto:Info@MapleRoofing.ca?subject=Hi">x</a> sam@gmail.com', "https://www.mapleroofing.ca"): "info@mapleroofing.ca",
+             ("Email: owner [at] pinespa [dot] com", "pinespa.com"): "owner@pinespa.com",
+             ("logo@2x.png a1b2c3d4e5f6a7b8c9d0@sentry.wixpress.com you@example.com noreply@x.ca", "x.ca"): "N/A",
+             ("call us, no email here", "x.ca"): "N/A"}
+    bad = {k[0][:30]: (B.find_email(*k), v) for k, v in cases.items() if B.find_email(*k) != v}
+    check("it prefers the business's own address and skips images, placeholders, no-reply and tracking addresses", not bad, bad)
+    import leafline_sync as LS
+    m, _ = LS.merge3({"notes": "a"}, {"notes": "b", "email": "N/A"}, {"notes": "a", "email": "found@biz.ca"}, True)
+    check("sync: an email found on another computer is never wiped by a computer that doesn't know it yet", m == {"notes": "b", "email": "found@biz.ca"}, m)
+    check("typing a bad email in the PC app is refused", api.save_email("L1", "nope").get("ok") is False and api.save_lead("L1", "Sam Lee", "", "bad@").get("ok") is False)
+    t0 = time.time()
+    while not any(l["id"] == "L1" for l in api.get_find("all")) and time.time() - t0 < 30: time.sleep(.3)
+    r = api.save_email("L1", "sam@mapleroofing.ca"); api._sync.kick()
+    t0 = time.time()
+    while next(l for l in F.t["leads"] if l["id"] == "L1")["email"] != "sam@mapleroofing.ca" and time.time() - t0 < 30: time.sleep(.3)
+    check("the PC app saves an email and it reaches the shared database", r.get("ok") and next(l for l in F.t["leads"] if l["id"] == "L1")["email"] == "sam@mapleroofing.ca")
+    l2 = next(l for l in F.t["leads"] if l["id"] == "L2"); l2.update(email="hi@oak.ca", version=l2.get("version", 1) + 1, updated_at=F.now()); api._sync.kick()
+    t0 = time.time()
+    while next((l.get("email") for l in api.get_find("all") if l["id"] == "L2"), None) != "hi@oak.ca" and time.time() - t0 < 40: time.sleep(.5); api._sync.kick()
+    check("an email found elsewhere shows up in the PC app", next((l.get("email") for l in api.get_find("all") if l["id"] == "L2"), None) == "hi@oak.ca")
     api._sync.stop.set()
     check("no page errors", not errs, errs[:3])
     br.close()

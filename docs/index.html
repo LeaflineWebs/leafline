@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.21.0"></script>
-<script src="engine.js?v=11.21.0"></script>
+<script src="config.js?v=11.22.0"></script>
+<script src="engine.js?v=11.22.0"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1334,7 +1334,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
   .chk{width:28px;height:28px;position:relative}.chk:after{content:"";position:absolute;inset:-9px}
   /* lead pop-up: the owner box gets a full row, results become a 2 x 2 grid */
   .facts{gap:10px}
-  .fact:has(#mOwner),.fact:has(#dOwner),.fact:has(#mOwner)+.fact,.fact:has(#dOwner)+.fact{grid-column:1/-1}
+  .fact:has(#mOwner),.fact:has(#dOwner),.fact:has(#mOwner)+.fact,.fact:has(#dOwner)+.fact,.fact:has(#dEmail)+.fact,.fact:has(#mEmail)+.fact{grid-column:1/-1}
   .sb{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.sb .st{height:48px}
   /* Find Leads: city gets a full row like business type */
   .frow>div:nth-child(3){grid-column:1/3}
@@ -2916,7 +2916,7 @@ function renderDetail(){
   if(!l){lastDetail=null;d.innerHTML=`<div class="empty" style="height:100%"><div class="bub">${ic("user")}</div><b>Select a business</b>Details, hours and call buttons show up here.</div>`;hydrateIcons(d);return}
   const sig=JSON.stringify([l,[...S.sel].length]);if(lastDetail&&lastDetail.sig===sig&&d.dataset.id===l.id)return;
   const changed=!lastDetail||lastDetail.id!==l.id;
-  if(!changed){const o=$("#dOwner"),nt=$("#dNotes");if(o&&(document.activeElement===o||document.activeElement===nt)){lastDetail={id:l.id,sig};patchDetail(l);return}}
+  if(!changed){const o=$("#dOwner"),nt=$("#dNotes"),de=$("#dEmail");if(o&&(document.activeElement===o||document.activeElement===nt||(de&&document.activeElement===de))){lastDetail={id:l.id,sig};patchDetail(l);return}}
   lastDetail={id:l.id,sig};d.dataset.id=l.id;
   const n=S.sel.size;
   d.innerHTML=`<div class="${changed?"dsw":""}"><button class="btn sm dclose" id="dClose" aria-label="Back to the list">${ic("back")}Back</button><div class="dh"><div class="av" style="background:${hue(l.btype)}">${esc(initials(l.name))}</div><div style="min-width:0"><h2>${esc(l.name)}</h2><div class="sub">${esc(l.btype)} · ${esc(l.address)}</div></div>
@@ -2926,6 +2926,7 @@ function renderDetail(){
    <div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span style="font-size:13.5px;font-weight:700;color:#FFD60A">${esc(reviewTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="dOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
+   <div class="fact"><div class="k">Email</div><input class="inp" id="dEmail" type="email" value="${esc(!l.email||l.email===NA?"":l.email)}" placeholder="N/A - type an email" maxlength="120" autocomplete="off"></div>
    <div class="fact"><div class="k">Google rating</div><div class="v">${l.rating===NA?NA:esc(l.rating)+" ★"}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${l.reviews===NA?"":esc(num(l.reviews))+" reviews"}</span></div></div>
    ${scoreFactHTML(l)}
    <div class="fact span"><div class="k">Call notes</div><textarea class="inp" id="dNotes" rows="3" placeholder="What was said, when to call back..." maxlength="2000" style="margin-top:4px;background:var(--bg)">${esc(l.notes)}</textarea></div></div>
@@ -2936,9 +2937,11 @@ function renderDetail(){
 }
 function patchDetail(l){const n=S.sel.size,t=$("#markT");if(t)t.textContent=n?`Mark ${n} selected business${n===1?"":"es"} as`:"Mark this business as"}
 async function saveDetail(silent){
-  const l=S.find.find(x=>x.id===S.active),o=$("#dOwner"),nt=$("#dNotes");if(!l||!o||!nt)return;
-  const ow=o.value.trim(),no=nt.value.trim();if((ow||NA)===l.owner&&no===l.notes)return;
-  try{const r=await api("save_lead",l.id,ow,no);l.owner=r.owner;l.notes=no;
+  const l=S.find.find(x=>x.id===S.active),o=$("#dOwner"),nt=$("#dNotes"),de=$("#dEmail");if(!l||!o||!nt)return;
+  const ow=o.value.trim(),no=nt.value.trim(),em=de?de.value.trim():null;
+  if((ow||NA)===l.owner&&no===l.notes&&(em===null||(em||NA)===(l.email||NA)))return;
+  try{const r=await api("save_lead",l.id,ow,no,em);if(r&&r.ok===false){if(!silent)toast(r.error||"Couldn't save.",{bad:1});return}
+    l.owner=r.owner;l.notes=no;if(r.email)l.email=r.email;
     /* the panel already shows what was saved: don't redraw it, or the notes you're still typing (or the button you're
        pressing) get replaced underneath you */
     if(lastDetail&&lastDetail.id===l.id)lastDetail.sig=JSON.stringify([l,[...S.sel].length]);
@@ -2967,6 +2970,7 @@ function leadModal(l){
    <div class="facts"><div class="fact"><div class="k">Phone</div><div class="v">${telLink(l.phone)}<span class="pacts">${callBtn(l.phone)}<button class="btn sm" data-copy>${ic("copy")}Copy</button></span></div></div>
    <div class="fact"><div class="k">Open now?</div><div class="v">${openPill(l)}<span style="font-size:13.5px;font-weight:500;color:#C8DACF">${esc(hoursTxt(l))}</span></div></div>
    <div class="fact"><div class="k">Owner / contact</div><input class="inp" id="mOwner" value="${esc(l.owner===NA?"":l.owner)}" placeholder="N/A - type a name" maxlength="80"></div>
+   <div class="fact"><div class="k">Email</div><input class="inp" id="mEmail" type="email" value="${esc(!l.email||l.email===NA?"":l.email)}" placeholder="N/A - type an email" maxlength="120" autocomplete="off"></div>
    <div class="fact"><div class="k">Last called</div><div class="v">${esc(fmtDate(l.called_at)||NA)}</div></div>
    ${l.status==="green"?`<div class="fact span"><div class="k">Meeting date &amp; time</div><input class="inp" id="mWhen" type="datetime-local" value="${esc((l.meeting_at||"").replace(" ","T"))}">${mtgLine(l)}</div>`:""}
    ${l.status!=="none"?creditField("lead",l.called_by):""}
@@ -2975,11 +2979,13 @@ function leadModal(l){
    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap"><button class="btn" data-back>Back to call list</button><button class="btn" data-site${l.website===NA?" disabled":""}>${ic("globe")}Website</button><button class="btn" data-rem>${ic("clock")}Set reminder</button><button class="btn" data-mail>${ic("mail")}Write email</button><span style="flex:1"></span><button class="btn" data-x>Close</button><button class="btn pri" data-save>Save</button></div>`,
   (ov,close)=>{
     wireMtgLine(ov,l);guardLoad([l],true);
-    const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim();if((ow||NA)!==l.owner||no!==l.notes){try{await api("save_lead",l.id,ow,no)}catch(e){toast("Couldn't save",{bad:1});return false}}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
+    const save=async()=>{const ow=$("#mOwner",ov).value.trim(),no=$("#mNotes",ov).value.trim(),em=$("#mEmail",ov).value.trim();
+      if((ow||NA)!==l.owner||no!==l.notes||(em||NA)!==(l.email||NA)){let r;try{r=await api("save_lead",l.id,ow,no,em)}catch(e){toast("Couldn't save",{bad:1});return false}
+        if(r&&r.ok===false){toast(r.error||"Couldn't save",{bad:1});$("#mEmail",ov).focus();return false}if(r&&r.email)l.email=r.email}const mw=$("#mWhen",ov);if(mw&&mw.value.replace("T"," ")!==(l.meeting_at||"")){try{await api("set_meeting",l.id,mw.value)}catch(e){toast("Couldn't save the meeting time",{bad:1});return false}}return true};
     $("[data-x]",ov).onclick=close;$("[data-copy]",ov).onclick=()=>copyText(l.phone);$("[data-site]",ov).onclick=()=>api("open_site",l.id);
     $("[data-rem]",ov).onclick=()=>{const own=$("#mOwner",ov).value.trim(),nts=$("#mNotes",ov).value;save();close();setTimeout(()=>remSet({...l,owner:own,notes:nts}),220)};
     wireCredit(ov,"lead",l.id,()=>{close();reload()});
-    $("[data-mail]",ov).onclick=()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};save();close();setTimeout(()=>emailModal(fl,{kind:EM_FROM_STATUS[l.status]||""}),220)};
+    $("[data-mail]",ov).onclick=()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value,email:$("#mEmail",ov).value.trim()||l.email||NA};save();close();setTimeout(()=>emailModal(fl,{kind:EM_FROM_STATUS[l.status]||""}),220)};
     $("[data-save]",ov).onclick=async()=>{if(await save()){close();toast("Saved");reload()}};
     $$("[data-res]",ov).forEach(b=>b.onclick=async()=>{const fl={...l,owner:$("#mOwner",ov).value.trim()||NA,notes:$("#mNotes",ov).value};if(await save()){close();await changeStatus([l.id],b.dataset.res,l.status);
       if(b.dataset.res!==l.status){autoFollow(b.dataset.res==="orange"?"no_answer":b.dataset.res==="yellow"?"interested":"",[fl]).catch(()=>{});emailNudge(fl,EM_FROM_STATUS[b.dataset.res])}}});
@@ -5078,6 +5084,12 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.22.0",t:"Emails found for you",items:[
+  "When the PC app checks a business's website after a search, it now also finds its email address (the contact page, mailto links, and addresses Cloudflare hides). It prefers the business's own address and skips no-reply and placeholder ones.",
+  "The email shows in Find Leads and Called Leads, where you can also type or fix it. It's shared with the whole team.",
+  "The email writer fills in the To box with it, so Open in Gmail opens with the address already there. An address you type in the To box is saved on the business for next time.",
+  "Exported CSV files now include the email.",
+  "Businesses without a website have no page to find an email on, so type those in when you get them."]},
  {v:"11.21.0",t:"Send emails in one click, and smoother reminders",items:[
   "Write an email and send it in one click: press Open in Gmail and Leafline writes the email, then opens it in Gmail with the subject and everything filled in, ready to send. On an iPhone it opens the Gmail app.",
   "Email app and Copy work straight away too. If nothing has been written yet, they write the email first.",
@@ -7286,7 +7298,7 @@ function emailModal(l,o={}){
    <div class="em-wait" id="emWait" role="status" aria-live="polite"><i></i>Writing an email for ${esc(l.name)}...</div>
    <div class="em-out" id="emOut" hidden>
     <div id="emMsg" role="status" aria-live="polite"></div>
-    <div class="em-f"><label class="l" for="emTo">To</label><input class="inp" id="emTo" type="email" maxlength="160" placeholder="their email address (you can also add it in your email app)" value="${esc(o.to||"")}"></div>
+    <div class="em-f"><label class="l" for="emTo">To</label><input class="inp" id="emTo" type="email" maxlength="160" placeholder="their email address (you can also add it in your email app)" value="${esc(o.to||(emHas(l.email)?l.email:""))}"></div>
     <div class="em-f"><label class="l" for="emSub">Subject</label><input class="inp" id="emSub" maxlength="150"></div>
     <div class="em-f"><label class="l" for="emBody">Email</label><textarea class="inp" id="emBody" rows="12" maxlength="8000"></textarea></div>
     <details class="em-sig"><summary>Your signature</summary><textarea class="inp" id="emSig" rows="4" maxlength="400" style="width:100%">${esc(emSig())}</textarea>
@@ -7326,7 +7338,9 @@ function emailModal(l,o={}){
     };
     go.onclick=write;
     ask.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();write()}});
-    const full=()=>({to:to.value.trim(),s:subj.value.trim(),b:body.value});
+    const keepTo=()=>{const v=to.value.trim();if(!v||!l.id||v.toLowerCase()===String(l.email||"").toLowerCase()||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v))return;
+      api("save_email",l.id,v).then(r=>{if(r&&r.ok){l.email=r.email;for(const x of [...(S.find||[]),...(S.called||[])])if(x.id===l.id)x.email=r.email}}).catch(()=>{})};
+    const full=()=>{keepTo();return {to:to.value.trim(),s:subj.value.trim(),b:body.value}};
     /* each send button works straight away: with no email yet it writes one first, then sends it on */
     const need=async()=>body.value.trim()?true:await write();
     g("emCopy").onclick=async()=>{if(!await need())return;const f=full();copyText((f.s?"Subject: "+f.s+"\n\n":"")+f.b)};
@@ -7373,12 +7387,12 @@ function emNudgeShow(l,kind){
 {const _mk=markLeads;markLeads=async function(status,fromBoard){
   const ids=fromBoard||(S.sel.size?[...S.sel]:S.active?[S.active]:[]);
   const one=!fromBoard&&ids.length===1?S.find.find(x=>x.id===ids[0]):null,o=$("#dOwner"),nt=$("#dNotes");
-  const snap=one?{...one,owner:(o&&o.value.trim())||one.owner,notes:nt?nt.value:one.notes}:null;
+  const de=$("#dEmail"),snap=one?{...one,owner:(o&&o.value.trim())||one.owner,notes:nt?nt.value:one.notes,email:(de&&de.value.trim())||one.email}:null;
   const r=await _mk.apply(this,arguments);
   if(snap&&EM_FROM_STATUS[status]&&!S.find.some(x=>x.id===snap.id))emailNudge(snap,EM_FROM_STATUS[status]);
   return r}}
 $("#detail").addEventListener("click",e=>{if(!e.target.closest("#dMail"))return;const l=S.find.find(x=>x.id===S.active);if(!l)return;
-  const o=$("#dOwner"),nt=$("#dNotes");saveDetail(true);emailModal({...l,owner:(o&&o.value.trim())||l.owner,notes:nt?nt.value:l.notes})});
+  const o=$("#dOwner"),nt=$("#dNotes"),de=$("#dEmail");saveDetail(true);emailModal({...l,owner:(o&&o.value.trim())||l.owner,notes:nt?nt.value:l.notes,email:(de&&de.value.trim())||l.email})});
 </script>
 </body>
 </html>
