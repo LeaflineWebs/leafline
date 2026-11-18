@@ -138,9 +138,14 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
   (30 days), never the email. People see their own rows; admins see everyone's; nobody can write the table directly.
 - `team_health()` now also reports update 18.
 
-**2. The AI key (admin, once).** Get an API key at console.anthropic.com > API Keys (the account needs billing set up).
-Then Supabase > Edge Functions > Secrets > Add new secret: name `ANTHROPIC_API_KEY`, value = the key > Save.
-The key lives only in Supabase. Never put it in the app, `tools/.env`, GitHub or a chat.
+**2. The AI key (admin, once). Free option: Groq.** Sign in at console.groq.com > API Keys > Create API Key (free, no
+card). Then Supabase > Edge Functions > Secrets > Add new secret: name `GROQ_API_KEY`, value = the key > Save.
+- Groq's free plan has daily limits. When the bigger model (Llama 3.3 70B) has used its allowance for the moment, the
+  smaller one (Llama 3.1 8B) writes the email instead; if both are used up, the app fills in the plain template.
+- Paid option instead: `ANTHROPIC_API_KEY` (console.anthropic.com, Claude Opus 4.8, roughly 1 to 2 cents an email).
+  If both keys are set, the free one (Groq) is used.
+- Optional: `GROQ_MODEL` picks a different Groq model to try first.
+The keys live only in Supabase. Never put them in the app, `tools/.env`, GitHub or a chat.
 
 **3. The function (admin, once).** Supabase > Edge Functions > Deploy a new function > Via Editor. Name it exactly
 `email-draft`, replace the sample code with everything in `supabase/functions/email-draft/index.ts`, and press Deploy.
@@ -148,7 +153,7 @@ The key lives only in Supabase. Never put it in the app, `tools/.env`, GitHub or
 - If emails say "Your sign-in has expired" for everyone right after deploying, open the function > Details and turn
   off "Enforce JWT verification" (or "Verify JWT"). The function checks each person's sign-in itself, through the
   database, so this is safe.
-- Cost: each email is one request to Claude Opus 4.8, roughly 1 to 2 cents. The 150-a-day limit per person caps it.
+- Each person can write 150 emails a day (this also keeps a paid key's cost capped).
 - Until steps 1 to 3 are done, the app fills in a plain template instead and says the email writer isn't set up.
 
 ## Seventeenth migration (Leafline 11.19: pipeline, call warnings, system health)

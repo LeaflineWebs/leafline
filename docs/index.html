@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=11.20.0"></script>
-<script src="engine.js?v=11.20.0"></script>
+<script src="config.js?v=11.21.0"></script>
+<script src="engine.js?v=11.21.0"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1995,6 +1995,8 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   -webkit-backdrop-filter:var(--blur,none);backdrop-filter:var(--blur,none);border:1px solid var(--line2,var(--line));box-shadow:var(--sh-lg,0 24px 50px rgba(0,0,0,.5)),var(--hi);
   transform-origin:top right;transform:translateY(-8px) scale(.96);opacity:0;pointer-events:none;transition:transform var(--d-pop,.25s) var(--e-spring,ease),opacity var(--d-pop,.25s) var(--e-out,ease)}
 .remp.on{transform:none;opacity:1;pointer-events:auto}
+/* readable even where the blur behind it doesn't draw (it went see-through on some phones) */
+.remp,.bell{background:linear-gradient(180deg,color-mix(in srgb,var(--card2) 94%,transparent),color-mix(in srgb,var(--card) 94%,transparent))}
 .remp .rem-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 4px 10px}
 .remp h4{font-size:15px;font-weight:800}
 .remp .rem-sec{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:12px 6px 6px}
@@ -2207,6 +2209,10 @@ html.lf-glass .tgl[data-lgsp]:after{transition:none !important}
 .hl-wrap{overflow-x:auto}
 
 /* ---------- email writer (11.20) ---------- */
+/* the business header in Find Leads: with the Email button the buttons move under the name when space runs out,
+   instead of squeezing the name into one word per line */
+#detail .dh{flex-wrap:wrap;row-gap:10px}#detail .dh>div:nth-child(2){flex:1 1 220px;min-width:0}
+#detail .dh .acts{flex-wrap:wrap;justify-content:flex-end}
 .em-dlg h2{display:flex;align-items:center;gap:10px}.em-dlg h2 .ic{width:20px;height:20px;color:var(--accent)}
 .em-dlg .em-sub{margin:2px 0 14px;font-size:13px;color:var(--muted)}
 .em-dlg .em-f{margin-top:12px}.em-dlg .em-f .inp{width:100%}
@@ -2224,6 +2230,7 @@ html.lf-glass .tgl[data-lgsp]:after{transition:none !important}
 .em-msg small{display:block;opacity:.75;margin-top:2px}
 .em-sig{margin-top:10px}.em-sig summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--muted);padding:4px}
 .em-sig[open] summary{margin-bottom:6px}
+.em-hint{margin-top:8px;text-align:right;font-size:12px}
 .em-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}.em-acts .em-sp{flex:1}
 .em-busy{position:relative;color:transparent !important}
 .em-busy::after{content:"Writing...";position:absolute;inset:0;display:grid;place-items:center;color:var(--accent-text)}
@@ -5071,6 +5078,12 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.21.0",t:"Send emails in one click, and smoother reminders",items:[
+  "Write an email and send it in one click: press Open in Gmail and Leafline writes the email, then opens it in Gmail with the subject and everything filled in, ready to send. On an iPhone it opens the Gmail app.",
+  "Email app and Copy work straight away too. If nothing has been written yet, they write the email first.",
+  "The email writer can now use a free AI (Groq). Admins: SETUP_SUPABASE.md > Email writer.",
+  "Reminders: the list stays solid and readable on phones, no longer flickers or jumps back to the top while it's open, and keeps Done open.",
+  "Find Leads: the Email, Copy phone and Website buttons move under the business name on smaller windows instead of squeezing it."]},
  {v:"11.20.0",t:"Write emails with AI",items:[
   "New: write an email to any business in seconds. Type a quick request (or tap a quick pick), choose Friendly, Professional or Short, and Leafline writes a full email made for that company: its name, the kind of business, its reviews, whether it has a website and your call notes.",
   "Find it in Find Leads (the Email button in a business's details) and in Called Leads (Write email).",
@@ -6551,16 +6564,21 @@ const remRowHTML=r=>`<button type="button" class="remr${remOver(r)?" rem-od":""}
 /* ---------- the top-bar list ---------- */
 function remPanelDraw(){
   const p=$("#remPanel");if(!p)return;
-  if(REM.missing){p.innerHTML=`<div class="rem-hd"><h4>Reminders</h4></div><div class="note" style="padding:4px 6px 8px">${esc(REM_MISSING)}</div>`;return}
+  if(REM.missing){p.dataset.sig="";p.innerHTML=`<div class="rem-hd"><h4>Reminders</h4></div><div class="note" style="padding:4px 6px 8px">${esc(REM_MISSING)}</div>`;return}
   const open=remOpen().sort((a,b)=>a.remind_at.localeCompare(b.remind_at)),od=open.filter(remOver),td=open.filter(r=>!remOver(r)&&new Date(r.remind_at).getTime()<=remDayEnd()),later=open.filter(r=>new Date(r.remind_at).getTime()>remDayEnd()),done=(REM.list||[]).filter(r=>r.done_at).slice(-10).reverse();
+  /* only redraw when something changed: a redraw every refresh made the list flicker, jump to the top and close "Done" */
+  const sig=JSON.stringify([open.map(r=>[r.id,r.remind_at,r.company,r.owner_name,r.notes,remOver(r)]),done.map(r=>r.id),isoDay(new Date())]);
+  if(p.dataset.sig===sig&&p.firstElementChild)return;p.dataset.sig=sig;
+  const wasOpen=!!p.querySelector("details[open]"),top=p.scrollTop;
   p.innerHTML=`<div class="rem-hd"><h4>Reminders</h4><span class="muted" style="font-size:12px;font-weight:600">Only you can see these</span></div>
    ${open.length?`${od.length?`<div class="rem-sec rem-od">Due now</div>${od.map(remRowHTML).join("")}`:""}${td.length?`<div class="rem-sec">Later today</div>${td.map(remRowHTML).join("")}`:""}${later.length?`<div class="rem-sec">Coming up</div>${later.map(remRowHTML).join("")}`:""}`
     :`<div class="empty"><div class="bub">${ic("clock")}</div><b>No reminders</b>In Find Leads, press <b>Set reminder</b> on the business you're calling.</div>`}
    ${done.length?`<details><summary>Done (${done.length})</summary>${done.map(remRowHTML).join("")}</details>`:""}`;
   hydrateIcons(p);
+  const dt=p.querySelector("details");if(dt&&wasOpen)dt.open=true;p.scrollTop=top;
   $$("[data-rem]",p).forEach(b=>b.onclick=()=>{const r=(REM.list||[]).find(x=>x.id===b.dataset.rem);p.classList.remove("on");r&&remDetail(r)});
 }
-function remToggle(){const p=$("#remPanel");$("#bell")&&$("#bell").classList.remove("on");const on=!p.classList.contains("on");if(on){remPanelDraw();loadRem(true)}p.classList.toggle("on",on)}
+function remToggle(){const p=$("#remPanel");$("#bell")&&$("#bell").classList.remove("on");const on=!p.classList.contains("on");if(on){remPanelDraw();loadRem(true);$$(".remn").forEach(n=>n.remove())/* the same reminders are in the list: don't cover it */}p.classList.toggle("on",on)}
 document.addEventListener("click",e=>{const p=$("#remPanel");if(p&&p.classList.contains("on")&&!e.target.closest("#remPanel")&&!e.target.closest("#remBtn"))p.classList.remove("on")});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const p=$("#remPanel");if(p)p.classList.remove("on")}});
 
@@ -6637,6 +6655,7 @@ async function maybeRemPopup(){
   for(let i=0;i<240&&(i<6||document.querySelector(".ov.on")||(!S.dueShown&&i<20));i++)await new Promise(r=>setTimeout(r,500));
   if(document.querySelector(".ov.on"))return;
   const list=remToday();if(!list.length)return;
+  const pnl=$("#remPanel");if(pnl)pnl.classList.remove("on");     // never both at once
   openModal(`<div class="remd"><div class="rem-rh"><div class="rem-ri">${ic("clock")}</div><div><h2>Today's reminders</h2><div class="muted" style="font-size:13.5px;margin-top:2px">${list.length===1?"One business to get back to":list.length+" businesses to get back to"}. Open one to see your notes.</div></div></div>
    <div class="remlist">${list.map(remRowHTML).join("")}</div>
    <div class="rem-acts"><span class="rem-sp"></span><button class="btn pri" data-x>Got it</button></div></div>`,(ov,close)=>{
@@ -7273,8 +7292,10 @@ function emailModal(l,o={}){
     <details class="em-sig"><summary>Your signature</summary><textarea class="inp" id="emSig" rows="4" maxlength="400" style="width:100%">${esc(emSig())}</textarea>
      <div class="note" style="margin-top:4px">Added under every email you write. Saved for next time.</div></details></div>
    <div class="em-acts"><button class="btn" data-x>Close</button><span class="em-sp"></span>
-    <button class="btn" id="emCopy" disabled>${ic("copy")}Copy</button><button class="btn" id="emGmail" disabled>Gmail</button>
-    <button class="btn pri" id="emSend" disabled>${ic("mail")}Open in email app</button></div></div>`,
+    <button class="btn" id="emCopy" title="Copy the subject and the email">${ic("copy")}Copy</button>
+    <button class="btn" id="emSend" title="Your computer's or phone's email app">${ic("mail")}Email app</button>
+    <button class="btn pri" id="emGmail" title="Opens a new Gmail email with everything filled in">${ic("send")}Open in Gmail</button></div>
+   <div class="note em-hint" id="emHint">Tip: press <b>Open in Gmail</b> right away and it writes the email, then opens it in Gmail ready to send.</div></div>`,
   (ov,close)=>{
     ov.querySelector(".dlg").classList.add("em-wide");
     const g=id=>$("#"+id,ov),ask=g("emAsk"),go=g("emGo"),out=g("emOut"),msg=g("emMsg"),subj=g("emSub"),body=g("emBody"),sig=g("emSig"),to=g("emTo");
@@ -7282,7 +7303,7 @@ function emailModal(l,o={}){
     $("[data-x]",ov).onclick=close;
     $$("[data-pick]",ov).forEach(b=>b.onclick=()=>{ask.value=EM_PICKS[+b.dataset.pick][1];ask.focus()});
     $$("[data-tone]",ov).forEach(b=>b.onclick=()=>{tone=b.dataset.tone;setP("emailTone",tone);$$("[data-tone]",ov).forEach(x=>{const on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})});
-    const ready=on=>["emCopy","emGmail","emSend"].forEach(i=>g(i).disabled=!on);
+    const ready=()=>{const h=g("emHint");if(h)h.remove()};
     const say=(cls,html)=>{msg.className=cls?"em-msg "+cls:"em-msg";msg.innerHTML=html};
     const show=(s,b)=>{subj.value=s;body.value=emWith(b,sig.value);lastSig=sig.value;out.hidden=false;ready(true)};
     sig.addEventListener("input",()=>{const v=sig.value,old=lastSig.trim();
@@ -7290,28 +7311,49 @@ function emailModal(l,o={}){
       else if(!old&&v.trim()&&body.value)body.value=emWith(body.value,v);lastSig=v});
     sig.addEventListener("change",()=>setP("emailSig",sig.value));
     const write=async()=>{
-      if(busy)return;busy=true;go.disabled=true;go.classList.add("em-busy");go.setAttribute("aria-busy","true");g("emWait").classList.add("on");
+      if(busy)return false;busy=true;go.disabled=true;go.classList.add("em-busy");go.setAttribute("aria-busy","true");g("emWait").classList.add("on");
       const me=S.me||{},co=emCompany();
       const lead={id:l.id||"",name:l.name||"",btype:l.btype||"",address:l.address||"",website:l.website||"",rating:l.rating||"",reviews:l.reviews||"",owner:l.owner||"",notes:l.notes||"",meeting_at:l.meeting_at||""};
       const r=await emDraft({lead,kind,tone,prompt:ask.value.trim(),sender:{name:me.display_name||"",title:(me.ext&&me.ext.title)||"",company:co.name,website:co.website}});
       busy=false;go.disabled=false;go.classList.remove("em-busy");go.removeAttribute("aria-busy");g("emWait").classList.remove("on");
       if(r.ok){show(r.subject,r.body);say("",`Written for ${esc(l.name)}. Read it over before you send it.${r.limit?`<small>${esc(r.used)} of ${esc(r.limit)} emails today</small>`:""}`);
-        go.innerHTML=`${ic("send")}Write again`;hydrateIcons(go);logNote("Email written for "+l.name);return}
-      if(r.code==="limit"||r.code==="auth"||r.code==="refused"){say("bad",esc(r.error||"Couldn't write that email."));out.hidden=false;return}
+        go.innerHTML=`${ic("send")}Write again`;hydrateIcons(go);logNote("Email written for "+l.name);return true}
+      if(r.code==="limit"||r.code==="auth"||r.code==="refused"){say("bad",esc(r.error||"Couldn't write that email."));out.hidden=false;return false}
       const t=emTemplate(l,kind,tone);show(t.subject,t.body);
       say("warn",esc(r.code==="no_db"?EM_NEED18+" Here's a plain template for now.":r.code==="offline"?"You're offline, so this is a plain template. Your request wasn't used."
         :r.code==="busy"?(r.error||"The AI is busy.")+" Here's a plain template for now.":r.code==="no_fn"||r.code==="no_key"||r.code==="bad_key"?EM_SETUP:(r.error||"Couldn't reach the AI.")+" Here's a plain template for now."));
+      return true;
     };
     go.onclick=write;
     ask.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();write()}});
     const full=()=>({to:to.value.trim(),s:subj.value.trim(),b:body.value});
-    g("emCopy").onclick=()=>{const f=full();copyText((f.s?"Subject: "+f.s+"\n\n":"")+f.b)};
-    g("emSend").onclick=()=>{const f=full();const url=`mailto:${encodeURIComponent(f.to)}?subject=${encodeURIComponent(f.s)}&body=${encodeURIComponent(f.b)}`;
-      if(typeof invMailto==="function")invMailto(url);else location.href=url;setP("emailSig",sig.value)};
-    g("emGmail").onclick=()=>{const f=full();window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(f.to)}&su=${encodeURIComponent(f.s)}&body=${encodeURIComponent(f.b)}`,"_blank","noopener");setP("emailSig",sig.value)};
+    /* each send button works straight away: with no email yet it writes one first, then sends it on */
+    const need=async()=>body.value.trim()?true:await write();
+    g("emCopy").onclick=async()=>{if(!await need())return;const f=full();copyText((f.s?"Subject: "+f.s+"\n\n":"")+f.b)};
+    g("emSend").onclick=async()=>{if(!await need())return;emOpenApp(full());setP("emailSig",sig.value)};
+    g("emGmail").onclick=async()=>{
+      /* a computer's browser only lets a new tab open straight after a click, so it's opened now and filled in once written */
+      const tab=!body.value.trim()&&!window.leafline&&!emPhone()?window.open("about:blank","_blank"):null;
+      if(!await need()){if(tab)tab.close();return}
+      emOpenGmail(full(),tab);setP("emailSig",sig.value)};
     if(o.auto)setTimeout(write,60);else setTimeout(()=>{ask.focus();ask.setSelectionRange(ask.value.length,ask.value.length)},140);
   });
 }
+/* sending: Gmail (the app on iPhone, Gmail in the browser on a computer, the email app on Android = Gmail on most),
+   or the device's own email app */
+const emPhone=()=>matchMedia("(hover:none) and (pointer:coarse)").matches;
+const emIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function emLinks(f){const e=encodeURIComponent;return {
+  mailto:`mailto:${e(f.to)}?subject=${e(f.s)}&body=${e(f.b)}`,
+  web:`https://mail.google.com/mail/?view=cm&fs=1&to=${e(f.to)}&su=${e(f.s)}&body=${e(f.b)}`,
+  ios:`googlegmail://co?to=${e(f.to)}&subject=${e(f.s)}&body=${e(f.b)}`}}
+function emOpenApp(f){const u=emLinks(f).mailto;if(typeof invMailto==="function")invMailto(u);else location.href=u}
+function emOpenGmail(f,tab){const L=emLinks(f);
+  if(emPhone()&&emIOS()){location.href=L.ios;                               // the Gmail app; if it isn't installed, Gmail in the browser
+    setTimeout(()=>{if(!document.hidden)window.open(L.web,"_blank")},1600);return}
+  if(emPhone()&&/Android/i.test(navigator.userAgent)){location.href=L.mailto;return}
+  if(tab){try{tab.opener=null;tab.location.href=L.web;return}catch(e){}}
+  window.open(L.web,"_blank","noopener")}
 /* right after a call: a small card offering to write the email (it doesn't get in the way of the result's own toast) */
 function emailNudge(l,kind){
   if(!l||!l.name||!EM_KIND[kind]||!S.me)return;

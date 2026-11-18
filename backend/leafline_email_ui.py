@@ -13,6 +13,10 @@ is filled in instead and the pop-up says so. Sending: "Open in email app" (mailt
 
 EMAIL_CSS = r'''
 /* ---------- email writer (11.20) ---------- */
+/* the business header in Find Leads: with the Email button the buttons move under the name when space runs out,
+   instead of squeezing the name into one word per line */
+#detail .dh{flex-wrap:wrap;row-gap:10px}#detail .dh>div:nth-child(2){flex:1 1 220px;min-width:0}
+#detail .dh .acts{flex-wrap:wrap;justify-content:flex-end}
 .em-dlg h2{display:flex;align-items:center;gap:10px}.em-dlg h2 .ic{width:20px;height:20px;color:var(--accent)}
 .em-dlg .em-sub{margin:2px 0 14px;font-size:13px;color:var(--muted)}
 .em-dlg .em-f{margin-top:12px}.em-dlg .em-f .inp{width:100%}
@@ -30,6 +34,7 @@ EMAIL_CSS = r'''
 .em-msg small{display:block;opacity:.75;margin-top:2px}
 .em-sig{margin-top:10px}.em-sig summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--muted);padding:4px}
 .em-sig[open] summary{margin-bottom:6px}
+.em-hint{margin-top:8px;text-align:right;font-size:12px}
 .em-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}.em-acts .em-sp{flex:1}
 .em-busy{position:relative;color:transparent !important}
 .em-busy::after{content:"Writing...";position:absolute;inset:0;display:grid;place-items:center;color:var(--accent-text)}
@@ -138,8 +143,10 @@ function emailModal(l,o={}){
     <details class="em-sig"><summary>Your signature</summary><textarea class="inp" id="emSig" rows="4" maxlength="400" style="width:100%">${esc(emSig())}</textarea>
      <div class="note" style="margin-top:4px">Added under every email you write. Saved for next time.</div></details></div>
    <div class="em-acts"><button class="btn" data-x>Close</button><span class="em-sp"></span>
-    <button class="btn" id="emCopy" disabled>${ic("copy")}Copy</button><button class="btn" id="emGmail" disabled>Gmail</button>
-    <button class="btn pri" id="emSend" disabled>${ic("mail")}Open in email app</button></div></div>`,
+    <button class="btn" id="emCopy" title="Copy the subject and the email">${ic("copy")}Copy</button>
+    <button class="btn" id="emSend" title="Your computer's or phone's email app">${ic("mail")}Email app</button>
+    <button class="btn pri" id="emGmail" title="Opens a new Gmail email with everything filled in">${ic("send")}Open in Gmail</button></div>
+   <div class="note em-hint" id="emHint">Tip: press <b>Open in Gmail</b> right away and it writes the email, then opens it in Gmail ready to send.</div></div>`,
   (ov,close)=>{
     ov.querySelector(".dlg").classList.add("em-wide");
     const g=id=>$("#"+id,ov),ask=g("emAsk"),go=g("emGo"),out=g("emOut"),msg=g("emMsg"),subj=g("emSub"),body=g("emBody"),sig=g("emSig"),to=g("emTo");
@@ -147,7 +154,7 @@ function emailModal(l,o={}){
     $("[data-x]",ov).onclick=close;
     $$("[data-pick]",ov).forEach(b=>b.onclick=()=>{ask.value=EM_PICKS[+b.dataset.pick][1];ask.focus()});
     $$("[data-tone]",ov).forEach(b=>b.onclick=()=>{tone=b.dataset.tone;setP("emailTone",tone);$$("[data-tone]",ov).forEach(x=>{const on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})});
-    const ready=on=>["emCopy","emGmail","emSend"].forEach(i=>g(i).disabled=!on);
+    const ready=()=>{const h=g("emHint");if(h)h.remove()};
     const say=(cls,html)=>{msg.className=cls?"em-msg "+cls:"em-msg";msg.innerHTML=html};
     const show=(s,b)=>{subj.value=s;body.value=emWith(b,sig.value);lastSig=sig.value;out.hidden=false;ready(true)};
     sig.addEventListener("input",()=>{const v=sig.value,old=lastSig.trim();
@@ -155,28 +162,49 @@ function emailModal(l,o={}){
       else if(!old&&v.trim()&&body.value)body.value=emWith(body.value,v);lastSig=v});
     sig.addEventListener("change",()=>setP("emailSig",sig.value));
     const write=async()=>{
-      if(busy)return;busy=true;go.disabled=true;go.classList.add("em-busy");go.setAttribute("aria-busy","true");g("emWait").classList.add("on");
+      if(busy)return false;busy=true;go.disabled=true;go.classList.add("em-busy");go.setAttribute("aria-busy","true");g("emWait").classList.add("on");
       const me=S.me||{},co=emCompany();
       const lead={id:l.id||"",name:l.name||"",btype:l.btype||"",address:l.address||"",website:l.website||"",rating:l.rating||"",reviews:l.reviews||"",owner:l.owner||"",notes:l.notes||"",meeting_at:l.meeting_at||""};
       const r=await emDraft({lead,kind,tone,prompt:ask.value.trim(),sender:{name:me.display_name||"",title:(me.ext&&me.ext.title)||"",company:co.name,website:co.website}});
       busy=false;go.disabled=false;go.classList.remove("em-busy");go.removeAttribute("aria-busy");g("emWait").classList.remove("on");
       if(r.ok){show(r.subject,r.body);say("",`Written for ${esc(l.name)}. Read it over before you send it.${r.limit?`<small>${esc(r.used)} of ${esc(r.limit)} emails today</small>`:""}`);
-        go.innerHTML=`${ic("send")}Write again`;hydrateIcons(go);logNote("Email written for "+l.name);return}
-      if(r.code==="limit"||r.code==="auth"||r.code==="refused"){say("bad",esc(r.error||"Couldn't write that email."));out.hidden=false;return}
+        go.innerHTML=`${ic("send")}Write again`;hydrateIcons(go);logNote("Email written for "+l.name);return true}
+      if(r.code==="limit"||r.code==="auth"||r.code==="refused"){say("bad",esc(r.error||"Couldn't write that email."));out.hidden=false;return false}
       const t=emTemplate(l,kind,tone);show(t.subject,t.body);
       say("warn",esc(r.code==="no_db"?EM_NEED18+" Here's a plain template for now.":r.code==="offline"?"You're offline, so this is a plain template. Your request wasn't used."
         :r.code==="busy"?(r.error||"The AI is busy.")+" Here's a plain template for now.":r.code==="no_fn"||r.code==="no_key"||r.code==="bad_key"?EM_SETUP:(r.error||"Couldn't reach the AI.")+" Here's a plain template for now."));
+      return true;
     };
     go.onclick=write;
     ask.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();write()}});
     const full=()=>({to:to.value.trim(),s:subj.value.trim(),b:body.value});
-    g("emCopy").onclick=()=>{const f=full();copyText((f.s?"Subject: "+f.s+"\n\n":"")+f.b)};
-    g("emSend").onclick=()=>{const f=full();const url=`mailto:${encodeURIComponent(f.to)}?subject=${encodeURIComponent(f.s)}&body=${encodeURIComponent(f.b)}`;
-      if(typeof invMailto==="function")invMailto(url);else location.href=url;setP("emailSig",sig.value)};
-    g("emGmail").onclick=()=>{const f=full();window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(f.to)}&su=${encodeURIComponent(f.s)}&body=${encodeURIComponent(f.b)}`,"_blank","noopener");setP("emailSig",sig.value)};
+    /* each send button works straight away: with no email yet it writes one first, then sends it on */
+    const need=async()=>body.value.trim()?true:await write();
+    g("emCopy").onclick=async()=>{if(!await need())return;const f=full();copyText((f.s?"Subject: "+f.s+"\n\n":"")+f.b)};
+    g("emSend").onclick=async()=>{if(!await need())return;emOpenApp(full());setP("emailSig",sig.value)};
+    g("emGmail").onclick=async()=>{
+      /* a computer's browser only lets a new tab open straight after a click, so it's opened now and filled in once written */
+      const tab=!body.value.trim()&&!window.leafline&&!emPhone()?window.open("about:blank","_blank"):null;
+      if(!await need()){if(tab)tab.close();return}
+      emOpenGmail(full(),tab);setP("emailSig",sig.value)};
     if(o.auto)setTimeout(write,60);else setTimeout(()=>{ask.focus();ask.setSelectionRange(ask.value.length,ask.value.length)},140);
   });
 }
+/* sending: Gmail (the app on iPhone, Gmail in the browser on a computer, the email app on Android = Gmail on most),
+   or the device's own email app */
+const emPhone=()=>matchMedia("(hover:none) and (pointer:coarse)").matches;
+const emIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function emLinks(f){const e=encodeURIComponent;return {
+  mailto:`mailto:${e(f.to)}?subject=${e(f.s)}&body=${e(f.b)}`,
+  web:`https://mail.google.com/mail/?view=cm&fs=1&to=${e(f.to)}&su=${e(f.s)}&body=${e(f.b)}`,
+  ios:`googlegmail://co?to=${e(f.to)}&subject=${e(f.s)}&body=${e(f.b)}`}}
+function emOpenApp(f){const u=emLinks(f).mailto;if(typeof invMailto==="function")invMailto(u);else location.href=u}
+function emOpenGmail(f,tab){const L=emLinks(f);
+  if(emPhone()&&emIOS()){location.href=L.ios;                               // the Gmail app; if it isn't installed, Gmail in the browser
+    setTimeout(()=>{if(!document.hidden)window.open(L.web,"_blank")},1600);return}
+  if(emPhone()&&/Android/i.test(navigator.userAgent)){location.href=L.mailto;return}
+  if(tab){try{tab.opener=null;tab.location.href=L.web;return}catch(e){}}
+  window.open(L.web,"_blank","noopener")}
 /* right after a call: a small card offering to write the email (it doesn't get in the way of the result's own toast) */
 function emailNudge(l,kind){
   if(!l||!l.name||!EM_KIND[kind]||!S.me)return;

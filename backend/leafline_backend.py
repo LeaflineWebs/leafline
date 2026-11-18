@@ -5972,6 +5972,12 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"11.21.0",t:"Send emails in one click, and smoother reminders",items:[
+  "Write an email and send it in one click: press Open in Gmail and Leafline writes the email, then opens it in Gmail with the subject and everything filled in, ready to send. On an iPhone it opens the Gmail app.",
+  "Email app and Copy work straight away too. If nothing has been written yet, they write the email first.",
+  "The email writer can now use a free AI (Groq). Admins: SETUP_SUPABASE.md > Email writer.",
+  "Reminders: the list stays solid and readable on phones, no longer flickers or jumps back to the top while it's open, and keeps Done open.",
+  "Find Leads: the Email, Copy phone and Website buttons move under the business name on smaller windows instead of squeezing it."]},
  {v:"11.20.0",t:"Write emails with AI",items:[
   "New: write an email to any business in seconds. Type a quick request (or tap a quick pick), choose Friendly, Professional or Short, and Leafline writes a full email made for that company: its name, the kind of business, its reviews, whether it has a website and your call notes.",
   "Find it in Find Leads (the Email button in a business's details) and in Called Leads (Write email).",

@@ -104,8 +104,9 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
   - After a call (No answer / Interested / Meeting, or a logged call) a small card offers to write it, after any
     reminder or meeting pop-up; from there it writes straight away from the call result and notes.
   - Not set up yet, or offline: a plain template is filled in and the pop-up says so.
-- `supabase/functions/email-draft/index.ts`: the Supabase Edge Function that calls Claude (`claude-opus-4-8`, structured
-  output: subject + body). The Anthropic key is a Supabase secret only. Each request is checked with the person's own
+- `supabase/functions/email-draft/index.ts`: the Supabase Edge Function that writes it: Groq's free plan when `GROQ_API_KEY`
+  is set (Llama 3.3 70B, then 3.1 8B), otherwise Claude (`claude-opus-4-8`, structured output: subject + body) with
+  `ANTHROPIC_API_KEY`. The keys are Supabase secrets only. Each request is checked with the person's own
   sign-in through `email_quota_take()` (active teammates only, 150 a day).
 - 18th database update (`supabase/migrations/20261117000018_email_drafts.sql`): `email_drafts`, `email_quota_take`.
   Setup: SETUP_SUPABASE.md > "Eighteenth migration + Email writer".

@@ -1,6 +1,8 @@
-// Leafline 11.20: the email writer. A Supabase Edge Function (Deno) that writes one email for one business with Claude.
+// Leafline 11.20: the email writer. A Supabase Edge Function (Deno) that writes one email for one business with AI.
 //
-//  * The Anthropic key lives ONLY here, as the Supabase secret ANTHROPIC_API_KEY. The app and the website never see it.
+//  * Which AI: Groq's FREE plan when the Supabase secret GROQ_API_KEY is set (Llama 3.3 70B, falling back to Llama 3.1
+//    8B when the free allowance runs out for the moment), otherwise Claude when ANTHROPIC_API_KEY is set (paid per email).
+//  * The keys live ONLY here, as Supabase secrets. The app and the website never see them.
 //  * Every request must carry the person's own sign-in. Before anything is written, the function calls the database's
 //    email_quota_take() AS THAT PERSON: it refuses signed-out or deactivated accounts and keeps each person to 150 emails
 //    a day (18th database update). Nothing about the email itself is stored.
@@ -109,8 +111,9 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   try { b = JSON.parse(raw || "{}"); } catch { return json(400, { ok: false, error: "That request wasn't readable." }); }
   if (!b || typeof b !== "object" || !b.lead || typeof b.lead !== "object") return json(400, { ok: false, error: "Pick a business first." });
 
-  const key = deps.env("ANTHROPIC_API_KEY");
-  if (!key) return json(503, { ok: false, code: "no_key", error: "The email writer isn't set up yet: the AI key is missing in Supabase." });
+  // which AI: Groq (free plan) when its key is set, otherwise Claude (paid per email)
+  const groq = deps.env("GROQ_API_KEY"), key = deps.env("ANTHROPIC_API_KEY");
+  if (!groq && !key) return json(503, { ok: false, code: "no_key", error: "The email writer isn't set up yet: the AI key is missing in Supabase." });
 
   // who is asking, and are they under today's limit? (their own sign-in; the database decides)
   const base = (deps.env("SUPABASE_URL") || "").replace(/\/+$/, "");
@@ -132,6 +135,8 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     return json(q && q.limit_reached ? 429 : 403, { ok: false, code: q && q.limit_reached ? "limit" : "auth", error: (q && q.error) || "Sign in first." });
   }
 
+  if (groq) return writeWithGroq(b, q, groq, deps);
+
   let msg: any;
   try {
     msg = await deps.create({
@@ -150,12 +155,56 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   }
   if (msg && msg.stop_reason === "refusal") return json(422, { ok: false, code: "refused", error: "The AI wouldn't write that one. Try asking a different way." });
   const text = ((msg && Array.isArray(msg.content) ? msg.content : []).find((x: any) => x && x.type === "text") || {}).text || "";
+  return finish(text, q);
+}
+
+/** The AI's JSON answer -> a tidy subject and body, or "try again". */
+function finish(text: string, q: any): Response {
   let out: any;
   try { out = JSON.parse(text); } catch { out = null; }
   const subject = String((out && out.subject) || "").replace(/\s+/g, " ").trim().slice(0, 150);
   const body = String((out && out.body) || "").replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 6000);
   if (!subject || !body) return json(502, { ok: false, error: "Couldn't write that email. Try again." });
   return json(200, { ok: true, subject, body, used: q.used, limit: q.limit });
+}
+
+// ---- Groq (free plan). If the bigger model's free allowance is used up for now, the smaller one writes it instead.
+export const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_JSON = '\n\nAnswer with only a JSON object, exactly like {"subject": "...", "body": "..."}, and nothing else.';
+
+async function writeWithGroq(b: any, q: any, apiKey: string, deps: Deps): Promise<Response> {
+  const custom = clean(deps.env("GROQ_MODEL"), 80);
+  const models = custom ? [custom, ...GROQ_MODELS.filter((m) => m !== custom)] : GROQ_MODELS;
+  const user = buildUserMessage(b);
+  let last = 0;
+  for (const model of models) {
+    let r: Response;
+    try {
+      r = await deps.fetch(GROQ_URL, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model, temperature: 0.7, max_completion_tokens: 1200, response_format: { type: "json_object" },
+          messages: [{ role: "system", content: SYSTEM + GROQ_JSON }, { role: "user", content: user }],
+        }),
+      });
+    } catch {
+      last = 503; continue;
+    }
+    last = r.status;
+    if (r.status === 401 || r.status === 403) return json(503, { ok: false, code: "bad_key", error: "The Groq key in Supabase was refused. An admin needs to check GROQ_API_KEY." });
+    if (r.status === 429 || r.status >= 500 || r.status === 404 || r.status === 400) continue;   // limit reached / down / model gone: try the next one
+    if (!r.ok) break;
+    let j: any = null;
+    try { j = await r.json(); } catch { /* unreadable */ }
+    const text = (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+    const res = finish(String(text), q);
+    if (res.status === 200) return res;
+  }
+  if (last === 429) return json(503, { ok: false, code: "busy", error: "The free AI has hit its limit for now. Try again in a minute." });
+  if (last >= 500 || last === 503) return json(503, { ok: false, code: "busy", error: "The AI is busy right now. Try again in a minute." });
+  return json(502, { ok: false, error: "Couldn't write that email. Try again." });
 }
 
 // ---- Deno (Supabase) entry point. Skipped when the tests import this file in Node.

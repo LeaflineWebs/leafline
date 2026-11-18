@@ -13,7 +13,10 @@ function deps(o = {}) {
   return {
     calls,
     env: (k) => env[k] === null ? undefined : env[k],
-    fetch: async (u, init) => { calls.fetch.push({ u, init }); const q = o.quota || { status: 200, body: { ok: true, used: 3, limit: 150 } };
+    fetch: async (u, init) => { calls.fetch.push({ u, init });
+      if (u.includes("api.groq.com")) { const g = (o.groq || []).shift() || { status: 200, body: { choices: [{ message: { content: JSON.stringify({ subject: "Free subject", body: "Hi Sam,\n\nFree body.\n\nBest," }) } }] } };
+        if (g.throws) throw new Error("network"); return new Response(JSON.stringify(g.body ?? {}), { status: g.status }); }
+      const q = o.quota || { status: 200, body: { ok: true, used: 3, limit: 150 } };
       return new Response(JSON.stringify(q.body ?? {}), { status: q.status }); },
     create: async (p) => { calls.create.push(p); if (o.throws) throw o.throws;
       return o.msg || { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ subject: "A website for Maple Roofing", body: "Hi Sam,\n\n\n\nThanks for the chat.\n\nBest," }) }] }; },
@@ -86,6 +89,33 @@ d = deps({ msg: { stop_reason: "end_turn", content: [{ type: "text", text: "not 
 check("an unreadable answer: 502, try again", r.status === 502 && !r.body.ok, r);
 d = deps({ msg: { stop_reason: "end_turn", content: [{ type: "thinking", thinking: "" }, { type: "text", text: '{"subject":"Hi","body":"Hello,\\n\\nBest,"}' }] } }); r = await run(req({ lead: LEAD }), d);
 check("a thinking block before the answer is skipped", r.status === 200 && r.body.subject === "Hi", r);
+
+console.log("the free AI (Groq)");
+const G = { env: { GROQ_API_KEY: "gsk-test", ANTHROPIC_API_KEY: null } };
+d = deps(G); r = await run(req({ lead: LEAD, prompt: "Offer a mock-up", tone: "short" }), d);
+const gc = d.calls.fetch.filter((x) => x.u.includes("groq"));
+check("with only GROQ_API_KEY set, Groq writes it (Claude isn't called)", r.status === 200 && r.body.subject === "Free subject" && r.body.body === "Hi Sam,\n\nFree body.\n\nBest," && d.calls.create.length === 0, r);
+const gb = gc[0] && JSON.parse(gc[0].init.body);
+check("...after the same sign-in + daily-limit check", d.calls.fetch[0].u.endsWith("/rpc/email_quota_take") && r.body.used === 3);
+check("...Llama 3.3 70B, JSON answer, the same rules plus 'answer with JSON', the key only in the header", gb && gb.model === "llama-3.3-70b-versatile" && gb.response_format.type === "json_object"
+  && gb.messages[0].content.startsWith(SYSTEM) && /JSON object/.test(gb.messages[0].content) && /Name: Maple Roofing/.test(gb.messages[1].content) && gc[0].init.headers.Authorization === "Bearer gsk-test" && !gc[0].init.body.includes("gsk-test"), gb);
+d = deps({ ...G, groq: [{ status: 429, body: { error: { message: "rate limit" } } }] }); r = await run(req({ lead: LEAD }), d);
+const models = d.calls.fetch.filter((x) => x.u.includes("groq")).map((x) => JSON.parse(x.init.body).model);
+check("70B's free allowance used up (429): the 8B model writes it instead", r.status === 200 && JSON.stringify(models) === '["llama-3.3-70b-versatile","llama-3.1-8b-instant"]', { r, models });
+d = deps({ ...G, groq: [{ status: 429, body: {} }, { status: 429, body: {} }] }); r = await run(req({ lead: LEAD }), d);
+check("both used up: 'the free AI has hit its limit for now'", r.status === 503 && r.body.code === "busy" && /free AI/.test(r.body.error), r);
+d = deps({ ...G, groq: [{ status: 401, body: {} }] }); r = await run(req({ lead: LEAD }), d);
+check("a wrong Groq key: bad_key, and the key isn't in the answer", r.status === 503 && r.body.code === "bad_key" && !JSON.stringify(r.body).includes("gsk-test"), r);
+d = deps({ ...G, groq: [{ status: 200, body: { choices: [{ message: { content: "not json" } }] } }] }); r = await run(req({ lead: LEAD }), d);
+check("an unreadable answer from 70B: 8B tries", r.status === 200 && r.body.subject === "Free subject", r);
+d = deps({ ...G, groq: [{ throws: true }, { throws: true }] }); r = await run(req({ lead: LEAD }), d);
+check("Groq unreachable: busy, try again", r.status === 503 && r.body.code === "busy", r);
+d = deps({ env: { GROQ_API_KEY: "gsk-test", GROQ_MODEL: "openai/gpt-oss-120b" } }); r = await run(req({ lead: LEAD }), d);
+check("GROQ_MODEL picks a different model first", JSON.parse(d.calls.fetch.find((x) => x.u.includes("groq")).init.body).model === "openai/gpt-oss-120b");
+d = deps({ env: { GROQ_API_KEY: "gsk-test", ANTHROPIC_API_KEY: "k" } }); r = await run(req({ lead: LEAD }), d);
+check("both keys set: the free one is used", r.body.subject === "Free subject" && d.calls.create.length === 0, r);
+d = deps({ env: { GROQ_API_KEY: null, ANTHROPIC_API_KEY: null } }); r = await run(req({ lead: LEAD }), d);
+check("no key at all: no_key", r.status === 503 && r.body.code === "no_key", r);
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

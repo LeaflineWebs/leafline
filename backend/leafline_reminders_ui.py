@@ -12,6 +12,8 @@ REM_CSS = r'''
   -webkit-backdrop-filter:var(--blur,none);backdrop-filter:var(--blur,none);border:1px solid var(--line2,var(--line));box-shadow:var(--sh-lg,0 24px 50px rgba(0,0,0,.5)),var(--hi);
   transform-origin:top right;transform:translateY(-8px) scale(.96);opacity:0;pointer-events:none;transition:transform var(--d-pop,.25s) var(--e-spring,ease),opacity var(--d-pop,.25s) var(--e-out,ease)}
 .remp.on{transform:none;opacity:1;pointer-events:auto}
+/* readable even where the blur behind it doesn't draw (it went see-through on some phones) */
+.remp,.bell{background:linear-gradient(180deg,color-mix(in srgb,var(--card2) 94%,transparent),color-mix(in srgb,var(--card) 94%,transparent))}
 .remp .rem-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 4px 10px}
 .remp h4{font-size:15px;font-weight:800}
 .remp .rem-sec{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:12px 6px 6px}
@@ -100,16 +102,21 @@ const remRowHTML=r=>`<button type="button" class="remr${remOver(r)?" rem-od":""}
 /* ---------- the top-bar list ---------- */
 function remPanelDraw(){
   const p=$("#remPanel");if(!p)return;
-  if(REM.missing){p.innerHTML=`<div class="rem-hd"><h4>Reminders</h4></div><div class="note" style="padding:4px 6px 8px">${esc(REM_MISSING)}</div>`;return}
+  if(REM.missing){p.dataset.sig="";p.innerHTML=`<div class="rem-hd"><h4>Reminders</h4></div><div class="note" style="padding:4px 6px 8px">${esc(REM_MISSING)}</div>`;return}
   const open=remOpen().sort((a,b)=>a.remind_at.localeCompare(b.remind_at)),od=open.filter(remOver),td=open.filter(r=>!remOver(r)&&new Date(r.remind_at).getTime()<=remDayEnd()),later=open.filter(r=>new Date(r.remind_at).getTime()>remDayEnd()),done=(REM.list||[]).filter(r=>r.done_at).slice(-10).reverse();
+  /* only redraw when something changed: a redraw every refresh made the list flicker, jump to the top and close "Done" */
+  const sig=JSON.stringify([open.map(r=>[r.id,r.remind_at,r.company,r.owner_name,r.notes,remOver(r)]),done.map(r=>r.id),isoDay(new Date())]);
+  if(p.dataset.sig===sig&&p.firstElementChild)return;p.dataset.sig=sig;
+  const wasOpen=!!p.querySelector("details[open]"),top=p.scrollTop;
   p.innerHTML=`<div class="rem-hd"><h4>Reminders</h4><span class="muted" style="font-size:12px;font-weight:600">Only you can see these</span></div>
    ${open.length?`${od.length?`<div class="rem-sec rem-od">Due now</div>${od.map(remRowHTML).join("")}`:""}${td.length?`<div class="rem-sec">Later today</div>${td.map(remRowHTML).join("")}`:""}${later.length?`<div class="rem-sec">Coming up</div>${later.map(remRowHTML).join("")}`:""}`
     :`<div class="empty"><div class="bub">${ic("clock")}</div><b>No reminders</b>In Find Leads, press <b>Set reminder</b> on the business you're calling.</div>`}
    ${done.length?`<details><summary>Done (${done.length})</summary>${done.map(remRowHTML).join("")}</details>`:""}`;
   hydrateIcons(p);
+  const dt=p.querySelector("details");if(dt&&wasOpen)dt.open=true;p.scrollTop=top;
   $$("[data-rem]",p).forEach(b=>b.onclick=()=>{const r=(REM.list||[]).find(x=>x.id===b.dataset.rem);p.classList.remove("on");r&&remDetail(r)});
 }
-function remToggle(){const p=$("#remPanel");$("#bell")&&$("#bell").classList.remove("on");const on=!p.classList.contains("on");if(on){remPanelDraw();loadRem(true)}p.classList.toggle("on",on)}
+function remToggle(){const p=$("#remPanel");$("#bell")&&$("#bell").classList.remove("on");const on=!p.classList.contains("on");if(on){remPanelDraw();loadRem(true);$$(".remn").forEach(n=>n.remove())/* the same reminders are in the list: don't cover it */}p.classList.toggle("on",on)}
 document.addEventListener("click",e=>{const p=$("#remPanel");if(p&&p.classList.contains("on")&&!e.target.closest("#remPanel")&&!e.target.closest("#remBtn"))p.classList.remove("on")});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const p=$("#remPanel");if(p)p.classList.remove("on")}});
 
@@ -186,6 +193,7 @@ async function maybeRemPopup(){
   for(let i=0;i<240&&(i<6||document.querySelector(".ov.on")||(!S.dueShown&&i<20));i++)await new Promise(r=>setTimeout(r,500));
   if(document.querySelector(".ov.on"))return;
   const list=remToday();if(!list.length)return;
+  const pnl=$("#remPanel");if(pnl)pnl.classList.remove("on");     // never both at once
   openModal(`<div class="remd"><div class="rem-rh"><div class="rem-ri">${ic("clock")}</div><div><h2>Today's reminders</h2><div class="muted" style="font-size:13.5px;margin-top:2px">${list.length===1?"One business to get back to":list.length+" businesses to get back to"}. Open one to see your notes.</div></div></div>
    <div class="remlist">${list.map(remRowHTML).join("")}</div>
    <div class="rem-acts"><span class="rem-sp"></span><button class="btn pri" data-x>Got it</button></div></div>`,(ov,close)=>{
