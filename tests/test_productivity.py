@@ -167,7 +167,7 @@ with sync_playwright() as p:
     ctx, pg = page(br, "james"); pg.evaluate("async()=>{await reportStatus(true);await go('admin',true)}"); pg.wait_for_selector("#hlCard .hl-tbl", timeout=30000)
     pg.evaluate("()=>document.querySelector('#hlCard').scrollIntoView({block:'start'})"); pg.wait_for_timeout(400); pg.screenshot(path=os.path.join(os.environ.get("LEAFLINE_SHOTS") or tempfile.mkdtemp(), "health.png"))
     txt = pg.inner_text("#hlCard")
-    check("James sees every database update as run", "Every database update has been run" in txt and len(pg.query_selector_all("#hlCard .hl-up")) == 17 and not pg.query_selector("#hlCard .hl-up.no"))
+    check("James sees every database update as run", "Every database update has been run" in txt and len(pg.query_selector_all("#hlCard .hl-up")) == 18 and not pg.query_selector("#hlCard .hl-up.no"))
     check("...and each person's app version and sync", "Gio" in txt and "website" in txt and "Not reported yet" in txt)
     F.split_cap = False; pg.click("#hlRe"); pg.wait_for_function("()=>document.querySelector('#hlCard .hl-up.no')", timeout=20000)
     check("a missing update is called out with what to do", "Database update 16 has not been run" in pg.inner_text("#hlCard") and "RUN_IN_SUPABASE.sql" in pg.inner_text("#hlCard"))

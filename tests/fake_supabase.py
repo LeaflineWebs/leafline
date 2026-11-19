@@ -12,7 +12,7 @@ from urllib.parse import urlparse, parse_qs
 class Fake:
     def __init__(self):
         self.lock = threading.RLock(); self.users = {}; self.tokens = {}; self.refresh = {}
-        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests", "meeting_checks", "deal_splits", "lead_stages", "app_status", "email_drafts")}
+        self.t = {k: [] for k in ("profiles", "leads", "call_log", "deals", "events", "notes", "activity", "settings", "audit_log", "import_batches", "legacy_duplicates", "posts", "post_comments", "post_reactions", "user_settings", "expenses", "lead_requests", "meeting_checks", "deal_splits", "lead_stages", "app_status", "email_drafts", "clients", "client_deals", "client_events")}
         self.mtg_cap = True; self.split_cap = True; self.p17_cap = True
         self.email_cap = True; self.email_fn = "ok"; self.email_reqs = []   # 18th update + the email-draft Edge Function ("ok" | "none" = not deployed | "nokey" | "busy")
         self.lead = dict(key="", cap=900, used=0); self.lead_cap = True; self.google_calls = 0
@@ -212,8 +212,8 @@ class Fake:
                     if tbl == "rpc/team_health":
                         if F.role(uid) != "admin": return s.reply(400, {"code": "P0001", "message": "Administrators only"})
                         st = {r["user_id"]: r for r in F.t["app_status"]}
-                        ups = {str(n): True for n in range(2, 19)}
-                        ups.update({"7": F.paid_cap, "13": F.mtg_cap, "16": F.split_cap, "18": F.email_cap})
+                        ups = {str(n): True for n in range(2, 20)}
+                        ups.update({"7": F.paid_cap, "13": F.mtg_cap, "16": F.split_cap, "18": F.email_cap, "19": getattr(F, "clients_cap", True)})
                         people = [dict(id=p["id"], name=p["display_name"], username=p["username"], role=p["role"], active=p["active"], last_seen=p.get("last_seen"),
                                        version=st.get(p["id"], {}).get("version"), platform=st.get(p["id"], {}).get("platform"), sync_state=st.get(p["id"], {}).get("sync_state"),
                                        pending=st.get(p["id"], {}).get("pending"), last_error=st.get(p["id"], {}).get("last_error"), reported_at=st.get(p["id"], {}).get("updated_at")) for p in F.t["profiles"]]
@@ -222,6 +222,83 @@ class Fake:
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                 if tbl.startswith(("rpc/inv_", "rpc/team_", "rpc/rem_")):   # invoices + team cards (migration 14) run on real Postgres when msg_url is set; otherwise "not installed"
                     return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                if tbl.startswith("rpc/cli_"):           # mirrors migration 19 (clients); the real rules are tested in tests/pg/test_clients_sql.mjs
+                    if not getattr(F, "clients_cap", True): return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
+                    if not F.role(uid): return s.reply(400, {"code": "P0001", "message": "Sign in first"})
+                    err = lambda m: s.reply(400, {"code": "P0001", "message": m})
+                    prof = {p["id"]: p for p in F.t["profiles"]}; C, CD, CE = F.t["clients"], F.t["client_deals"], F.t["client_events"]
+                    def log(cid, kind, b): CE.append(dict(id=str(uuid.uuid4()), client_id=cid, kind=kind, body=b, created_by=uid, created_at=F.now()))
+                    def cj(c):
+                        ev = [e for e in CE if e["client_id"] == c["id"]]
+                        return dict(c, deal_ids=[x["deal_id"] for x in CD if x["client_id"] == c["id"]], events=len(ev), last_event_at=max((e["created_at"] for e in ev), default=None),
+                                    created_name=prof.get(c.get("created_by"), {}).get("display_name"))
+                    find = lambda i: next((c for c in C if c["id"] == i), None)
+                    fn = tbl[4:]
+                    if fn == "cli_list": return s.reply(200, dict(admin=F.role(uid) == "admin", clients=[cj(c) for c in sorted(C, key=lambda c: (c["archived_at"] is not None, c["name"].lower()))]))
+                    if fn == "cli_get":
+                        c = find(body.get("p_id"))
+                        if not c: return err("That client was not found")
+                        tl = sorted((dict(e, created_name=prof.get(e["created_by"], {}).get("display_name")) for e in CE if e["client_id"] == c["id"]), key=lambda e: e["created_at"], reverse=True)
+                        return s.reply(200, dict(cj(c), timeline=tl))
+                    if fn == "cli_save":
+                        b = body.get("p") or {}; nm = (b.get("name") or "").strip(); em = (b.get("email") or "").strip()
+                        if not nm: return err("Type the client's name")
+                        if em and not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$", em): return err("That email doesn't look right")
+                        st = b.get("status") or "active"; pr = b.get("priority") or "normal"
+                        if st not in ("active", "pending", "inactive", "completed"): return err("Pick a status")
+                        team, seen = [], set()
+                        for t in b.get("team") or []:
+                            if t.get("id") not in prof: return err("Pick teammates from the list")
+                            if t["id"] in seen: continue
+                            seen.add(t["id"]); team.append(dict(id=t["id"], role=(t.get("role") or "").strip()[:80]))
+                        tags = sorted({(x or "").strip()[:30] for x in (b.get("tags") or []) if (x or "").strip()})
+                        vals = dict(name=nm, company=(b.get("company") or "").strip(), contact=(b.get("contact") or "").strip(), phone=(b.get("phone") or "").strip(), email=em,
+                                    address=(b.get("address") or "").strip(), website=(b.get("website") or "").strip(), status=st, priority=pr, tags=tags, team=team,
+                                    notes=b.get("notes") or "", start_date=b.get("start_date") or None, next_date=b.get("next_date") or None,
+                                    next_label=(b.get("next_label") or "").strip(), lead_id=b.get("lead_id") if any(l["id"] == b.get("lead_id") for l in F.t["leads"]) else None,
+                                    updated_by=uid, updated_at=F.now())
+                        if not b.get("id"):
+                            c = dict(vals, id=str(uuid.uuid4()), start_date=vals["start_date"] or F.now()[:10], archived_at=None, created_by=uid, created_at=F.now()); C.append(c); log(c["id"], "change", "Client added")
+                        else:
+                            c = find(b["id"])
+                            if not c: return err("That client was not found")
+                            if c["status"] != st: log(c["id"], "change", f"Status: {c['status']} → {st}")
+                            if c["priority"] != pr: log(c["id"], "change", f"Priority: {c['priority']} → {pr}")
+                            c.update(vals)
+                        return s.reply(200, cj(c))
+                    if fn == "cli_archive":
+                        c = find(body.get("p_id"))
+                        if not c: return err("That client was not found")
+                        on = body.get("p_on", True) is not False; c["archived_at"] = (c["archived_at"] or F.now()) if on else None; log(c["id"], "change", "Archived" if on else "Reactivated")
+                        return s.reply(200, cj(c))
+                    if fn == "cli_delete":
+                        if F.role(uid) != "admin": return err("Only an admin can delete a client. You can archive it instead.")
+                        c = find(body.get("p_id"))
+                        if not c: return err("That client was already removed")
+                        C.remove(c); CD[:] = [x for x in CD if x["client_id"] != c["id"]]; CE[:] = [x for x in CE if x["client_id"] != c["id"]]
+                        return s.reply(200, {"ok": True})
+                    if fn == "cli_link":
+                        c = find(body.get("p_client")); d = next((r for r in F.t["deals"] if r["id"] == body.get("p_deal")), None)
+                        if not c: return err("That client was not found")
+                        if not d: return err("That deal was not found. If you just added it, wait for it to sync and try again.")
+                        cur = next((x for x in CD if x["deal_id"] == d["id"]), None)
+                        if body.get("p_on", True) is not False:
+                            if not cur or cur["client_id"] != c["id"]:
+                                if cur: log(cur["client_id"], "change", f"Service moved to {c['name']}: {d['client']}"); CD.remove(cur)
+                                CD.append(dict(deal_id=d["id"], client_id=c["id"], linked_by=uid, linked_at=F.now())); log(c["id"], "change", "Service added: " + d["client"])
+                        elif cur and cur["client_id"] == c["id"]:
+                            CD.remove(cur); log(c["id"], "change", "Service removed: " + d["client"])
+                        return s.reply(200, cj(c))
+                    if fn == "cli_note":
+                        if body.get("p_kind") not in ("note", "call", "meeting", "update"): return err("Pick what kind of entry this is")
+                        if not (body.get("p_body") or "").strip(): return err("Write something first")
+                        if not find(body.get("p_client")): return err("That client was not found")
+                        log(body["p_client"], body["p_kind"], body["p_body"].strip()); return s.reply(200, CE[-1])
+                    if fn == "cli_note_delete":
+                        e = next((x for x in CE if x["id"] == body.get("p_id") and x["kind"] != "change" and (x["created_by"] == uid or F.role(uid) == "admin")), None)
+                        if not e: return err("You can only remove your own notes")
+                        CE.remove(e); return s.reply(200, {"ok": True})
+                    return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + fn})
                 if tbl.startswith("rpc/exp_"):           # mirrors migration 11 (company costs); the real rules are tested in tests/pg
                     if not getattr(F, "costs_cap", True): return s.reply(404, {"code": "PGRST202", "message": "Could not find the function public." + tbl[4:]})
                     prof = {p["id"]: p for p in F.t["profiles"]}

@@ -1779,7 +1779,10 @@ button{cursor:pointer;border:0;background:none}
 .nav{position:relative;width:100%;display:flex;flex-direction:column;gap:6px}
 .pill-bg{position:absolute;left:0;right:0;border-radius:16px;background:var(--nav-pill);box-shadow:0 8px 18px rgba(0,0,0,.25);transition:top .55s var(--spring),height .3s;z-index:0}
 .nv{position:relative;z-index:1;display:flex;align-items:center;gap:12px;height:46px;padding:0 16px;border-radius:16px;color:var(--nav-text);font-weight:600;font-size:14.5px;text-align:left;transition:color .3s,transform .4s var(--spring)}
-.nv:hover{transform:translateX(4px);color:#fff}.nv:active{transform:scale(.96)}
+.nv:hover{transform:translateX(4px);color:#fff}
+.ngrp{font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);padding:12px 16px 4px;opacity:.85}
+.ngrp-end{padding:6px 0 0;margin:0 12px 4px;border-top:1px solid var(--line)}
+@media (min-width:861px){.fnav{display:none !important}}.nv:active{transform:scale(.96)}
 .nv.on{color:var(--nav-on)}.nv.on:hover{transform:none}
 .nv .badge{margin-left:auto;min-width:22px;height:22px;border-radius:11px;padding:0 6px;display:grid;place-items:center;font-size:12px;font-weight:700;background:rgba(255,255,255,.22);color:#fff;transition:background .3s,color .3s}
 .nv.on .badge{background:var(--nav-on);color:var(--nav-pill)}
@@ -2006,6 +2009,10 @@ a.tel:hover{color:var(--accent-hi);border-bottom-color:var(--accent)}
 .cstat{border-radius:24px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh),var(--hi);transition:transform .5s var(--spring)}
 .cstat:hover{transform:translateY(-3px)}
 .cstat .ico{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none}
+@media (min-width:861px) and (max-width:1500px){#pg-called>.two{grid-template-columns:1fr!important;gap:10px}#pg-called .cflt{justify-content:flex-start}}
+@media (min-width:861px){#pg-called .cstats{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px;margin:4px 0 12px}
+  #pg-called .cstat{padding:8px 12px;border-radius:16px;gap:10px}#pg-called .cstat .ico{width:30px;height:30px}#pg-called .cstat .ico .ic{width:16px;height:16px}
+  #pg-called .cstat .n{font-size:18px}#pg-called .cstat .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pg-called .cstat>div:last-child{min-width:0}}
 .cstat .n{font-size:24px;font-weight:800;line-height:1.1}.cstat .t{font-size:12.5px;font-weight:600;color:var(--text2)}
 .board{display:grid;grid-template-columns:repeat(4,minmax(205px,1fr));gap:14px;align-items:start}
 .col{border-radius:26px;padding:12px 10px 10px;background:rgba(0,0,0,.2);min-height:260px;transition:background .3s,transform .45s var(--spring),box-shadow .3s}
@@ -2877,6 +2884,7 @@ html.theming *,html.theming *:before,html.theming *:after{transition:background-
 .sheet .sg button .ic{width:24px;height:24px;color:var(--accent-hi)}
 .sheet .sg button.on{background:var(--accent-soft);border-color:var(--accent-line);color:#fff}
 .sheet .sg button:active{transform:scale(.94)}
+.sg .sgh{grid-column:1/-1;font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:8px 4px -2px}
 .sheet .sx{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);align-items:center;gap:10px;margin-top:14px;padding:12px 2px 0;border-top:1px solid var(--line)}
 .sheet .sx .btn{height:40px;padding:0 10px;white-space:nowrap;min-width:0}
 .sheet .nb{position:absolute;top:8px;right:16px;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--accent-text);font-size:10.5px;font-weight:800;display:grid;place-items:center;padding:0 5px}
@@ -3120,6 +3128,13 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
 /* narrow computer windows: a tighter top bar so its round buttons never get squeezed */
 @media (min-width:861px) and (max-width:1080px){.top{gap:10px;padding-left:20px;padding-right:20px}.top h1{min-width:0;font-size:22px;white-space:nowrap}.sync span{display:none}.sync{width:38px;padding:0;justify-content:center}}
 @media (min-width:861px) and (max-height:700px){.side{padding-top:14px;padding-bottom:12px}.side .nv{height:32px;font-size:13px}.side .foot{padding-top:6px}}
+/* 12.0: the grouped sidebar fits every page down to 1280 x 720: tighter rows as the window gets shorter, and below 940 px
+   your picture gets smaller and the greeting steps aside (your picture always stays) */
+@media (min-width:861px) and (max-height:1040px){.ngrp{padding:8px 16px 2px}.side .nv{height:34px}}
+@media (min-width:861px) and (max-height:940px){.side .hi{display:none}.side .ring{width:48px;height:48px;margin-bottom:8px}.side .ring .in-av{font-size:17px}.side .ring .dot{width:12px;height:12px;right:0;bottom:1px}.brand{margin-bottom:10px}}
+@media (min-width:861px) and (max-height:800px){.side .ring{width:36px;height:36px;margin-bottom:4px}.side .ring .in-av{font-size:14px}.side .ring .dot{width:10px;height:10px;border-width:2px}.brand{margin-bottom:6px}
+  .side{padding-top:14px;padding-bottom:12px}.side .nv{height:28px;font-size:13px}.ngrp{padding:6px 16px 1px;font-size:10px}.ngrp-end{padding-top:4px;margin-bottom:2px}
+  .side .foot{padding-top:4px;font-size:0}.side .foot .lgt{margin-top:0}}
 .lcall{display:none}
 /* company costs */
 .card.costs{padding:18px 20px 12px}
@@ -3196,9 +3211,10 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   /* Called Leads: compact header, result tabs, one full-width list (no sideways columns) */
   #pg-called .cdesc,#cExport{display:none}
   #pg-called .two{margin-bottom:8px!important}
-  #pg-called .cflt{flex-wrap:nowrap;overflow-x:auto;margin:8px -16px 0;padding:0 16px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  #pg-called .cflt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;overflow:visible;margin:8px 0 0;padding:0}
+  #pg-called .cflt #cExport{grid-column:1/-1;height:38px;justify-content:center}
   #pg-called .cflt::-webkit-scrollbar{display:none}
-  #pg-called .cflt select{flex:0 0 auto;width:auto;max-width:200px;height:40px}
+  #pg-called .cflt select{width:100%;max-width:none;min-width:0;height:40px}
   #pg-called .cstats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 12px}
   #pg-called .cstat{flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:9px 4px;border-radius:16px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;
     transition:background-color var(--d-hover) var(--e-out),border-color var(--d-hover) var(--e-out),box-shadow var(--d-hover) var(--e-out),transform var(--d-card) var(--e-spring)}
@@ -3218,6 +3234,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   .sheet .sg button{padding:14px 4px;font-size:12px;line-height:1.2;text-align:center;overflow-wrap:anywhere;min-width:0}
 }
 @media (prefers-reduced-motion:reduce){.skl i:after{display:none}}
+@media (min-width:1101px) and (max-width:1280px){.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat .vl{font-size:24px}.stat .lb{margin-top:8px}}
 </style>
 </head>
 <body>
@@ -3232,18 +3249,24 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
     <nav class="nav pop" id="nav" aria-label="Main">
       <div class="pill-bg" id="navPill"></div>
       <button class="nv" data-go="dash"><i class="ic" data-ic="home"></i>Dashboard</button>
-      <button class="nv" data-go="team"><i class="ic" data-ic="users"></i>Team</button>
-      <button class="nv" data-go="board"><i class="ic" data-ic="trophy"></i>Leaderboard</button>
-      <button class="nv" data-go="posts"><i class="ic" data-ic="mega"></i>Announcements<span class="badge" id="postsBadge" style="display:none">0</span></button>
-      <button class="nv" data-go="msgs"><i class="ic" data-ic="chat"></i>Messages<span class="badge" id="msgBadge" style="display:none">0</span></button>
+      <div class="ngrp" aria-hidden="true">Selling</div>
       <button class="nv" data-go="find"><i class="ic" data-ic="search"></i>Find Leads</button>
       <button class="nv" data-go="called"><i class="ic" data-ic="phone"></i>Called Leads<span class="badge" id="calledBadge">0</span></button>
       <button class="nv" data-go="pipeline"><i class="ic" data-ic="pipe"></i>Pipeline</button>
-      <button class="nv" data-go="calendar"><i class="ic" data-ic="cal"></i>Calendar</button>
       <button class="nv" data-go="calls"><i class="ic" data-ic="log"></i>Call Log</button>
-      <button class="nv" data-go="notes"><i class="ic" data-ic="note"></i>Notes</button>
+      <div class="ngrp" aria-hidden="true">Clients &amp; money</div>
+      <button class="nv" data-go="clients"><i class="ic" data-ic="briefcase"></i>Clients</button>
       <button class="nv" data-go="profits"><i class="ic" data-ic="dollar"></i>Profits</button>
       <button class="nv" data-go="invoices"><i class="ic" data-ic="receipt"></i>Invoices</button>
+      <div class="ngrp" aria-hidden="true">Organize</div>
+      <button class="nv" data-go="calendar"><i class="ic" data-ic="cal"></i>Calendar</button>
+      <button class="nv" data-go="notes"><i class="ic" data-ic="note"></i>Notes</button>
+      <div class="ngrp" aria-hidden="true">Team</div>
+      <button class="nv" data-go="msgs"><i class="ic" data-ic="chat"></i>Messages<span class="badge" id="msgBadge" style="display:none">0</span></button>
+      <button class="nv" data-go="posts"><i class="ic" data-ic="mega"></i>Announcements<span class="badge" id="postsBadge" style="display:none">0</span></button>
+      <button class="nv" data-go="team"><i class="ic" data-ic="users"></i>Team</button>
+      <button class="nv" data-go="board"><i class="ic" data-ic="trophy"></i>Leaderboard</button>
+      <div class="ngrp ngrp-end" aria-hidden="true"></div>
       <button class="nv" data-go="admin" id="navAdmin" style="display:none"><i class="ic" data-ic="shield"></i>Admin</button>
       <button class="nv" data-go="account"><i class="ic" data-ic="gear"></i>Settings</button>
     </nav>
@@ -3329,6 +3352,7 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
       <div class="page" id="pg-profits"></div>
       <div class="page" id="pg-invoices"></div>
       <div class="page" id="pg-pipeline"></div>
+      <div class="page" id="pg-clients"></div>
 
       <div class="page" id="pg-calls"></div>
       <div class="page flex" id="pg-notes"></div>
@@ -3728,10 +3752,10 @@ function movePills(){
     const fp=$("#fpill");if(fp.scrollWidth>fp.clientWidth+2)fp.scrollTo({left:Math.max(0,fb.offsetLeft-(fp.clientWidth-fb.offsetWidth)/2),behavior:"smooth"})}
 }
 const pageTitle=p=>p==="posts"&&matchMedia("(max-width:860px)").matches?"News":TITLES[p];
-const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",pipeline:"Pipeline",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",profits:"Profits",invoices:"Invoices",admin:"Admin",account:"Settings"};
+const TITLES={dash:"Dashboard",team:"Team",board:"Leaderboard",posts:"Announcements",msgs:"Messages",find:"Find Leads",called:"Called Leads",pipeline:"Pipeline",calendar:"Calendar",calls:"Call Log",notes:"Notes & Scripts",clients:"Clients",profits:"Profits",invoices:"Invoices",admin:"Admin",account:"Settings"};
 let navToken=0;
 async function go(p,force){
-  if(p===S.page&&!force)return;
+  if(p===S.page&&!force){closeSheet();return}   /* tapping the page you're on in the More menu just closes the menu */
   if(S.page==="notes"&&p!=="notes"){await flushNote();document.body.classList.remove("focus")}
   const my=++navToken,old=$(".page.on"),next=$("#pg-"+p);MOTION.navAt=performance.now();
   S.page=p;closeSheet();hideHover(true);if(document.body.classList.contains("dopen"))closeDetailSheet();
@@ -3742,7 +3766,7 @@ async function go(p,force){
   if(my!==navToken)return;
   if(old){old.getAnimations().forEach(a=>a.cancel());old.classList.remove("on")}
   S.lastSig={};
-  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="invoices")renderInvoices(false);if(p==="pipeline")renderPipeline(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
+  if(p==="dash")renderDash(false);if(p==="team")renderTeam();if(p==="called")renderBoard(false);if(p==="account")renderAccount();if(p==="profits")renderProfits(false);if(p==="invoices")renderInvoices(false);if(p==="pipeline")renderPipeline(false);if(p==="clients"&&typeof renderClients==="function")renderClients(false);if(p==="calendar")renderCalendar(false);if(p==="calls")renderCalls();if(p==="notes")renderNotes();if(p==="admin")renderAdmin();if(p==="find")renderFind();if(p==="board")renderRanks(false);if(p==="posts")renderPosts();if(p==="msgs")renderMsgs();else if(typeof mxLeave==="function")mxLeave();
   arm(next);next.classList.add("on");applyDock();
   if(!REDUCE)next.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:480,easing:EASE.out});
   history.replaceState(null,"","#"+p);
@@ -5445,10 +5469,15 @@ function thPop(anchor){
 }
 
 /* ---------- phone: "More" sheet ---------- */
-const PAGES=[["dash","home","Home"],["team","users","Team"],["board","trophy","Leaderboard"],["posts","mega","Announcements"],["msgs","chat","Messages"],["find","search","Find Leads"],["called","phone","Called Leads"],["pipeline","pipe","Pipeline"],["calendar","cal","Calendar"],["calls","log","Call Log"],["notes","note","Notes"],["profits","dollar","Profits"],["invoices","receipt","Invoices"],["admin","shield","Admin"],["account","gear","Settings"]];
+const PAGES=[["dash","home","Home"],["find","search","Find Leads"],["called","phone","Called Leads"],["pipeline","pipe","Pipeline"],["calls","log","Call Log"],["clients","briefcase","Clients"],["profits","dollar","Profits"],["invoices","receipt","Invoices"],["calendar","cal","Calendar"],["notes","note","Notes"],["msgs","chat","Messages"],["posts","mega","Announcements"],["team","users","Team"],["board","trophy","Leaderboard"],["admin","shield","Admin"],["account","gear","Settings"]];
+/* the More sheet uses the sidebar's groups */
+const PAGE_GROUPS=[["",["dash"]],["Selling",["find","called","pipeline","calls"]],["Clients & money",["clients","profits","invoices"]],["Organize",["calendar","notes"]],["Team",["msgs","posts","team","board"]],["",["admin","account"]]];
 function openSheet(){
   const sh=$("#msheet"),adm=S.me&&S.me.role==="admin";
-  $("#sheetGrid").innerHTML=PAGES.filter(p=>p[0]!=="admin"||adm).map(([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n==="Announcements"?"News":n}">${ic(i)}${n==="Announcements"?`<span>News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`).join("");
+  const tile=([k,i,n])=>`<button data-go="${k}" class="${S.page===k?"on":""}" aria-label="${n==="Announcements"?"News":n}">${ic(i)}${n==="Announcements"?`<span>News</span>`:`<span>${n}</span>`}${k==="posts"&&S.unreadPosts?`<span class="nb">${S.unreadPosts}</span>`:""}</button>`;
+  const have=PAGES.filter(p=>(p[0]!=="admin"||adm)&&document.getElementById("pg-"+p[0])),byK=Object.fromEntries(have.map(p=>[p[0],p])),used=new Set();
+  $("#sheetGrid").innerHTML=PAGE_GROUPS.map(([g,ks])=>{const ts=ks.filter(k=>byK[k]).map(k=>{used.add(k);return tile(byK[k])}).join("");return ts?(g?`<div class="sgh">${esc(g)}</div>`:"")+ts:""}).join("")
+    +have.filter(p=>!used.has(p[0])).map(tile).join("");
   sh.classList.add("on");sh.setAttribute("aria-hidden","false");paintLgt();requestAnimationFrame(()=>requestAnimationFrame(()=>{sh.classList.add("show");paintLgt()}));
 }
 function closeSheet(){const sh=$("#msheet");if(!sh.classList.contains("on"))return;sh.classList.remove("show");sh.setAttribute("aria-hidden","true");setTimeout(()=>{if(!sh.classList.contains("show"))sh.classList.remove("on")},460)}
@@ -6052,6 +6081,19 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"12.0.0",t:"Clients, and a tidier app",items:[
+  "New Clients page (in the sidebar under Clients & money): everyone you work for, what they pay, what they've paid, what they owe, and what's next. Search, filter by status, payments, services, teammate or tag, and sort.",
+  "Each client has a profile: contact details, status and priority, tags, the teammates on it (and what each one does), internal notes, services, money and a timeline of notes, calls, payments and invoices.",
+  "Services are your deals and payments are their confirmed payments, so nothing is typed twice: confirm a payment on Profits or on the client and it shows up in both. Set your clients up from your existing deals in one step.",
+  "Connected: the dashboard shows clients that need attention and overdue payments, each deal on Profits shows its client, moving a business to Won in the Pipeline offers to make it a client, and invoices start filled in from the client.",
+  "The sidebar is grouped (Selling, Clients & money, Organize, Team), and the phone's More menu uses the same groups. On computers the extra floating page bar is gone: the sidebar is the navigation.",
+  "Fixes: the Pipeline fits the screen on computers and has stage buttons on phones; Called Leads' filters all fit on phones and its count cards are slimmer; the Invoices tabs fit on phones; the money summary sits in one row on laptops; tapping the page you're on in the More menu closes the menu.",
+  "Admins: run the 19th database update (RUN_IN_SUPABASE.sql) to switch on Clients."]},
+ {v:"11.22.1",t:"Reminders button fixed",items:[
+  "A reminder's notification no longer sits on top of the buttons in the top right, so the reminders button (and the bell, account and sign-out buttons) always work. Notifications now show just under the top bar.",
+  "No notifications pop up over the reminders list while it's open: the reminder is already right there in the list.",
+  "When several reminders are due at once you see the newest (two on a computer, one on a phone) and a '+ more due · See all' button, instead of a stack covering the screen.",
+  "On phones a notification's buttons fit on one row, and the empty reminders list reads properly."]},
  {v:"11.22.0",t:"Emails found for you",items:[
   "When the PC app checks a business's website after a search, it now also finds its email address (the contact page, mailto links, and addresses Cloudflare hides). It prefers the business's own address and skips no-reply and placeholder ones.",
   "The email shows in Find Leads and Called Leads, where you can also type or fix it. It's shared with the whole team.",
@@ -6235,7 +6277,10 @@ UI_HTML = _splitui.inject(UI_HTML)
 import leafline_productivity_ui as _produi
 UI_HTML = _produi.inject(UI_HTML)
 import leafline_email_ui as _emailui
-UI_HTML = _emailui.inject(UI_HTML)        # 11.20: the AI email writer (Find Leads, Called Leads, after a call)         # 11.19: follow-ups, call guard, lead scores, saved searches, Pipeline, health        # Profit splits (11.18): who gets credit for each confirmed payment        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
+UI_HTML = _emailui.inject(UI_HTML)
+import leafline_clients_ui as _cliui
+UI_HTML = _cliui.inject(UI_HTML)          # 12.0: clients (their services are deals, their payments are those deals' confirmed payments)
+        # 11.20: the AI email writer (Find Leads, Called Leads, after a call)         # 11.19: follow-ups, call guard, lead scores, saved searches, Pipeline, health        # Profit splits (11.18): who gets credit for each confirmed payment        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
 
 
 API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",

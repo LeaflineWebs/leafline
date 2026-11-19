@@ -95,6 +95,28 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 12.0: clients, and a tidier app
+
+- **Clients** (sidebar > Clients & money): every business you work for with contact details, status, priority, tags,
+  team (with responsibilities), notes, services, money and a timeline. Search, filters (status, payments, services,
+  teammate, tag) and sorting; cards on phones.
+- **No duplicate money**: a client's services are its deals and its payments are their confirmed payments. "Set up
+  from deals" turns existing deals into clients in one step without changing them.
+- **Connected**: dashboard card (needs attention, overdue, quick actions), client chips on Profits, Pipeline "Won" ->
+  add client, invoices prefilled from the client, invoices made from a deal now link to that deal.
+- **Navigation**: grouped sidebar and phone More menu; no duplicate floating bar on computers.
+- **Layout fixes**: Pipeline fits on computers (stage buttons on phones), Called Leads filters fit on phones,
+  Invoices tabs fit on phones, summaries in one row on laptops, More menu closes when you tap the page you're on.
+- **Database update 19** (`supabase/migrations/20261118000019_clients.sql`, included in `RUN_IN_SUPABASE.sql`):
+  additive only, RLS on, writes through checked functions. Tests: `tests/pg/test_clients_sql.mjs`, `tests/test_clients.py`.
+
+## What is new in 11.22.1: reminders button fixed
+
+- Reminder notifications now appear just under the top bar instead of on top of the bell, reminders, account and sign-out buttons, which made the reminders button impossible to click.
+- No notification pops up over the reminders list while it's open.
+- Several due at once show the newest (two on a computer, one on a phone) plus a "+ more due · See all" button.
+- Phones: notification buttons fit on one row; the empty list message reads properly.
+
 ## What is new in 11.22: emails found on business websites
 - `enrich()` / `find_email()` in `backend/leafline_backend.py`: the same homepage + contact/about pages the PC app already
   reads for owner names now also give the business's email (mailto links, text, Cloudflare `data-cfemail`, "name [at]

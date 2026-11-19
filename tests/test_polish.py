@@ -62,14 +62,15 @@ with sync_playwright() as p:
     CEN = "()=>{const r=document.querySelector('#fnav').getBoundingClientRect(),m=document.querySelector('#main').getBoundingClientRect(),d=document.querySelector('#main').classList.contains('hasdock')?+getComputedStyle(document.querySelector('#main')).getPropertyValue('--dockw').replace('px',''):0;return Math.abs((r.left+r.right)/2-(m.left+m.right-d)/2)<3}"
     for w in (1024, 1180, 1280, 1440, 1920):
         pg.set_viewport_size({"width": w, "height": 860}); pg.wait_for_timeout(700)
-        check(f"page bar fits inside the content area at {w}px", pg.evaluate(FIT))
-        check(f"page bar is centred in the content area at {w}px", pg.evaluate(CEN))
+        check(f"12.0: at {w}px the sidebar is the navigation, so there's no floating page bar covering the content", pg.is_visible("#side") and not pg.is_visible("#fnav"))
     pg.set_viewport_size({"width": 1440, "height": 860})
 
     # skeletons and list motion
     check("Admin shows a skeleton (not 'Loading...') while it waits", "Loading the admin" not in B.UI_HTML and pg.evaluate("()=>skel(SKEL.admin).includes('class=\"skl\"')"))
-    pg.evaluate("()=>go('team')"); pg.wait_for_timeout(120)
-    moving = pg.evaluate("()=>document.getAnimations().filter(a=>a.effect&&a.effect.target&&a.effect.target.closest&&a.effect.target.closest('.tm-tiles,.tm-people')).length")
+    pg.evaluate("()=>go('team')")
+    try:   # the old page fades out first (about 170 ms), then Team's tiles and cards ease in
+        moving = pg.wait_for_function("()=>{const n=document.getAnimations().filter(a=>a.effect&&a.effect.target&&a.effect.target.closest&&a.effect.target.closest('.tm-tiles,.tm-people')).length;return n>=3&&n}", timeout=1500).json_value()
+    except Exception: moving = 0
     check("opening Team eases its tiles and cards in", moving >= 3)
     pg.wait_for_timeout(2600)
     pg.evaluate("()=>renderTeam()"); pg.wait_for_timeout(200)

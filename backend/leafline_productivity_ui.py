@@ -39,7 +39,7 @@ PROD_CSS = r'''
 /* sidebar: with every page listed, the list scrolls inside the sidebar on short screens so the footer stays visible */
 .side .nav{flex:0 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}.side .nav::-webkit-scrollbar{display:none}
 .side .foot{flex:none}
-.pl-cols{display:grid;grid-template-columns:repeat(6,minmax(160px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;align-items:start}
+.pl-cols{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;align-items:start}
 .pl-col{border-radius:20px;padding:10px;background:rgba(0,0,0,.14);border:1px solid var(--line);min-height:160px;transition:border-color var(--d-hover) var(--e-out),background var(--d-hover) var(--e-out)}
 .pl-col.over{border-color:var(--accent);background:var(--accent-soft)}
 .pl-ch{display:flex;align-items:center;gap:8px;padding:4px 4px 10px;font-weight:800;font-size:13.5px}
@@ -55,7 +55,14 @@ PROD_CSS = r'''
 .pl-hand{color:var(--accent-hi);background:var(--accent-soft);border-radius:8px;padding:2px 7px;font-weight:800}
 .pl-mv{margin-top:8px;width:100%;height:30px;font-size:12px;border-radius:10px}
 .pl-empty{font-size:12.5px;color:var(--faint);text-align:center;padding:16px 6px}
-@media (max-width:860px){.pl-cols{grid-template-columns:repeat(6,minmax(240px,82vw));scroll-snap-type:x mandatory}.pl-col{scroll-snap-align:start}}
+.pl-col,.pl-card,.pl-list{min-width:0}.pl-card .pl-mv{width:100%;min-width:0}.pl-card b,.pl-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.pl-meta{flex-wrap:wrap}
+.pl-jump{display:none}
+@media (min-width:861px) and (max-width:1399px){.pl-cols{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:860px){.pl-cols{grid-template-columns:repeat(6,minmax(240px,82vw));scroll-snap-type:x mandatory}
+.pl-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 10px;padding:0 16px}.pl-jump::-webkit-scrollbar{display:none}
+.pl-jump button{flex:0 0 auto;height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;color:var(--text2)}
+.pl-jump button i{width:8px;height:8px;border-radius:50%}.pl-jump button.on{border-color:var(--accent-line);background:var(--accent-soft);color:var(--text)}.pl-col{scroll-snap-align:start}}
 /* health */
 .hl-ups{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:12px}
 .hl-up{display:flex;align-items:center;justify-content:center;gap:6px;height:36px;border-radius:12px;font-size:12.5px;font-weight:800;background:rgba(91,227,154,.10);color:var(--ok);border:1px solid rgba(91,227,154,.28)}
@@ -236,11 +243,15 @@ async function renderPipeline(q){
   pg.innerHTML=`<div class="pl-top pop"><div class="note">Every business you've called, by where it stands. Drag a card to move it (or use <b>Move to</b>). Cards with no change for 7 days are marked <b>Stale</b>.${PLs.missing?" <b>Moving cards by hand needs the 17th database update.</b>":""}</div>
      <div style="display:flex;gap:6px" role="group" aria-label="Whose businesses"><button class="chip${mine?"":" on"}" data-plm="0" aria-pressed="${!mine}">Everyone</button><button class="chip${mine?" on":""}" data-plm="1" aria-pressed="${mine}">Mine</button></div>
      <button class="chip${staleOnly?" on":""}" id="plStale">Stale only${nStale?` (${nStale})`:""}</button></div>
+    <div class="pl-jump" role="group" aria-label="Go to a stage">${PL.map(([k,n,c])=>`<button type="button" data-plj="${k}"><i style="background:${c}"></i>${n} ${show.filter(r=>r.st===k).length}</button>`).join("")}</div>
     <div class="pl-cols">${PL.map(([k,n,c])=>{const list=show.filter(r=>r.st===k).sort((a,b)=>b.stale-a.stale||a.age-b.age);
       return `<div class="pl-col" data-col="${k}"><div class="pl-ch"><i style="background:${c}"></i>${n}<span>${list.length}</span></div><div class="pl-list">${list.length?list.map(card).join(""):'<div class="pl-empty">Nothing here</div>'}</div></div>`}).join("")}</div>`;
   hydrateIcons(pg);
   $$("[data-plm]",pg).forEach(b=>b.onclick=()=>{setP("plMine",b.dataset.plm==="1");renderPipeline(false)});
   $("#plStale",pg).onclick=()=>{PLs.stale=!PLs.stale;renderPipeline(false)};
+  {const cols=$(".pl-cols",pg),jb=$$("[data-plj]",pg),mark=()=>{const x=cols.scrollLeft+8;let on=PL[0][0];$$(".pl-col",cols).forEach(c=>{if(c.offsetLeft-cols.offsetLeft<=x)on=c.dataset.col});jb.forEach(b=>b.classList.toggle("on",b.dataset.plj===on))};
+   jb.forEach(b=>b.onclick=()=>{const c=$(`.pl-col[data-col="${b.dataset.plj}"]`,cols);if(c)cols.scrollTo({left:c.offsetLeft-cols.offsetLeft,behavior:REDUCE?"auto":"smooth"})});
+   cols.addEventListener("scroll",()=>requestAnimationFrame(mark),{passive:true});mark()}
   $$(".pl-card",pg).forEach(c=>{
     c.onclick=e=>{if(e.target.closest(".pl-mv"))return;const l=(S.called||[]).find(x=>x.id===c.dataset.pl);l&&leadModal(l)};
     c.onkeydown=e=>{if(e.key==="Enter"&&!e.target.closest(".pl-mv"))c.click()};

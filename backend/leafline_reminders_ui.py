@@ -7,6 +7,8 @@ the database (supabase/migrations/20261112000015_reminders.sql)."""
 REM_CSS = r'''
 /* ================= Call reminders ================= */
 #remBtn.due{animation:remPulse 2.4s var(--e-out,ease) infinite}
+/* the count badge sits above the next button instead of under it */
+#remBtn,#bellBtn{z-index:2}#remBtn .cnt,#bellBtn .cnt{z-index:3}
 @keyframes remPulse{0%,70%,100%{box-shadow:var(--hi),0 6px 14px rgba(0,0,0,.25),0 0 0 1px var(--line)}35%{box-shadow:var(--hi),0 6px 14px rgba(0,0,0,.25),0 0 0 4px var(--accent-soft),0 0 22px var(--glow)}}
 .remp{position:absolute;top:76px;right:28px;z-index:41;width:380px;max-height:min(70vh,560px);overflow:auto;padding:14px;border-radius:26px;background:var(--glass,var(--card2));
   -webkit-backdrop-filter:var(--blur,none);backdrop-filter:var(--blur,none);border:1px solid var(--line2,var(--line));box-shadow:var(--sh-lg,0 24px 50px rgba(0,0,0,.5)),var(--hi);
@@ -48,7 +50,8 @@ REM_CSS = r'''
 .remlist{display:flex;flex-direction:column;gap:6px;margin-top:14px;max-height:min(56vh,520px);overflow:auto}
 .remlist .remr{background:rgba(0,0,0,.14);border:1px solid var(--line)}
 /* top-right notification */
-.remnotes{position:fixed;top:16px;right:16px;z-index:calc(var(--z-modal,60) + 5);display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100vw - 32px));pointer-events:none}
+/* below the top bar (set from its real height in remNotify), so it never covers the bell, reminders or account buttons */
+.remnotes{position:fixed;top:var(--rem-top,96px);right:16px;z-index:calc(var(--z-modal,60) + 5);display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100vw - 32px));pointer-events:none}
 .remn{pointer-events:auto;border-radius:22px;padding:14px 14px 12px;background:var(--glass,var(--card2));-webkit-backdrop-filter:var(--blur,none);backdrop-filter:var(--blur,none);
   border:1px solid var(--accent-line);box-shadow:var(--sh-lg,0 24px 50px rgba(0,0,0,.5)),0 0 30px var(--glow-soft);animation:remIn .5s var(--e-spring,cubic-bezier(.22,1,.36,1)) both}
 .remn.out{animation:remOut .25s var(--e-in,ease) both}
@@ -62,10 +65,17 @@ REM_CSS = r'''
 .remn .rem-x{grid-row:1/3;grid-column:3;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;color:var(--muted)}.remn .rem-x:hover{background:rgba(255,255,255,.07);color:var(--text)}
 .remn .rem-x .ic{width:16px;height:16px}
 .remn p{margin:8px 0 0;font-size:13px;color:var(--text2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.remn .rem-ac{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}.remn .rem-ac .btn{height:34px;padding:0 12px;font-size:12.5px}
+.remn .rem-ac{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+/* several due at once: show the newest (two on a computer, one on a phone) and a "more" button for the rest */
+.remn.rem-hid{display:none}
+.remmore{pointer-events:auto;align-self:flex-end;height:34px;padding:0 14px;border-radius:17px;font-size:12.5px;font-weight:700;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--card2) 94%,transparent),color-mix(in srgb,var(--card) 94%,transparent));border:1px solid var(--accent-line);color:var(--accent-hi);box-shadow:var(--sh-md,0 10px 24px rgba(0,0,0,.35))}
+.remn{background:linear-gradient(180deg,color-mix(in srgb,var(--card2) 96%,transparent),color-mix(in srgb,var(--card) 96%,transparent))}.remn .rem-ac .btn{height:34px;padding:0 12px;font-size:12.5px}
 @media (max-width:860px){
   .remp{left:12px;right:12px;width:auto;top:72px}
-  .remnotes{top:calc(10px + env(safe-area-inset-top));right:10px;left:10px;width:auto}
+  .remnotes{top:max(var(--rem-top,72px),calc(10px + env(safe-area-inset-top)));right:10px;left:10px;width:auto}
+  .remn .rem-ac{flex-wrap:nowrap}.remn .rem-ac .btn{flex:1 1 auto;min-width:0;padding:0 8px;justify-content:center;white-space:nowrap}
+  .remn .rem-ac [data-n=done] .ic,.remn .rem-ac [data-n=snz] .ic{display:none}
   .rem-acts .btn{flex:1 1 calc(50% - 8px)}
 }
 '''
@@ -110,7 +120,7 @@ function remPanelDraw(){
   const wasOpen=!!p.querySelector("details[open]"),top=p.scrollTop;
   p.innerHTML=`<div class="rem-hd"><h4>Reminders</h4><span class="muted" style="font-size:12px;font-weight:600">Only you can see these</span></div>
    ${open.length?`${od.length?`<div class="rem-sec rem-od">Due now</div>${od.map(remRowHTML).join("")}`:""}${td.length?`<div class="rem-sec">Later today</div>${td.map(remRowHTML).join("")}`:""}${later.length?`<div class="rem-sec">Coming up</div>${later.map(remRowHTML).join("")}`:""}`
-    :`<div class="empty"><div class="bub">${ic("clock")}</div><b>No reminders</b>In Find Leads, press <b>Set reminder</b> on the business you're calling.</div>`}
+    :`<div class="empty"><div class="bub">${ic("clock")}</div><b>No reminders</b><div>In Find Leads, press <b style="font-size:inherit">Set reminder</b> on the business you're calling.</div></div>`}
    ${done.length?`<details><summary>Done (${done.length})</summary>${done.map(remRowHTML).join("")}</details>`:""}`;
   hydrateIcons(p);
   const dt=p.querySelector("details");if(dt&&wasOpen)dt.open=true;p.scrollTop=top;
@@ -205,15 +215,23 @@ async function maybeRemPopup(){
 function remSeenSave(){try{const keep={};for(const r of REM.list||[])if(REM.seen[r.id])keep[r.id]=REM.seen[r.id];REM.seen=keep;localStorage.setItem("lf_rem_seen",JSON.stringify(keep))}catch(e){}}
 /* reminders already due when the app opens are shown in the pop-up, not as a burst of notifications */
 function remPrime(){if(REM.primed)return;REM.primed=true;for(const r of remOpen())if(remOver(r))REM.seen[r.id]=r.remind_at;remSeenSave()}
+function remNotesTop(){const b=$("#remNotes"),h=$("#remBtn");if(!b||!h)return;const r=h.getBoundingClientRect();b.style.setProperty("--rem-top",Math.max(12,Math.round(r.bottom+12))+"px")}
+addEventListener("resize",()=>{remNotesTop();remNotesCap()});
+function remNotesCap(){const b=$("#remNotes");if(!b)return;const max=innerWidth<=860?1:2,all=[...b.querySelectorAll(".remn:not(.out)")];
+  all.forEach((n,i)=>n.classList.toggle("rem-hid",i<all.length-max));const extra=Math.max(0,all.length-max);let m=$(".remmore",b);
+  if(!extra){if(m)m.remove();return}
+  if(!m){m=document.createElement("button");m.type="button";m.className="remmore";m.onclick=e=>{e.stopPropagation();$$(".remn",b).forEach(n=>n.remove());m.remove();const p=$("#remPanel");if(p&&!p.classList.contains("on"))remToggle()}}
+  m.textContent=`+${extra} more due · See all`;b.appendChild(m)}
 function remNotify(r){
   let box=$("#remNotes");if(!box){box=document.createElement("div");box.id="remNotes";box.className="remnotes";box.setAttribute("aria-live","assertive");document.body.appendChild(box)}
+  remNotesTop();
   if($(`.remn[data-id="${CSS.escape(r.id)}"]`,box))return;
   const el=document.createElement("div");el.className="remn";el.dataset.id=r.id;el.setAttribute("role","alert");
   el.innerHTML=`<div class="rem-top2"><span class="rem-ri">${ic("clock")}</span><span class="rem-lb">Reminder · ${esc(new Date(r.remind_at).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}))}</span><button class="rem-x" data-n="x" aria-label="Dismiss">${ic("x")}</button><b>${esc(r.company)}</b></div>
     ${r.owner_name||r.notes?`<p>${esc([r.owner_name?"Ask for "+r.owner_name:"",r.notes].filter(Boolean).join(" · "))}</p>`:""}
     <div class="rem-ac"><button class="btn pri" data-n="open">${ic("note")}Open</button>${r.phone?callBtn(r.phone):""}<button class="btn" data-n="done">${ic("check")}Done</button><button class="btn" data-n="snz">${ic("clock")}10 min</button></div>`;
-  box.appendChild(el);hydrateIcons(el);
-  const gone=()=>{el.classList.add("out");setTimeout(()=>el.remove(),260)};
+  box.appendChild(el);hydrateIcons(el);remNotesCap();
+  const gone=()=>{el.classList.add("out");setTimeout(()=>{el.remove();remNotesCap()},260)};
   el.addEventListener("click",async e=>{const b=e.target.closest("[data-n]");if(!b)return;const a=b.dataset.n;
     if(a==="x")gone();else if(a==="open"){gone();remDetail(r)}else if(a==="done"){if(await remDone(r,true))gone()}else if(a==="snz"){if(await remSnooze(r,6e5))gone()}});
   if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){try{const n=new Notification("Leafline reminder: "+r.company,{body:[r.owner_name?"Ask for "+r.owner_name:"",r.notes].filter(Boolean).join(" · ").slice(0,180),tag:"lf-rem-"+r.id});n.onclick=()=>{window.focus();remDetail(r);n.close()}}catch(e){}}
@@ -221,7 +239,8 @@ function remNotify(r){
 }
 function remTick(){
   if(!S.me||!REM.list)return;if(!REM.primed)remPrime();
-  let any=false;for(const r of remOpen()){if(remOver(r)&&REM.seen[r.id]!==r.remind_at){REM.seen[r.id]=r.remind_at;any=true;remNotify(r)}}
+  const pnl=$("#remPanel"),listOpen=!!(pnl&&pnl.classList.contains("on"));
+  let any=false;for(const r of remOpen()){if(remOver(r)&&REM.seen[r.id]!==r.remind_at){REM.seen[r.id]=r.remind_at;any=true;if(!listOpen)remNotify(r)}}
   if(any)remSeenSave();paintRem();
 }
 setInterval(remTick,15000);

@@ -130,6 +130,18 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
 
+## Nineteenth migration (Leafline 12.0: clients)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261118000019_clients.sql` > Run
+(`RUN_IN_SUPABASE.sql` already contains it). Safe to run twice. Nothing existing is changed or removed.
+- `clients`: the businesses you work for (contact details, status, priority, tags, the teammates on it and what each
+  does, notes, next important date, the lead it came from). `client_events`: each client's timeline.
+- `client_deals`: which deals belong to which client. **A client's services are its deals and its payments are those
+  deals' confirmed payments**, so no money is stored twice and a payment confirmed anywhere shows up on the client.
+- Everyone on the team (active accounts) can see and edit clients, like deals. Only admins can delete one; its deals,
+  payments and invoices are kept (only unlinked). All writes go through checked functions (`cli_*`); RLS stays on.
+- `team_health()` now also reports update 19. Until it is run, the Clients page says it needs this update and
+  everything else keeps working.
+
 ## Eighteenth migration + Email writer (Leafline 11.20: AI emails)
 **1. Database.** Supabase > SQL Editor > New query > paste `supabase/migrations/20261117000018_email_drafts.sql` > Run
 (`RUN_IN_SUPABASE.sql` already contains it). Safe to run twice. Nothing existing is changed or removed.

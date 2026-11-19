@@ -18,6 +18,8 @@ INV_CSS = r'''
 .iv-bar{display:flex;flex-direction:column;gap:12px;padding:12px 18px 12px}
 .iv-tabs{display:flex;gap:4px;padding:3px;border-radius:14px;background:rgba(0,0,0,.18);overflow-x:auto;scrollbar-width:none}
 .iv-tabs::-webkit-scrollbar{display:none}
+/* phones: every tab visible (they wrap) instead of hiding off the right edge */
+@media (max-width:860px){.iv-tabs{flex-wrap:wrap;overflow:visible}.iv-tabs button{flex:1 1 auto;padding:0 10px}}
 .iv-tabs button{flex:1 0 auto;height:34px;padding:0 14px;border-radius:11px;font-size:13px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;transition:background-color var(--d-hover) var(--e-out),color var(--d-hover) var(--e-out),transform var(--d-card) var(--e-spring)}
 .iv-tabs button:hover{color:var(--text)}.iv-tabs button:active{transform:scale(.95)}
 .iv-tabs button.on{background:var(--card2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.25)}

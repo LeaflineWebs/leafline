@@ -106,7 +106,7 @@ with sync_playwright() as p:
         pg.evaluate("()=>setTheme('forest',false,false)")
         pg.evaluate("async()=>{await go('dash',true)}"); pg.wait_for_timeout(1200)
         pg.evaluate("()=>{const r=[...LG._L.recs.values()].find(r=>r.att&&r.el.matches('.page.on .card,.page.on .stat,.page.on .banner'));if(r)r.el.dataset.zz='1'}")
-        for sel, nm, bh in ([(".fpill", "bottom bar", "under:29"), ("[data-zz]", "a card", ".main")] + ([(".side", "sidebar", "body"), ("#bellBtn", "a round button", ".main")] if not phone else [])):
+        for sel, nm, bh in (([(".fpill", "bottom bar", "under:29")] if phone else []) + [("[data-zz]", "a card", ".main")] + ([(".side", "sidebar", "body"), ("#bellBtn", "a round button", ".main")] if not phone else [])):   # 12.0: computers have no bottom bar (the sidebar navigates)
             r = refr_diff(pg, sel, bh)
             chk(f"[{tag}] {nm} really bends what's behind it at the rim, not in the middle", r and r[0] > .04 and r[1] < r[0] / 3, r)
         # a dialog over the page
