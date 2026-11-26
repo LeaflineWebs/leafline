@@ -60,7 +60,7 @@ PROD_CSS = r'''
 .pl-jump{display:none}
 @media (min-width:861px) and (max-width:1399px){.pl-cols{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:860px){.pl-cols{grid-template-columns:repeat(6,minmax(240px,82vw));scroll-snap-type:x mandatory}
-.pl-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 10px;padding:0 16px}.pl-jump::-webkit-scrollbar{display:none}
+.pl-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 10px;padding:0 0 2px;max-width:100%}.pl-jump::-webkit-scrollbar{display:none}
 .pl-jump button{flex:0 0 auto;height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;color:var(--text2)}
 .pl-jump button i{width:8px;height:8px;border-radius:50%}.pl-jump button.on{border-color:var(--accent-line);background:var(--accent-soft);color:var(--text)}.pl-col{scroll-snap-align:start}}
 /* health */
@@ -136,7 +136,7 @@ document.addEventListener("click",e=>{
     <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-x>Don't call</button><button class="btn pri" data-ok>${ic("phone")}Call anyway</button></div>`,(ov,close)=>{
     $("[data-x]",ov).onclick=close;$("[data-ok]",ov).onclick=()=>{GUARD.ack[k]=Date.now();close();setTimeout(()=>a.click(),60)}});
 },true);
-setInterval(()=>{if(!S.ready||document.hidden)return;if(S.page==="find")guardLoad(S.find.slice(0,300));else if(S.page==="called"||S.page==="pipeline")guardLoad((S.called||[]).slice(0,300))},30000);
+setInterval(()=>{if(!S.ready||document.hidden)return;if(S.page==="find")guardLoad(S.find.slice(0,300));else if(S.page==="called"||S.page==="pipeline")guardLoad((S.called||[]).slice(0,300))},120000);
 
 /* ---------- automatic follow-ups ---------- */
 const autoFollowOn=()=>getP("autoFollow",true)!==false;
@@ -276,7 +276,7 @@ async function plMove(id,stage){
   PLs.at=Date.now();
   const n=(PL.find(x=>x[0]===stage)||[])[1];toast(`${l.name} moved to ${n}`);logNote(`Pipeline: ${l.name} moved to ${n}`);
 }
-setInterval(()=>{if(S.ready&&S.page==="pipeline"&&!document.hidden&&!$(".ov.on")&&!$(".pl-card.drag"))renderPipeline(true)},30000);
+setInterval(()=>{if(S.ready&&S.page==="pipeline"&&!document.hidden&&!$(".ov.on")&&!$(".pl-card.drag"))renderPipeline(true)},60000);
 
 /* ---------- health: each app reports its version + sync state; admins see everyone ---------- */
 const HL={missing:false,last:0,sig:""};
@@ -287,7 +287,7 @@ async function reportStatus(force){
   HL.sig=sig;HL.last=Date.now();
   const r=await api("sb_rpc","me_status_report",{p}).catch(()=>null);if(r&&r.missing)HL.missing=true;
 }
-setInterval(()=>{if(S.ready&&!document.hidden)reportStatus(false)},30000);
+setInterval(()=>{if(S.ready&&!document.hidden)reportStatus(false)},120000);
 const vcmp=(a,b)=>{const x=String(a||"0").split(".").map(Number),y=String(b||"0").split(".").map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)-(y[i]||0)}return 0};
 async function healthCard(){
   const pg=$("#pg-admin");if(!pg||!isAdmin())return;let el=$("#hlCard",pg);

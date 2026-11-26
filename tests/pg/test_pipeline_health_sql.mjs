@@ -85,7 +85,7 @@ r = await v("gio", "select public.team_health() as v");
 check("the health page is for admins only", r.ok === false && /Administrators only/.test(r.error), r);
 r = await v("james", "select public.team_health() as v");
 const ups = r.updates || {};
-check("the admin sees every database update (2 to 19 now that 19 exists) as installed", Object.keys(ups).length === 18 && Object.entries(ups).every(([k, x]) => x === true || (k === "10" && x !== false)), ups);
+check("the admin sees every database update (2 to 20 now that 20 exists) as installed", Object.keys(ups).length === 19 && Object.entries(ups).every(([k, x]) => x === true || (k === "10" && x !== false)), ups);
 const tim = (r.people || []).find((p) => p.username === "tim"), gone = (r.people || []).find((p) => p.username === "gone");
 check("...and each person's app version, platform, sync state, waiting changes and error", tim && tim.version === "11.17.0" && tim.platform === "web" && tim.sync_state === "offline" && tim.pending === 3 && tim.last_error.length === 300, tim);
 check("...including people whose app hasn't reported yet, and deactivated accounts", gone && gone.version === null && gone.active === false, gone);

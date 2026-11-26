@@ -130,6 +130,16 @@ Supabase > SQL Editor > New query > paste `supabase/migrations/20261108000010_ba
 - Supabase also has a project-wide upload limit: Storage > Settings > "Upload file size limit". On the Free plan it is
   50 MB and can't be raised, so banners over 50 MB need a paid plan with that limit set to at least 100 MB.
 
+## Twentieth migration (Leafline 12.0.1: picture fingerprints, saves data)
+Supabase > SQL Editor > New query > paste `supabase/migrations/20261126000020_avatar_sig.sql` > Run
+(`RUN_IN_SUPABASE.sql` already contains it). Safe to run twice. Nothing existing is changed or removed.
+- Adds `profiles.avatar_sig`, an md5 fingerprint of each profile picture that the database computes itself. The apps
+  download the fingerprints (32 characters each) and fetch a picture only when it changed. Without it they refresh
+  pictures every 30 minutes.
+- `team_health()` now also reports update 20.
+- Background: in November 2026 the project was restricted for "exceed_egress_quota" (the free plan's monthly download
+  allowance). 12.0.1 cut the apps' downloads to a small fraction (pictures, polling, deletion checks); see PATCH notes.
+
 ## Nineteenth migration (Leafline 12.0: clients)
 Supabase > SQL Editor > New query > paste `supabase/migrations/20261118000019_clients.sql` > Run
 (`RUN_IN_SUPABASE.sql` already contains it). Safe to run twice. Nothing existing is changed or removed.

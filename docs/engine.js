@@ -23,6 +23,9 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { } },
   };
   class Offline extends Error { }
+  /* Supabase answers 402 when the free plan's monthly limits are used up: treat it like being offline (changes wait on this device) */
+  const PAUSED = "Leafline's shared database is paused (the free plan's monthly data limit). Your changes are kept and upload when it's back.";
+  const paused = (e) => e instanceof Offline && e.message === PAUSED;
   class AuthLost extends Error { }
   class AuthFail extends Error { }
   class Http extends Error { constructor(status, body) { super(typeof body === "string" ? body : JSON.stringify(body || {})); this.status = status; this.body = body; this.code = body && body.code; } }
@@ -122,7 +125,8 @@
     leads: new Map(), deals: new Map(), events: new Map(), notes: new Map(), people: LS.get("lf_people", []),
     caps: { done: null, avatar: null, pext: null, media: null, paid: null }, prefs: LS.get("lf_prefs", {}), cosmetic: LS.get("lf_profile", null),
     sync: { state: "signed_out", pending: 0, blocked: 0, conflicts: 0, last_ok: null, error: "" },
-    since: {}, lastBeat: 0, lastRecon: 0, loaded: false, busy: false, cycle: 0, teamCache: LS.get("lf_team", null), callsCache: LS.get("lf_calls", null),
+    since: {}, lastBeat: 0, lastRecon: 0, loaded: false, busy: false, cycle: 0, lastInput: Date.now(), lastCycle: 0, fullAt: 0,
+    avs: (LS.get("lf_avs", null) || {}).by || {}, avAt: (LS.get("lf_avs", null) || {}).at || 0, avSig: (LS.get("lf_avs", null) || {}).sig || {}, teamCache: LS.get("lf_team", null), callsCache: LS.get("lf_calls", null),
   };
   const emit = (e, d) => { try { if (window.onPy) window.onPy({ e, d: d || {} }); } catch (x) { console.error(x); } };
   const uid = () => (st.session && st.session.uid) || "";
@@ -137,6 +141,7 @@
     let r;
     try { r = await fetch(`${SB}/auth/v1/token?grant_type=${grant}`, { method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
     catch (e) { throw new Offline(String(e)); }
+    if (r.status === 402) throw new Offline(PAUSED);
     return r;
   }
   function takeSession(j) { st.session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Math.floor(Date.now() / 1000) + (j.expires_in || 3600), uid: (j.user && j.user.id) || (st.session && st.session.uid) || "" }; LS.set("lf_session", st.session); }
@@ -166,6 +171,7 @@
     try { r = await fetch(SB + path + q, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }); }
     catch (e) { throw new Offline(String(e)); }
     if (r.status === 401 && retry) { await refresh(); return call(method, path, { params, body, prefer, retry: false }); }
+    if (r.status === 402) throw new Offline(PAUSED);
     const txt = await r.text();
     let j = []; try { j = txt ? JSON.parse(txt) : []; } catch (e) { j = txt; }
     if (r.status >= 400) throw new Http(r.status, j);
@@ -257,11 +263,37 @@
     catch (e) { if (e instanceof Http && [400, 404].includes(e.status)) st.caps[key] = false; else throw e; }
   }
   async function probeAll() {
-    for (const [col, table, key] of [["done,done_at", "events", "done"], ["avatar", "profiles", "avatar"], ["bio,thought,thought_at,title,mood,accent,banner", "profiles", "pext"], ["avatar_url,banner_url,banner_pos", "profiles", "media"], ["confirmed", "deals", "paid"]]) {
+    for (const [col, table, key] of [["done,done_at", "events", "done"], ["avatar", "profiles", "avatar"], ["bio,thought,thought_at,title,mood,accent,banner", "profiles", "pext"], ["avatar_sig", "profiles", "sig"], ["avatar_url,banner_url,banner_pos", "profiles", "media"], ["confirmed", "deals", "paid"]]) {
       if (st.caps[key] == null) { try { await probe(col, table, key); } catch (e) { if (e instanceof Offline || e instanceof AuthLost) throw e; } }
     }
   }
-  const pcols = (base) => base + (st.caps.avatar ? ",avatar" : "") + (st.caps.pext ? "," + PEXT.join(",") : "") + (st.caps.media ? "," + MEDIA.join(",") : "");
+  /* 12.0.1 (data diet): pictures (base64, up to 60 KB each) and banners (up to 150 KB) are NOT in the frequent profile
+     requests any more. Everyone's picture comes in one request at most every 30 minutes and is kept on this device. */
+  const pcols = (base) => base + (st.caps.pext ? "," + PEXT.join(",") : "") + (st.caps.media ? "," + MEDIA.join(",") : "") + (st.caps.sig ? ",avatar_sig" : "");
+  const HEAVY_MS = 30 * 60 * 1000;
+  async function avatarsFresh(force) {
+    if (!st.caps.avatar) return;
+    if (!force && st.avAt && Date.now() - st.avAt < HEAVY_MS) return;
+    const rows = await rest("GET", "profiles", { params: { select: "id,avatar" } });
+    st.avs = Object.fromEntries(rows.map((r) => [r.id, r.avatar || ""])); st.avAt = Date.now();
+    try { LS.set("lf_avs", { at: st.avAt, by: st.avs }); } catch (e) { }
+  }
+  /* With the 20th update each row carries avatar_sig, a 32-character fingerprint of the picture: only pictures whose
+     fingerprint changed are downloaded (so a new picture shows up within a minute, for almost no data). */
+  async function withAv(rows) {
+    try {
+      if (st.caps.sig && rows.length && rows.every((r) => "avatar_sig" in r)) {
+        const sigs = st.avSig || {}, stale = rows.filter((r) => sigs[r.id] !== r.avatar_sig).map((r) => r.id);
+        if (stale.length) {
+          const got = await rest("GET", "profiles", { params: { select: "id,avatar,avatar_sig", id: "in.(" + stale.join(",") + ")" } });
+          st.avs = { ...(st.avs || {}) }; st.avSig = { ...sigs };
+          for (const g of got) { st.avs[g.id] = g.avatar || ""; st.avSig[g.id] = g.avatar_sig; }
+          try { LS.set("lf_avs", { at: st.avAt, by: st.avs, sig: st.avSig }); } catch (e) { }
+        }
+      } else await avatarsFresh(false);
+    } catch (e) { if (e instanceof Offline || e instanceof AuthLost) throw e; }
+    return rows.map((r) => { const o = { ...r, avatar: (st.avs || {})[r.id] || "" }; delete o.avatar_sig; return o; });
+  }
   const mediaOf = () => ({ avatar_url: "", banner_url: "", banner_pos: 50, ...LS.get("lf_media", {}) });
   const pub = (p) => ({ id: p.id, name: p.display_name || p.username, role: p.role, avatar: p.avatar || "", ext: Object.fromEntries(PEXT.map((k) => [k, p[k] || ""])), media: Object.fromEntries(MEDIA.filter((k) => p[k] != null).map((k) => [k, p[k]])) });
   function meOf() {
@@ -276,8 +308,14 @@
     return o;
   }
   function cacheMe() { const m = meOf(); if (m) { st.me = { id: m.id, username: m.username, display_name: m.display_name, role: m.role, must_change_password: m.must_change_password }; LS.set("lf_me", st.me); } }
-  async function fetchProfile() {
+  async function fetchProfile(light) {
+    if (light && st.profile && st.fullAt && Date.now() - st.fullAt < HEAVY_MS) {
+      const r = (await rest("GET", "profiles", { params: { id: "eq." + uid(), select: "id,username,display_name,role,active,must_change_password" } }))[0];
+      if (!r) throw new AuthFail("No Leafline profile exists for this login. Ask an administrator.");
+      st.profile = { ...st.profile, ...r }; cacheMe(); return st.profile;
+    }
     const rows = await rest("GET", "profiles", { params: { id: "eq." + uid(), select: "*" } });
+    st.fullAt = Date.now();
     if (!rows.length) throw new AuthFail("No Leafline profile exists for this login. Ask an administrator.");
     const R = rows[0]; st.profile = R;
     if ("avatar" in R && !LS.get("lf_avatar_pending", false)) LS.set("lf_avatar", R.avatar || "");
@@ -342,11 +380,11 @@
     return c;
   }
   async function peopleRefresh() {
-    st.people = await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active"), order: "display_name.asc" } });
+    st.people = await withAv(await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active"), order: "display_name.asc" } }));
     LS.set("lf_people", st.people);
   }
   async function pushProfileBits() {
-    if (LS.get("lf_avatar_pending", false) && st.caps.avatar) { await rest("PATCH", "profiles", { params: { id: "eq." + uid() }, body: { avatar: LS.get("lf_avatar", "") || null }, prefer: "return=minimal" }); LS.set("lf_avatar_pending", false); }
+    if (LS.get("lf_avatar_pending", false) && st.caps.avatar) { await rest("PATCH", "profiles", { params: { id: "eq." + uid() }, body: { avatar: LS.get("lf_avatar", "") || null }, prefer: "return=minimal" }); LS.set("lf_avatar_pending", false); st.avs = { ...(st.avs || {}), [uid()]: LS.get("lf_avatar", "") || "" }; }
     if (LS.get("lf_ext_pending", false) && st.caps.pext) {
       const e = LS.get("lf_ext", {}), body = Object.fromEntries(PEXT.map((k) => [k, e[k] || null])); body.banner = LS.get("lf_banner", "") || null;
       await rest("PATCH", "profiles", { params: { id: "eq." + uid() }, body, prefer: "return=minimal" }); LS.set("lf_ext_pending", false);
@@ -364,13 +402,13 @@
       await pushProfileBits();
       const changed = await pullAll();
       let extra = 0;
-      if (Date.now() - st.lastRecon > 90000) { extra += await reconcile(); st.lastRecon = Date.now(); }
+      if (Date.now() - st.lastRecon > 15 * 60 * 1000) { extra += await reconcile(); st.lastRecon = Date.now(); }
       if (Date.now() - st.lastBeat > 60000) {
         try { await peopleRefresh(); } catch (e) { if (!(e instanceof Http)) throw e; }
         try { await rest("PATCH", "profiles", { params: { id: "eq." + uid() }, body: { last_seen: nowIso(), status_text: "Online" }, prefer: "return=minimal" }); } catch (e) { if (!(e instanceof Http)) throw e; }
         st.lastBeat = Date.now();
         for (const k of Object.keys(st.caps)) if (st.caps[k] === false) st.caps[k] = null;
-        const prev = st.profile; await fetchProfile();
+        const prev = st.profile; await fetchProfile(true);
         if (!st.profile.active) return onAuthLost("deactivated");
         if (prev && prev.role !== st.profile.role) emit("auth_changed");
       }
@@ -378,7 +416,7 @@
       if (changed || extra || first) emit("refresh");
       setSync(LS.get("lf_outbox", []).some((x) => x.blocked) ? "attention" : "synced");
     } catch (e) {
-      if (e instanceof Offline) setSync("offline", "No connection");
+      if (e instanceof Offline) setSync("offline", paused(e) ? PAUSED : "No connection");
       else if (e instanceof AuthLost) onAuthLost();
       else if (e instanceof AuthFail) onAuthLost();
       else setSync("error", String(e.message || e).slice(0, 200));
@@ -393,10 +431,15 @@
   function startLoop(first) {
     clearInterval(loopT); clearInterval(beatT);
     cycleOnce(first);
-    loopT = setInterval(() => { if (!document.hidden) cycleOnce(false); }, 5000);
-    beat(); beatT = setInterval(beat, 30000);
+    loopT = setInterval(() => {
+      if (document.hidden) return;
+      const idle = Date.now() - st.lastInput > 3 * 60 * 1000, gap = Date.now() - st.lastCycle;
+      if (gap >= (idle ? 30000 : 10000)) { st.lastCycle = Date.now(); cycleOnce(false); }
+    }, 2500);
+    beat(); beatT = setInterval(beat, 60000);
   }
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && uid()) { beat(); cycleOnce(false); checkVersion(false); } });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && uid()) { st.lastInput = Date.now(); beat(); cycleOnce(false); checkVersion(false); } });
+  for (const ev of ["pointerdown", "keydown", "wheel", "touchstart"]) addEventListener(ev, () => { const was = Date.now() - st.lastInput > 3 * 60 * 1000; st.lastInput = Date.now(); if (was && uid() && Date.now() - st.lastCycle > 5000) { st.lastCycle = Date.now(); cycleOnce(false); } }, { passive: true, capture: true });
   window.addEventListener("online", () => { if (uid()) cycleOnce(false); });
   window.addEventListener("offline", () => { if (uid()) setSync("offline", "No connection"); });
 
@@ -489,7 +532,7 @@
 
   // ------------------------------------------------------------------ the API the page calls
   const fail = (error) => ({ ok: false, error });
-  const netErr = (e) => e instanceof Offline ? "You're offline." : e instanceof AuthLost ? "Signed out." : String(e.message || e).slice(0, 160);
+  const netErr = (e) => paused(e) ? PAUSED : e instanceof Offline ? "You're offline." : e instanceof AuthLost ? "Signed out." : String(e.message || e).slice(0, 160);
   const isAdmin = () => ((meOf() || {}).role === "admin");
   const names = () => Object.fromEntries((st.people || []).map((p) => [p.id, p.display_name]));
   const leadDict = (l) => { const [o, h, n] = openStatus(l.hours); return { id: l.id, name: l.name, btype: l.btype || "Other", phone: l.phone, owner: l.owner || NA, rating: l.rating || NA, reviews: l.reviews || NA, address: l.address || NA, website: l.website || NA, notes: l.notes, status: l.status || "none", called_at: l.called_at || "", open: o, hours: h, open_note: n, search: l.search || "", meeting_at: l.meeting_at || "", called_by: l.called_by || "", called_by_name: (l.called_by && names()[l.called_by]) || "", email: l.email || NA }; };
@@ -699,7 +742,7 @@
     save_profile(d) { st.cosmetic = cleanProfile(d, st.cosmetic); LS.set("lf_profile", st.cosmetic); return st.cosmetic; },
     async sign_in(username, password) {
       try { const me = await signIn(String(username || ""), String(password || "")); return { ok: true, me }; }
-      catch (e) { return fail(e instanceof AuthFail ? e.message : e instanceof Offline ? "Can't reach the Leafline server. Check your internet connection and try again." : "Sign-in failed: " + String(e.message || e).slice(0, 120)); }
+      catch (e) { return fail(e instanceof AuthFail ? e.message : paused(e) ? PAUSED.replace(" Your changes are kept and upload when it's back.", " Signing in works again when it's back.") : e instanceof Offline ? "Can't reach the Leafline server. Check your internet connection and try again." : "Sign-in failed: " + String(e.message || e).slice(0, 120)); }
     },
     async sign_out() {
       try { await flush(); } catch (e) { }
@@ -736,7 +779,7 @@
     },
     async get_person(pid) {
       return guardNet(async () => {
-        const rows = await rest("GET", "profiles", { params: { id: "eq." + String(pid), select: pcols("id,username,display_name,role,active,last_seen") + (st.caps.pext ? ",banner" : "") } });
+        const rows = await withAv(await rest("GET", "profiles", { params: { id: "eq." + String(pid), select: pcols("id,username,display_name,role,active,last_seen") + (st.caps.pext ? ",banner" : "") } }));
         return { ok: !!rows.length, person: rows[0] || null };
       });
     },
@@ -1008,7 +1051,7 @@
       const days = 14;
       try {
         const today = parseDay(todayStr()), frm = addDays(today, -(days - 1));
-        const prof = await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active,last_seen"), order: "display_name.asc" } });
+        const prof = await withAv(await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active,last_seen"), order: "display_name.asc" } }));
         const stats = await call("POST", "/rest/v1/rpc/daily_stats", { body: { p_from: dayStr(frm), p_to: dayStr(today) } });
         const act = await rest("GET", "activity", { params: { select: "*", order: "created_at.desc", limit: 40 } });
         const sett = await rest("GET", "settings", { params: { key: "eq.daily_targets", select: "value" } });
@@ -1096,7 +1139,7 @@
     async get_board() {
       if (!uid()) return fail("Sign in first.");
       try {
-        const prof = await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active"), order: "display_name.asc" } });
+        const prof = await withAv(await rest("GET", "profiles", { params: { select: pcols("id,username,display_name,role,active"), order: "display_name.asc" } }));
         const stats = await call("POST", "/rest/v1/rpc/daily_stats", { body: { p_from: "2020-01-01", p_to: todayStr() } });
         const deals = await allPages("deals", { select: "id,owner_id,client,upfront,monthly,months,closed_at,first_bill" + (st.caps.paid ? ",confirmed" : ""), order: "closed_at.asc" });
         let splits = [], splitsReady = true;   // profit splits (16th update)

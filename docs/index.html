@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<script src="config.js?v=12.0.0"></script>
-<script src="engine.js?v=12.0.0"></script>
+<script src="config.js?v=12.0.1"></script>
+<script src="engine.js?v=12.0.1"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -199,7 +199,7 @@ label.l{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin
 .hz-qt small{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hz-call{flex:none;height:32px;padding:0 10px;gap:6px;font-size:12px}.hz-call .ic{width:14px;height:14px;color:var(--accent-hi)}
 .hz-qe{flex:1;display:flex;align-items:center;gap:10px;padding:10px;font-size:13px;color:var(--muted)}.hz-qe .ic{width:20px;height:20px;color:var(--accent-hi);flex:none}
-.hz-more{align-self:flex-start;padding:2px 6px;font-size:12.5px;font-weight:700;color:var(--accent-hi);border-radius:8px;transition:color var(--d-hover) var(--e-out)}
+.hz-more{align-self:flex-start;padding:2px 6px;min-height:32px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;color:var(--accent-hi);border-radius:8px;transition:color var(--d-hover) var(--e-out)}
 .hz-more:hover{color:var(--text)}
 .banner.hero .mtile{max-width:none;height:100%;display:flex;flex-direction:column;box-shadow:var(--hi),0 10px 24px rgba(0,0,0,.25),0 0 30px var(--glow-soft)}
 .banner.hero .mtile svg{margin-top:auto}
@@ -1525,6 +1525,10 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   #pg-find .li{gap:10px;padding:10px 8px 10px 10px;margin-bottom:6px;background:rgba(255,255,255,.025);border-color:var(--line)}
   #pg-find .li .av{display:none}
   #pg-find .li .lt b{font-size:15px}
+  /* 12.0.1: the business name gets the room on phones ("Hours N/A" said nothing and squeezed names to 5 letters) */
+  .li .lt{justify-content:flex-start}.li .lt b{flex:1 1 0;min-width:0}
+  .li .op:has(.pill.unknown){display:none}
+  .li .op .pill{font-size:11px;padding:2px 8px}
   .lcall{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:50%;background:linear-gradient(160deg,var(--accent),var(--accent2));color:var(--accent-text);
     box-shadow:0 6px 16px rgba(0,0,0,.3),0 0 18px var(--glow-soft);border:0;text-decoration:none;-webkit-tap-highlight-color:transparent;transition:transform var(--d-card) var(--e-spring)}
   .lcall:active{transform:scale(.9)}.lcall .ic{width:20px;height:20px}.lcall[hidden]{display:none}
@@ -2231,7 +2235,7 @@ html.lf-glass .tgl[data-lgsp]:after{transition:none !important}
 .pl-jump{display:none}
 @media (min-width:861px) and (max-width:1399px){.pl-cols{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:860px){.pl-cols{grid-template-columns:repeat(6,minmax(240px,82vw));scroll-snap-type:x mandatory}
-.pl-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 10px;padding:0 16px}.pl-jump::-webkit-scrollbar{display:none}
+.pl-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 10px;padding:0 0 2px;max-width:100%}.pl-jump::-webkit-scrollbar{display:none}
 .pl-jump button{flex:0 0 auto;height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;color:var(--text2)}
 .pl-jump button i{width:8px;height:8px;border-radius:50%}.pl-jump button.on{border-color:var(--accent-line);background:var(--accent-soft);color:var(--text)}.pl-col{scroll-snap-align:start}}
 /* health */
@@ -2288,7 +2292,7 @@ html.lf-glass .tgl[data-lgsp]:after{transition:none !important}
 @media (prefers-reduced-motion:reduce){.em-nudge{transition:opacity .2s}.em-wait i{animation:none}}
 
 /* ================= Clients ================= */
-#pg-clients{padding-bottom:40px}
+@media (min-width:861px){#pg-clients{padding-bottom:40px}}
 .cl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
 .cl-head h3{font-size:20px;font-weight:800}.cl-head .muted{font-size:13px;margin-top:2px;max-width:620px;line-height:1.45}
 .cl-head .acts{display:flex;gap:8px;flex-wrap:wrap}
@@ -4091,7 +4095,7 @@ function logCallModal(lead){
       if(fl)emailNudge({...fl,notes:g("lcNotes").value||fl.notes||""},{no_answer:"no_answer",voicemail:"voicemail",interested:"interested",follow_up:"follow_up",meeting_booked:"meeting",sale_completed:"sale"}[out])};
   });
 }
-setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))renderCalls(true)},20000);
+setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))renderCalls(true)},60000);
 
 /* ---------------- admin ---------------- */
 async function renderAdmin(){
@@ -4299,7 +4303,7 @@ async function preloadTeam(){
     await new Promise(r=>setTimeout(r,250))}
 }
 (function teamWarm(){let started=false;const t=setInterval(()=>{if(S.me&&!started){started=true;clearInterval(t);setTimeout(preloadTeam,4000)}},1000);
-  setInterval(()=>{if(S.me&&!document.hidden)preloadTeam()},300000)})();
+  setInterval(()=>{if(S.me&&!document.hidden)preloadTeam()},1800000)})();
 const TEAM_MISSING="Team card details need the 14th database update. An admin runs RUN_IN_SUPABASE.sql in Supabase first.";
 function teamCardModal(pid){
   const c=TEAMC.by[pid]||{},mine=S.me&&S.me.id===pid,who=personFull(pid);
@@ -4533,9 +4537,9 @@ async function renderTeam(){
   if(!TEAMC.at)loadTeamCards(false).then(()=>{if(S.page!=="team")return;d.people.forEach(p=>{const c=$(`.tm-p[data-pid="${CSS.escape(p.id)}"]`,pg),dep=(TEAMC.by[p.id]||{}).department;if(!c||!dep)return;
     const txt=[(p.ext||{}).title,dep].filter(Boolean).join(" · ");let el=$(".psub",c);if(!el){el=document.createElement("div");el.className="psub";const b=$(".bdg",c);b?b.after(el):$("h3",c).after(el)}if(el.textContent!==txt)el.textContent=txt})});
 }
-setInterval(()=>{if(S.ready&&S.page==="team"&&!document.hidden)renderTeam()},8000);
-setInterval(()=>{if(!S.ready||document.hidden||!S.me)return;if(S.page==="board")ensureBoard(true).then(()=>{if(S.page==="board")drawRanks(false)});else ensureBoard()},60000);
-setInterval(()=>{if(S.ready&&S.page==="posts"&&!document.hidden)loadPosts(false)},20000);
+setInterval(()=>{if(S.ready&&S.page==="team"&&!document.hidden)renderTeam()},45000);   /* 12.0.1: was every 8 s */
+setInterval(()=>{if(!S.ready||document.hidden||!S.me)return;if(S.page==="board")ensureBoard(true).then(()=>{if(S.page==="board")drawRanks(false)});else if(!B.at||Date.now()-B.at>600000)ensureBoard(true)},60000);
+setInterval(()=>{if(S.ready&&S.page==="posts"&&!document.hidden)loadPosts(false)},30000);
 
 /* ---------------- accounts + sync ---------------- */
 let loginWait=null;
@@ -4543,11 +4547,19 @@ function showLogin(msg){dropLens();$("#pwForm").style.display="none";$("#lgForm"
 function needLogin(msg){showLogin(msg);return new Promise(r=>{loginWait=r})}
 function needPw(){dropLens();$("#lgForm").style.display="none";$("#pwForm").style.display="";$("#pwErr").textContent="";$("#login").classList.add("on");setTimeout(()=>$("#pwNew").focus(),60);return new Promise(r=>{loginWait=r})}
 function applyMe(){if(!S.me)return;const adm=S.me.role==="admin";["navAdmin","fnAdmin"].forEach(i=>{const e=$("#"+i);if(e)e.style.display=adm?"":"none"});setTimeout(movePills,30);S.profile=S.profile||{};S.profile.name=S.me.display_name;S.profile.role=S.me.role==="admin"?"Administrator":"Employee";profileUI();if(S.page==="account")renderAccount()}
+/* 12.0.1: tell the PC app when nobody is using it (window hidden, or nothing typed or clicked for 3 minutes): it then checks
+   the shared database every 90 s instead of every 10 s. The website's engine does this itself. */
+(function uiIdle(){if(!window.LF_API_PC&&window.LF_API)return;let last=Date.now(),sent=null;
+  const send=()=>{const idle=document.hidden||Date.now()-last>180000;if(idle!==sent){sent=idle;api("ui_state",idle).catch(()=>{sent=null})}};
+  for(const ev of ["pointerdown","keydown","wheel","touchstart"])addEventListener(ev,()=>{last=Date.now();if(sent)send()},{passive:true,capture:true});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)last=Date.now();send()});setInterval(send,30000)})();
 function renderSync(){
   const s=S.sync||{state:"signed_out"},b=$("#syncBtn");if(!b)return;
-  const t={synced:"Synced",syncing:"Syncing...",offline:"Offline"+(s.pending?" · "+s.pending+" waiting":""),error:"Sync problem",attention:(s.blocked||0)+" need attention",signed_out:"Signed out"}[s.state]||"Sync";
+  const pz=s.state==="offline"&&/paused/i.test(s.error||"");   /* 12.0.1: Supabase locked the project (free plan limit), not your internet */
+  const t={synced:"Synced",syncing:"Syncing...",offline:(pz?"Paused":"Offline")+(s.pending?" · "+s.pending+" waiting":""),error:"Sync problem",attention:(s.blocked||0)+" need attention",signed_out:"Signed out"}[s.state]||"Sync";
   b.className="sync "+s.state;$("#syncTx").textContent=t;
-  b.title=s.state==="synced"?"Everything is saved to the shared database. Last sync "+(s.last_ok||""):s.state==="offline"?"No connection. Your changes are saved on this computer and will upload automatically.":(s.error||"");
+  b.title=s.state==="synced"?"Everything is saved to the shared database. Last sync "+(s.last_ok||""):pz?s.error:s.state==="offline"?"No connection. Your changes are saved on this computer and will upload automatically.":(s.error||"");
+  if(pz&&!S.pzShown){S.pzShown=true;toast(s.error,{ms:10000})}else if(!pz&&s.state==="synced")S.pzShown=false;
 }
 async function afterLogin(){setTimeout(maybePatchNotes,2200);COSTS.at=0;loadCosts(true);applyMe();B.data=null;B.badges={};loadNotes().then(()=>{applyDock()});if(S.me&&S.me.must_change_password)await needPw();ensureBoard(true);acctPull();setTimeout(pollPosts,1500)}
 $("#lgForm").addEventListener("submit",async e=>{
@@ -5004,13 +5016,13 @@ async function pollPosts(){
   if(!seen&&r.posts.length){setP("postsSeen",r.posts[0].created_at);S.unreadPosts=0}
   paintUnread();
 }
-setInterval(pollPosts,45000);
+setInterval(pollPosts,120000);   /* 12.0.1: was 45 s */
 
 
 /* ---------- full banner for anyone (the team list leaves the heavy banner out), cached for 5 minutes ---------- */
 const PBAN={};
 async function personBanner(pid){
-  const c=PBAN[pid];if(c&&Date.now()-c.t<300000)return c.b;
+  const c=PBAN[pid];if(c&&Date.now()-c.t<1800000)return c.b;
   if(S.me&&pid===S.me.id){const b=bannerOf({ext:S.me.ext,media:S.me.media});return {...b,url:S.me.media&&S.me.media.banner_url}}
   try{const r=await api("get_person",pid);if(r&&r.ok&&r.person){const q=r.person,b=bannerOf({ext:{banner:q.banner},media:{banner_url:q.banner_url,banner_pos:q.banner_pos}});
     const out={...b,url:q.banner_url};PBAN[pid]={t:Date.now(),b:out};return out}}catch(e){}
@@ -5269,6 +5281,12 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"12.0.1",t:"Fixed: Leafline stopping for everyone",items:[
+  "Leafline stopped working because it used up the shared database's free monthly download allowance. Every open copy re-downloaded everyone's profile pictures and banners every minute, the Team page reloaded every 8 seconds, and the PC app checked for changes every 4 seconds all day and night.",
+  "Now pictures and banners are downloaded at most every 30 minutes and kept on your device, the Team page refreshes every 45 seconds, the app checks for changes every 10 seconds while you use it (every 90 seconds when it's minimized or nobody's using it), and the full 'anything deleted?' check runs every 15 minutes. Same features, a small fraction of the data.",
+  "If the shared database is ever paused again, Leafline says so in plain words (instead of 'No connection'), keeps your changes on your device and uploads them by itself when it's back.",
+  "Phones: Find Leads shows the whole business name (the 'Hours N/A' tag was squeezing names to a few letters), the last client on Clients is no longer hidden behind the bottom bar, the Pipeline's stage buttons line up with the screen edge, and 'See all' on the dashboard is easier to tap.",
+  "Admins: run RUN_IN_SUPABASE.sql once the database is back (it adds the 20th update: a tiny fingerprint of each profile picture, so a new picture shows up for everyone within a minute without re-downloading the rest)."]},
  {v:"12.0.0",t:"Clients, and a tidier app",items:[
   "New Clients page (in the sidebar under Clients & money): everyone you work for, what they pay, what they've paid, what they owe, and what's next. Search, filter by status, payments, services, teammate or tag, and sort.",
   "Each client has a profile: contact details, status and priority, tags, the teammates on it (and what each one does), internal notes, services, money and a timeline of notes, calls, payments and invoices.",
@@ -7250,7 +7268,7 @@ document.addEventListener("click",e=>{
     <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-x>Don't call</button><button class="btn pri" data-ok>${ic("phone")}Call anyway</button></div>`,(ov,close)=>{
     $("[data-x]",ov).onclick=close;$("[data-ok]",ov).onclick=()=>{GUARD.ack[k]=Date.now();close();setTimeout(()=>a.click(),60)}});
 },true);
-setInterval(()=>{if(!S.ready||document.hidden)return;if(S.page==="find")guardLoad(S.find.slice(0,300));else if(S.page==="called"||S.page==="pipeline")guardLoad((S.called||[]).slice(0,300))},30000);
+setInterval(()=>{if(!S.ready||document.hidden)return;if(S.page==="find")guardLoad(S.find.slice(0,300));else if(S.page==="called"||S.page==="pipeline")guardLoad((S.called||[]).slice(0,300))},120000);
 
 /* ---------- automatic follow-ups ---------- */
 const autoFollowOn=()=>getP("autoFollow",true)!==false;
@@ -7390,7 +7408,7 @@ async function plMove(id,stage){
   PLs.at=Date.now();
   const n=(PL.find(x=>x[0]===stage)||[])[1];toast(`${l.name} moved to ${n}`);logNote(`Pipeline: ${l.name} moved to ${n}`);
 }
-setInterval(()=>{if(S.ready&&S.page==="pipeline"&&!document.hidden&&!$(".ov.on")&&!$(".pl-card.drag"))renderPipeline(true)},30000);
+setInterval(()=>{if(S.ready&&S.page==="pipeline"&&!document.hidden&&!$(".ov.on")&&!$(".pl-card.drag"))renderPipeline(true)},60000);
 
 /* ---------- health: each app reports its version + sync state; admins see everyone ---------- */
 const HL={missing:false,last:0,sig:""};
@@ -7401,7 +7419,7 @@ async function reportStatus(force){
   HL.sig=sig;HL.last=Date.now();
   const r=await api("sb_rpc","me_status_report",{p}).catch(()=>null);if(r&&r.missing)HL.missing=true;
 }
-setInterval(()=>{if(S.ready&&!document.hidden)reportStatus(false)},30000);
+setInterval(()=>{if(S.ready&&!document.hidden)reportStatus(false)},120000);
 const vcmp=(a,b)=>{const x=String(a||"0").split(".").map(Number),y=String(b||"0").split(".").map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)-(y[i]||0)}return 0};
 async function healthCard(){
   const pg=$("#pg-admin");if(!pg||!isAdmin())return;let el=$("#hlCard",pg);

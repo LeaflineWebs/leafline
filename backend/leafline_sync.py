@@ -19,12 +19,16 @@ SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "https://yvpmgmuthrmzievgdifw.
 PUBLISHABLE_KEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY") or "sb_publishable_6ssgQB4Z9D3lYtBtL3m8uA_B4w0fFiQ"
 EMAIL_DOMAIN = os.environ.get("LEAFLINE_EMAIL_DOMAIN") or "leaflineweb.com"   # login handle only; no email is ever sent
 TZ = ZoneInfo(os.environ.get("LEAFLINE_TZ") or "America/Toronto")
-POLL = 4.0
+POLL = 10.0          # 12.0.1: while the app is in use (was 4 s, all day and night)
+IDLE_POLL = 90.0     # when the app's window is hidden (minimized, in the tray) or nobody has touched it for 3 minutes
+HEAVY_S = 30 * 60    # pictures, banners and the full profile row: at most every 30 minutes
+RECON_S = 15 * 60    # checking for rows deleted elsewhere (downloads every id of every table)
 NS = uuid.UUID("6f1e3d8a-5b0c-4c7e-9a52-1d3a7c0b9e11")
 OUTCOME = {"orange": "no_answer", "red": "not_interested", "yellow": "interested", "green": "meeting_booked"}
 
 
 class Offline(Exception): pass
+PAUSED = "Shared database paused (free plan's monthly data limit). Changes are kept here and upload when it's back."   # Supabase answers 402 when the free plan's monthly limits are used up
 class AuthLost(Exception): pass
 class AuthFail(Exception): pass
 
@@ -260,10 +264,15 @@ class Auth:
 
     def _post(self, grant, body):
         try:
-            return requests.post(SUPABASE_URL + "/auth/v1/token", params={"grant_type": grant}, json=body, timeout=25,
-                                 headers={"apikey": PUBLISHABLE_KEY, "Content-Type": "application/json"})
+            r = requests.post(SUPABASE_URL + "/auth/v1/token", params={"grant_type": grant}, json=body, timeout=25,
+                              headers={"apikey": PUBLISHABLE_KEY, "Content-Type": "application/json"})
         except (requests.ConnectionError, requests.Timeout) as e:
             raise Offline(str(e))
+        return self._paused(r)
+
+    def _paused(self, r):
+        if getattr(r, "status_code", 0) == 402: raise Offline(PAUSED)
+        return r
 
     def login(self, username, password):
         with self.lock:
@@ -303,6 +312,7 @@ class Remote:
         if r.status_code == 401 and retry:
             self.auth.refresh()
             return self.call(method, path, params, body, prefer, False)
+        if r.status_code == 402: raise Offline(PAUSED)
         if r.status_code >= 400:
             try: b = r.json()
             except ValueError: b = r.text
@@ -405,8 +415,42 @@ class Sync:
             else: raise
 
     def pcols(self, base):
-        return (base + (",avatar" if self.caps.get("avatar") else "") + ("," + ",".join(self.PEXT) if self.caps.get("pext") else "")
-                + ("," + ",".join(self.MEDIA) if self.caps.get("media") else ""))
+        """Profile columns for the frequent requests: never the base64 picture (up to 60 KB each). See withav()."""
+        return (base + ("," + ",".join(self.PEXT) if self.caps.get("pext") else "")
+                + ("," + ",".join(self.MEDIA) if self.caps.get("media") else "") + (",avatar_sig" if self.caps.get("sig") else ""))
+
+    def set_idle(self, idle):
+        """The app's page says whether anyone is using it (hidden window, or no typing/clicking for 3 minutes).
+        Idle: check the shared database every 90 s instead of every 10 s. Back in use: sync straight away."""
+        was = getattr(self, "ui_idle", False); self.ui_idle = bool(idle)
+        if was and not self.ui_idle: self.wake.set()
+
+    def withav(self, rows):
+        """Adds each person's picture from a copy kept on this computer, refreshed in ONE request at most every 30 minutes
+        (12.0.1: the pictures used to be downloaded with every team list, every minute, which used up the free plan)."""
+        if self.caps.get("avatar"):
+            try: cache = json.loads(self._kv("avs") or "{}")
+            except ValueError: cache = {}
+            if self.caps.get("sig") is None:      # 20th update: a fingerprint of each picture (only changed pictures are downloaded)
+                try: self.remote.rest("GET", "profiles", params={"select": "avatar_sig", "limit": 1}); self.caps["sig"] = True
+                except Http: self.caps["sig"] = False
+            if self.caps.get("sig") and rows and all("avatar_sig" in r for r in rows):
+                sigs = cache.get("sig") or {}; stale = [r["id"] for r in rows if sigs.get(r["id"]) != r["avatar_sig"]]
+                if stale:
+                    try:
+                        got = self.remote.rest("GET", "profiles", params={"select": "id,avatar,avatar_sig", "id": "in.(" + ",".join(stale) + ")"})
+                        cache.setdefault("by", {}); cache.setdefault("sig", {})
+                        for g in got: cache["by"][g["id"]] = g.get("avatar") or ""; cache["sig"][g["id"]] = g.get("avatar_sig")
+                        self._kv("avs", json.dumps(cache))
+                    except Http: pass
+            elif time.time() - float(cache.get("at") or 0) > HEAVY_S:
+                try:
+                    got = self.remote.rest("GET", "profiles", params={"select": "id,avatar"})
+                    cache = {"at": time.time(), "by": {r["id"]: r.get("avatar") or "" for r in got}, "sig": cache.get("sig") or {}}; self._kv("avs", json.dumps(cache))
+                except Http: pass
+            by = cache.get("by") or {}
+            for r in rows: r["avatar"] = by.get(r.get("id"), ""); r.pop("avatar_sig", None)
+        return rows
 
     def media(self):
         try: m = json.loads(self._kv("media") or "{}")
@@ -451,7 +495,7 @@ class Sync:
     # ---- leaderboard data (the page does the ranking, so desktop and website rank identically)
     def board(self):
         try:
-            prof = self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active"), "order": "display_name.asc"})
+            prof = self.withav(self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active"), "order": "display_name.asc"}))
             today = datetime.now(TZ).date().isoformat()
             stats = self.remote.call("POST", "/rest/v1/rpc/daily_stats", body={"p_from": "2020-01-01", "p_to": today})
             deals = self.remote.all_pages("deals", {"select": "id,owner_id,client,upfront,monthly,months,closed_at,first_bill" + (",confirmed" if self.caps.get("paid") else ""), "order": "closed_at.asc"})
@@ -575,7 +619,7 @@ class Sync:
 
     def person(self, pid):
         """Another person's full card (with banner). Needs a connection."""
-        rows = self.remote.rest("GET", "profiles", params={"id": "eq." + pid, "select": self.pcols("id,username,display_name,role,active,last_seen") + (",banner" if self.caps.get("pext") else "")})
+        rows = self.withav(self.remote.rest("GET", "profiles", params={"id": "eq." + pid, "select": self.pcols("id,username,display_name,role,active,last_seen") + (",banner" if self.caps.get("pext") else "")}))
         return rows[0] if rows else None
 
     def probe(self):
@@ -727,8 +771,13 @@ class Sync:
         self._kv("uid", uid); self.first = True; self.kick()
         return self.me()
 
-    def fetch_profile(self):
+    def fetch_profile(self, light=False):
+        if light and self.profile and time.time() - getattr(self, "full_at", 0) < HEAVY_S:
+            r = self.remote.rest("GET", "profiles", params={"id": "eq." + self.auth.uid(), "select": "id,username,display_name,role,active,must_change_password"})
+            if not r: raise AuthFail("No Leafline profile exists for this login. Ask an administrator.")
+            self.profile = {**self.profile, **r[0]}; return
         rows = self.remote.rest("GET", "profiles", params={"id": "eq." + self.auth.uid(), "select": "*"})
+        self.full_at = time.time()
         if not rows: raise AuthFail("No Leafline profile exists for this login. Ask an administrator.")
         self.profile = rows[0]
         if "avatar" in rows[0] and self._kv("avatar_pending") != "1": self._kv("avatar", rows[0].get("avatar") or "")
@@ -756,6 +805,9 @@ class Sync:
     def _push_avatar(self):
         if self._kv("avatar_pending") != "1" or not self.caps.get("avatar"): return
         self.remote.rest("PATCH", "profiles", params={"id": "eq." + self.auth.uid()}, body={"avatar": self._kv("avatar") or None}, prefer="return=minimal")
+        try:   # your new picture shows in your own team list straight away (the shared copy refreshes every 30 minutes)
+            c = json.loads(self._kv("avs") or "{}"); c.setdefault("by", {})[self.auth.uid()] = self._kv("avatar") or ""; self._kv("avs", json.dumps(c))
+        except ValueError: pass
         self._kv("avatar_pending", "0")
 
     def sign_out(self):
@@ -826,7 +878,7 @@ class Sync:
         try:
             today = datetime.now(TZ).date()
             frm = today - timedelta(days=days - 1)
-            prof = self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active,last_seen"), "order": "display_name.asc"})
+            prof = self.withav(self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active,last_seen"), "order": "display_name.asc"}))
             stats = self.remote.call("POST", "/rest/v1/rpc/daily_stats", body={"p_from": frm.isoformat(), "p_to": today.isoformat()})
             act = self.remote.rest("GET", "activity", params={"select": "*", "order": "created_at.desc", "limit": 40})
             st = self.remote.rest("GET", "settings", params={"key": "eq.daily_targets", "select": "value"})
@@ -988,7 +1040,7 @@ class Sync:
         while not self.stop.is_set():
             try:
                 if not self.auth.s: self._state("signed_out"); delay = 2
-                else: self._cycle(); delay = 2 if self._counts()[0] else POLL
+                else: self._cycle(); delay = 2 if self._counts()[0] else (IDLE_POLL if getattr(self, "ui_idle", False) else POLL)
             except Offline as e:
                 self._state("offline", str(e)[:120]); delay = min(max(delay * 2, 8), 60)
             except AuthLost:
@@ -1022,10 +1074,10 @@ class Sync:
             changed += self._pull(); self._backfill(); self.first = False
         self._push_locked()
         changed += self._pull()
-        if time.time() - self.last_recon > 60: changed += self._reconcile_deletes(); self.last_recon = time.time()
+        if time.time() - self.last_recon > RECON_S: changed += self._reconcile_deletes(); self.last_recon = time.time()
         if time.time() - self.last_beat > 60:
             try:
-                self._kv("people", json.dumps(self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active"), "order": "display_name.asc"})))
+                self._kv("people", json.dumps(self.withav(self.remote.rest("GET", "profiles", params={"select": self.pcols("id,username,display_name,role,active"), "order": "display_name.asc"}))))
             except Http: pass
             try: self.refresh_callers(); changed += 1
             except Http: pass
@@ -1040,7 +1092,7 @@ class Sync:
             if self.caps["paid"] is False: self.caps["paid"] = None
             try:
                 prev = dict(self.profile)
-                self.fetch_profile()
+                self.fetch_profile(light=True)
                 if not self.profile.get("active", True):
                     self.force_sign_out(); self.emit("auth_lost", {"why": "deactivated"}); return
                 if prev.get("role") != self.profile.get("role"): self.emit("auth_changed", {})

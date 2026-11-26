@@ -95,6 +95,18 @@ Team chat inside Leafline (sidebar > **Messages**, also on phones and the websit
 - The flame badge also shows next to names on Team cards, profile hover cards (including in Messages), profile pop-ups
   and the Messages details panel. No database update needed.
 
+## What is new in 12.0.1: data diet (the database stopping for everyone) and phone fixes
+
+- **Why it stopped**: Supabase locked the project for `exceed_egress_quota` (free plan download allowance used up).
+  Every open copy re-downloaded all profile pictures and banners every minute, the Team page reloaded every 8 s,
+  the PC app polled every 4 s all day and night, and every id of every table was re-downloaded every minute.
+- **Now**: pictures via fingerprints (database update 20) or every 30 min; own full profile every 30 min; deletion
+  check every 15 min; website syncs every 10 s in use / 30 s idle; PC app 10 s in use / 90 s when hidden or idle
+  (the page tells it); Team page 45 s; banners 30 min; leaderboard off-page 10 min; posts 2 min.
+- **While locked** (HTTP 402): both apps say "paused" in plain words, keep changes on the device and upload them later.
+- **Phones**: full business names in Find Leads, Clients clears the bottom bar, Pipeline stage row fits, bigger "See all".
+- Tests: `tests/test_egress.py` (counts real requests), `tests/pg/test_avatar_sig_sql.mjs`.
+
 ## What is new in 12.0: clients, and a tidier app
 
 - **Clients** (sidebar > Clients & money): every business you work for with contact details, status, priority, tags,

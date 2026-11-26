@@ -803,7 +803,9 @@ class Api:
             me = self._sync.sign_in(str(username or ""), str(password or ""))
         except lsync.AuthFail as e:
             return dict(ok=False, error=str(e))
-        except lsync.Offline:
+        except lsync.Offline as e:
+            if str(e) == lsync.PAUSED:
+                return dict(ok=False, error="Leafline's shared database is paused (the free plan's monthly data limit). Signing in works again when it's back.")
             return dict(ok=False, error="Can't reach the Leafline server. Check your internet connection and try again.")
         except Exception as e:
             return dict(ok=False, error="Sign-in failed: " + str(e)[:120])
@@ -964,6 +966,10 @@ class Api:
         except Exception as e:
             return dict(ok=False, error="Could not change the password: " + str(e)[:120])
         return dict(ok=True, me=self._sync.me())
+
+    def ui_state(self, idle):
+        """12.0.1: the page reports when nobody is using the app, so it checks for changes less often (saves the free plan's data)."""
+        self._sync.set_idle(bool(idle)); return dict(ok=True)
 
     def sync_status(self):
         return self._sync.status
@@ -1870,7 +1876,7 @@ label.l{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin
 .hz-qt small{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hz-call{flex:none;height:32px;padding:0 10px;gap:6px;font-size:12px}.hz-call .ic{width:14px;height:14px;color:var(--accent-hi)}
 .hz-qe{flex:1;display:flex;align-items:center;gap:10px;padding:10px;font-size:13px;color:var(--muted)}.hz-qe .ic{width:20px;height:20px;color:var(--accent-hi);flex:none}
-.hz-more{align-self:flex-start;padding:2px 6px;font-size:12.5px;font-weight:700;color:var(--accent-hi);border-radius:8px;transition:color var(--d-hover) var(--e-out)}
+.hz-more{align-self:flex-start;padding:2px 6px;min-height:32px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:700;color:var(--accent-hi);border-radius:8px;transition:color var(--d-hover) var(--e-out)}
 .hz-more:hover{color:var(--text)}
 .banner.hero .mtile{max-width:none;height:100%;display:flex;flex-direction:column;box-shadow:var(--hi),0 10px 24px rgba(0,0,0,.25),0 0 30px var(--glow-soft)}
 .banner.hero .mtile svg{margin-top:auto}
@@ -3196,6 +3202,10 @@ input,select,textarea{transition:border-color var(--d-hover) var(--e-out),box-sh
   #pg-find .li{gap:10px;padding:10px 8px 10px 10px;margin-bottom:6px;background:rgba(255,255,255,.025);border-color:var(--line)}
   #pg-find .li .av{display:none}
   #pg-find .li .lt b{font-size:15px}
+  /* 12.0.1: the business name gets the room on phones ("Hours N/A" said nothing and squeezed names to 5 letters) */
+  .li .lt{justify-content:flex-start}.li .lt b{flex:1 1 0;min-width:0}
+  .li .op:has(.pill.unknown){display:none}
+  .li .op .pill{font-size:11px;padding:2px 8px}
   .lcall{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:50%;background:linear-gradient(160deg,var(--accent),var(--accent2));color:var(--accent-text);
     box-shadow:0 6px 16px rgba(0,0,0,.3),0 0 18px var(--glow-soft);border:0;text-decoration:none;-webkit-tap-highlight-color:transparent;transition:transform var(--d-card) var(--e-spring)}
   .lcall:active{transform:scale(.9)}.lcall .ic{width:20px;height:20px}.lcall[hidden]{display:none}
@@ -4903,7 +4913,7 @@ function logCallModal(lead){
       if(fl)emailNudge({...fl,notes:g("lcNotes").value||fl.notes||""},{no_answer:"no_answer",voicemail:"voicemail",interested:"interested",follow_up:"follow_up",meeting_booked:"meeting",sale_completed:"sale"}[out])};
   });
 }
-setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))renderCalls(true)},20000);
+setInterval(()=>{if(S.ready&&S.page==="calls"&&!document.hidden&&!$(".ov.on"))renderCalls(true)},60000);
 
 /* ---------------- admin ---------------- */
 async function renderAdmin(){
@@ -5111,7 +5121,7 @@ async function preloadTeam(){
     await new Promise(r=>setTimeout(r,250))}
 }
 (function teamWarm(){let started=false;const t=setInterval(()=>{if(S.me&&!started){started=true;clearInterval(t);setTimeout(preloadTeam,4000)}},1000);
-  setInterval(()=>{if(S.me&&!document.hidden)preloadTeam()},300000)})();
+  setInterval(()=>{if(S.me&&!document.hidden)preloadTeam()},1800000)})();
 const TEAM_MISSING="Team card details need the 14th database update. An admin runs RUN_IN_SUPABASE.sql in Supabase first.";
 function teamCardModal(pid){
   const c=TEAMC.by[pid]||{},mine=S.me&&S.me.id===pid,who=personFull(pid);
@@ -5345,9 +5355,9 @@ async function renderTeam(){
   if(!TEAMC.at)loadTeamCards(false).then(()=>{if(S.page!=="team")return;d.people.forEach(p=>{const c=$(`.tm-p[data-pid="${CSS.escape(p.id)}"]`,pg),dep=(TEAMC.by[p.id]||{}).department;if(!c||!dep)return;
     const txt=[(p.ext||{}).title,dep].filter(Boolean).join(" · ");let el=$(".psub",c);if(!el){el=document.createElement("div");el.className="psub";const b=$(".bdg",c);b?b.after(el):$("h3",c).after(el)}if(el.textContent!==txt)el.textContent=txt})});
 }
-setInterval(()=>{if(S.ready&&S.page==="team"&&!document.hidden)renderTeam()},8000);
-setInterval(()=>{if(!S.ready||document.hidden||!S.me)return;if(S.page==="board")ensureBoard(true).then(()=>{if(S.page==="board")drawRanks(false)});else ensureBoard()},60000);
-setInterval(()=>{if(S.ready&&S.page==="posts"&&!document.hidden)loadPosts(false)},20000);
+setInterval(()=>{if(S.ready&&S.page==="team"&&!document.hidden)renderTeam()},45000);   /* 12.0.1: was every 8 s */
+setInterval(()=>{if(!S.ready||document.hidden||!S.me)return;if(S.page==="board")ensureBoard(true).then(()=>{if(S.page==="board")drawRanks(false)});else if(!B.at||Date.now()-B.at>600000)ensureBoard(true)},60000);
+setInterval(()=>{if(S.ready&&S.page==="posts"&&!document.hidden)loadPosts(false)},30000);
 
 /* ---------------- accounts + sync ---------------- */
 let loginWait=null;
@@ -5355,11 +5365,19 @@ function showLogin(msg){dropLens();$("#pwForm").style.display="none";$("#lgForm"
 function needLogin(msg){showLogin(msg);return new Promise(r=>{loginWait=r})}
 function needPw(){dropLens();$("#lgForm").style.display="none";$("#pwForm").style.display="";$("#pwErr").textContent="";$("#login").classList.add("on");setTimeout(()=>$("#pwNew").focus(),60);return new Promise(r=>{loginWait=r})}
 function applyMe(){if(!S.me)return;const adm=S.me.role==="admin";["navAdmin","fnAdmin"].forEach(i=>{const e=$("#"+i);if(e)e.style.display=adm?"":"none"});setTimeout(movePills,30);S.profile=S.profile||{};S.profile.name=S.me.display_name;S.profile.role=S.me.role==="admin"?"Administrator":"Employee";profileUI();if(S.page==="account")renderAccount()}
+/* 12.0.1: tell the PC app when nobody is using it (window hidden, or nothing typed or clicked for 3 minutes): it then checks
+   the shared database every 90 s instead of every 10 s. The website's engine does this itself. */
+(function uiIdle(){if(!window.LF_API_PC&&window.LF_API)return;let last=Date.now(),sent=null;
+  const send=()=>{const idle=document.hidden||Date.now()-last>180000;if(idle!==sent){sent=idle;api("ui_state",idle).catch(()=>{sent=null})}};
+  for(const ev of ["pointerdown","keydown","wheel","touchstart"])addEventListener(ev,()=>{last=Date.now();if(sent)send()},{passive:true,capture:true});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)last=Date.now();send()});setInterval(send,30000)})();
 function renderSync(){
   const s=S.sync||{state:"signed_out"},b=$("#syncBtn");if(!b)return;
-  const t={synced:"Synced",syncing:"Syncing...",offline:"Offline"+(s.pending?" · "+s.pending+" waiting":""),error:"Sync problem",attention:(s.blocked||0)+" need attention",signed_out:"Signed out"}[s.state]||"Sync";
+  const pz=s.state==="offline"&&/paused/i.test(s.error||"");   /* 12.0.1: Supabase locked the project (free plan limit), not your internet */
+  const t={synced:"Synced",syncing:"Syncing...",offline:(pz?"Paused":"Offline")+(s.pending?" · "+s.pending+" waiting":""),error:"Sync problem",attention:(s.blocked||0)+" need attention",signed_out:"Signed out"}[s.state]||"Sync";
   b.className="sync "+s.state;$("#syncTx").textContent=t;
-  b.title=s.state==="synced"?"Everything is saved to the shared database. Last sync "+(s.last_ok||""):s.state==="offline"?"No connection. Your changes are saved on this computer and will upload automatically.":(s.error||"");
+  b.title=s.state==="synced"?"Everything is saved to the shared database. Last sync "+(s.last_ok||""):pz?s.error:s.state==="offline"?"No connection. Your changes are saved on this computer and will upload automatically.":(s.error||"");
+  if(pz&&!S.pzShown){S.pzShown=true;toast(s.error,{ms:10000})}else if(!pz&&s.state==="synced")S.pzShown=false;
 }
 async function afterLogin(){setTimeout(maybePatchNotes,2200);COSTS.at=0;loadCosts(true);applyMe();B.data=null;B.badges={};loadNotes().then(()=>{applyDock()});if(S.me&&S.me.must_change_password)await needPw();ensureBoard(true);acctPull();setTimeout(pollPosts,1500)}
 $("#lgForm").addEventListener("submit",async e=>{
@@ -5816,13 +5834,13 @@ async function pollPosts(){
   if(!seen&&r.posts.length){setP("postsSeen",r.posts[0].created_at);S.unreadPosts=0}
   paintUnread();
 }
-setInterval(pollPosts,45000);
+setInterval(pollPosts,120000);   /* 12.0.1: was 45 s */
 
 
 /* ---------- full banner for anyone (the team list leaves the heavy banner out), cached for 5 minutes ---------- */
 const PBAN={};
 async function personBanner(pid){
-  const c=PBAN[pid];if(c&&Date.now()-c.t<300000)return c.b;
+  const c=PBAN[pid];if(c&&Date.now()-c.t<1800000)return c.b;
   if(S.me&&pid===S.me.id){const b=bannerOf({ext:S.me.ext,media:S.me.media});return {...b,url:S.me.media&&S.me.media.banner_url}}
   try{const r=await api("get_person",pid);if(r&&r.ok&&r.person){const q=r.person,b=bannerOf({ext:{banner:q.banner},media:{banner_url:q.banner_url,banner_pos:q.banner_pos}});
     const out={...b,url:q.banner_url};PBAN[pid]={t:Date.now(),b:out};return out}}catch(e){}
@@ -6081,6 +6099,12 @@ function openFindForm(focus){
 
 /* ---------- "What's new": shown once after each update. Newest first; the first entry is this build's version. ---------- */
 const PATCH_NOTES=[
+ {v:"12.0.1",t:"Fixed: Leafline stopping for everyone",items:[
+  "Leafline stopped working because it used up the shared database's free monthly download allowance. Every open copy re-downloaded everyone's profile pictures and banners every minute, the Team page reloaded every 8 seconds, and the PC app checked for changes every 4 seconds all day and night.",
+  "Now pictures and banners are downloaded at most every 30 minutes and kept on your device, the Team page refreshes every 45 seconds, the app checks for changes every 10 seconds while you use it (every 90 seconds when it's minimized or nobody's using it), and the full 'anything deleted?' check runs every 15 minutes. Same features, a small fraction of the data.",
+  "If the shared database is ever paused again, Leafline says so in plain words (instead of 'No connection'), keeps your changes on your device and uploads them by itself when it's back.",
+  "Phones: Find Leads shows the whole business name (the 'Hours N/A' tag was squeezing names to a few letters), the last client on Clients is no longer hidden behind the bottom bar, the Pipeline's stage buttons line up with the screen edge, and 'See all' on the dashboard is easier to tap.",
+  "Admins: run RUN_IN_SUPABASE.sql once the database is back (it adds the 20th update: a tiny fingerprint of each profile picture, so a new picture shows up for everyone within a minute without re-downloading the rest)."]},
  {v:"12.0.0",t:"Clients, and a tidier app",items:[
   "New Clients page (in the sidebar under Clients & money): everyone you work for, what they pay, what they've paid, what they owe, and what's next. Search, filter by status, payments, services, teammate or tag, and sort.",
   "Each client has a profile: contact details, status and priority, tags, the teammates on it (and what each one does), internal notes, services, money and a timeline of notes, calls, payments and invoices.",
@@ -6283,7 +6307,7 @@ UI_HTML = _cliui.inject(UI_HTML)          # 12.0: clients (their services are de
         # 11.20: the AI email writer (Find Leads, Called Leads, after a call)         # 11.19: follow-ups, call guard, lead scores, saved searches, Pipeline, health        # Profit splits (11.18): who gets credit for each confirmed payment        # Liquid glass (11.17): optional look, switched in Settings > Appearance          # Call reminders (11.16): styles + page code live in leafline_reminders_ui.py          # Invoices (11.15): styles, page code and the PDF maker live in leafline_invoices_ui.py
 
 
-API_METHODS = ("boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",
+API_METHODS = ("ui_state", "boot", "get_profile", "save_profile", "get_find", "get_called", "stats", "mark", "save_lead",
                "open_site", "export_csv", "search", "stop", "get_deals", "save_deal", "delete_deal", "confirm_payment", "sb_rpc", "sb_storage", "sb_session", "sb_group_picture", "get_calendar", "save_event", "delete_event", "set_meeting",
                "sign_in", "sign_out", "change_password", "sync_status", "sync_retry", "sync_details", "get_team", "get_people",
                "set_event_done", "get_notes", "save_note", "delete_note", "get_calls", "log_call",

@@ -2,7 +2,7 @@
 Mimics: password/refresh login, bearer tokens, eq/gte filters, order/limit/offset, on_conflict + ignore-duplicates,
 version/updated_at bump on PATCH, unique phone + client_op_id (409/23505), FK on events.lead_id (409/23503),
 admin-only delete for leads/deals. It does NOT test real Postgres RLS or the SQL file."""
-import json, re, socket, threading, uuid
+import json, re, socket, threading, time, uuid
 from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -18,7 +18,7 @@ class Fake:
         self.lead = dict(key="", cap=900, used=0); self.lead_cap = True; self.google_calls = 0
         self.files = {}; self.media_cap = True; self.posts_cap = True; self.credit_cap = True; self.paid_cap = True
         self.msg_url = None; self._msg_sig = None     # Messages: forwarded to tests/pg/server.mjs (real Postgres) when set
-        self.down = False; self.done_cap = True; self.avatar_cap = True; self.pext_cap = True; self.drop_next_write = False; self.expire_tokens = False; self.n = 0
+        self.down = False; self.done_cap = True; self.avatar_cap = True; self.pext_cap = True; self.drop_next_write = False; self.expire_tokens = False; self.n = 0; self.reqlog = []; self.paused = False; self.sig_cap = True
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
         self.url = f"http://127.0.0.1:{self.httpd.server_address[1]}"
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
@@ -61,6 +61,9 @@ class Fake:
                 if F.down: s.hang_up(); return
                 u = urlparse(s.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
                 n = int(s.headers.get("Content-Length") or 0); raw = s.rfile.read(n) if n else b""
+                F.reqlog.append((time.time(), method, u.path, q.get("select", ""), "py" if "python" in (s.headers.get("User-Agent") or "").lower() else "web"))   # 12.0.1: tests count requests (data diet)
+                if F.paused:                                                              # Supabase's answer when the free plan's limits are used up (after reading the request, like the real one)
+                    return s.reply(402, {"message": "Service for this project is restricted due to the following violations: exceed_egress_quota."})
                 if F.msg_url and s.msg(method, u, q, raw): return
                 if u.path.startswith("/storage/v1/object/"): return s.storage(method, u.path, raw)
                 body = json.loads(raw) if raw else None
@@ -212,8 +215,8 @@ class Fake:
                     if tbl == "rpc/team_health":
                         if F.role(uid) != "admin": return s.reply(400, {"code": "P0001", "message": "Administrators only"})
                         st = {r["user_id"]: r for r in F.t["app_status"]}
-                        ups = {str(n): True for n in range(2, 20)}
-                        ups.update({"7": F.paid_cap, "13": F.mtg_cap, "16": F.split_cap, "18": F.email_cap, "19": getattr(F, "clients_cap", True)})
+                        ups = {str(n): True for n in range(2, 21)}
+                        ups.update({"7": F.paid_cap, "13": F.mtg_cap, "16": F.split_cap, "18": F.email_cap, "19": getattr(F, "clients_cap", True), "20": F.sig_cap})
                         people = [dict(id=p["id"], name=p["display_name"], username=p["username"], role=p["role"], active=p["active"], last_seen=p.get("last_seen"),
                                        version=st.get(p["id"], {}).get("version"), platform=st.get(p["id"], {}).get("platform"), sync_state=st.get(p["id"], {}).get("sync_state"),
                                        pending=st.get(p["id"], {}).get("pending"), last_error=st.get(p["id"], {}).get("last_error"), reported_at=st.get(p["id"], {}).get("updated_at")) for p in F.t["profiles"]]
@@ -454,6 +457,8 @@ class Fake:
                 cols = set(q.get("select", "").split(","))      # exact column names, like PostgREST
                 if tbl == "deals" and not F.paid_cap and ("confirmed" in cols or any("confirmed" in it for it in ((body if isinstance(body, list) else [body]) if isinstance(body, (dict, list)) else []))):
                     return s.reply(400, {"code": "42703", "message": "column deals.confirmed does not exist"})
+                if tbl == "profiles" and not F.sig_cap and "avatar_sig" in cols:
+                    return s.reply(400, {"code": "42703", "message": "column profiles.avatar_sig does not exist"})
                 if tbl == "profiles" and not F.avatar_cap and ("avatar" in cols or (isinstance(body, dict) and "avatar" in body)):
                     return s.reply(400, {"code": "42703", "message": "column profiles.avatar does not exist"})
                 PX = ("bio", "thought", "thought_at", "title", "mood", "accent", "banner")
@@ -497,6 +502,9 @@ class Fake:
                     for key in reversed(q.get("order", "").split(",")):
                         if key: out.sort(key=lambda r: str(r.get(key.split(".")[0])), reverse=key.endswith(".desc"))
                     off, lim = int(q.get("offset", 0)), int(q.get("limit", 100000))
+                    if tbl == "profiles" and F.sig_cap:      # mirrors migration 20: the database computes md5(avatar)
+                        import hashlib
+                        return s.reply(200, [dict(r, avatar_sig=hashlib.md5((r.get("avatar") or "").encode()).hexdigest()) for r in out[off:off + lim]], total=len(out))
                     return s.reply(200, [dict(r) for r in out[off:off + lim]], total=len(out))
                 if method == "POST":
                     made = []

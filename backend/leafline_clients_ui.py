@@ -7,7 +7,7 @@ The rules (who can see, add, archive, delete) live in the database: supabase/mig
 
 CLI_CSS = r'''
 /* ================= Clients ================= */
-#pg-clients{padding-bottom:40px}
+@media (min-width:861px){#pg-clients{padding-bottom:40px}}
 .cl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
 .cl-head h3{font-size:20px;font-weight:800}.cl-head .muted{font-size:13px;margin-top:2px;max-width:620px;line-height:1.45}
 .cl-head .acts{display:flex;gap:8px;flex-wrap:wrap}
